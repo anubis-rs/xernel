@@ -11,14 +11,18 @@ static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 static MMAP: LimineMmapRequest = LimineMmapRequest::new(0);
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    // print the panic info
+    // NOTE: this might panic again, but it is better than printing nothing
+    println!("\nKernel PANIC !!!");
+    println!("panic info: {:#?}", info);
     loop {}
 }
 
 // define the kernel's entry point function
 #[no_mangle]
 extern "C" fn kernel_main() -> ! {
-    println!("Hello, rusty world!\n");
+    println!("Hello, rusty world!");
 
     let bootloader_info = BOOTLOADER_INFO
         .get_response()
