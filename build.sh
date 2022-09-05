@@ -10,6 +10,7 @@ if [ ! -d "limine" ]; then
     git clone https://github.com/limine-bootloader/limine.git --branch=v3.0-branch-binary --depth=1
     make -C limine
 fi
+
 # 3. build the iso file
 rm -rf iso_root
 mkdir -p iso_root
@@ -22,5 +23,5 @@ xorriso -as mkisofs -b limine-cd.bin \
 limine/limine-deploy xernel.iso
 rm -rf iso_root
 
-# 4. run the kernel
-qemu-system-x86_64 -cdrom xernel.iso --no-reboot -d int -D qemulog.log
+# 4. run the kernel with UEFI
+qemu-system-x86_64 -bios ./uefi-edk2/OVMF.fd -cdrom xernel.iso --no-reboot -d int -D qemulog.log
