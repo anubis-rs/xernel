@@ -2,6 +2,9 @@
 
 set -x -e
 
+DISKNAME="xernel.hdd"
+DISKSIZE=64
+
 # 1. build the kernel
 cargo build
 
@@ -11,17 +14,14 @@ if [ ! -d "limine" ]; then
     make -C limine
 fi
 
-# 3. build the iso file
-rm -rf iso_root
-mkdir -p iso_root
-cp target/x86_64/debug/xernel limine.cfg limine/limine.sys limine/limine-cd.bin limine/limine-cd-efi.bin iso_root/
-xorriso -as mkisofs -b limine-cd.bin \
-    -no-emul-boot -boot-load-size 4 -boot-info-table \
-    --efi-boot limine-cd-efi.bin \
-    -efi-boot-part --efi-boot-image --protective-msdos-label \
-    iso_root -o xernel.iso
-limine/limine-deploy xernel.iso
-rm -rf iso_root
+dd if=/dev/zero of=$DISKNAME bs=1M count=0 seek=$DISKSIZE
+
+mformat -i $DISKNAME -F
+mcopy -i $DISKNAME target/x86_64/debug/xernel ::/xernel
+mcopy -i $DISKNAME limine.cfg ::/limine.cfg
+mmd -i $DISKNAME ::/EFI
+mmd -i $DISKNAME ::/EFI/BOOT
+mcopy -i $DISKNAME limine/BOOTX64.EFI ::/EFI/BOOT
 
 # 4. run the kernel with UEFI
-qemu-system-x86_64 -bios ./uefi-edk2/OVMF.fd -cdrom xernel.iso --no-reboot -d int -D qemulog.log
+qemu-system-x86_64 -bios ./uefi-edk2/OVMF.fd -cdrom $DISKNAME --no-reboot -d int -D qemulog.log
