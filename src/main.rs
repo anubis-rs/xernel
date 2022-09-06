@@ -2,9 +2,13 @@
 #![no_main]
 
 mod writer;
+mod framebuffer;
 
 use core::panic::PanicInfo;
 use limine::*;
+use core::arch::asm;
+
+use crate::framebuffer::{printc, init_framebuffer};
 
 static TERMINAL_REQUEST: LimineTerminalRequest = LimineTerminalRequest::new(0);
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
@@ -43,5 +47,12 @@ extern "C" fn kernel_main() -> ! {
 
     println!("mmap: {:#x?}", mmap);
 
-    loop {}
+    unsafe {
+        init_framebuffer();
+        printc();
+    }
+
+    loop {
+        unsafe { asm!("hlt"); }
+    }
 }

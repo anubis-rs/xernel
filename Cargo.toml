@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 limine = "0.1.8"
+x86_64 = "0.14.10"
+volatile = "0.4.5"
