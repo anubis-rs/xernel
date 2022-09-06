@@ -5,7 +5,6 @@ use limine::LimineTerminalResponse;
 
 // Used to write to the screen.
 use crate::TERMINAL_REQUEST;
-
 struct Writer;
 
 impl core::fmt::Write for Writer {
@@ -27,6 +26,9 @@ impl core::fmt::Write for Writer {
                 CACHED = Some(response);
             }
         }
+        /* for c in s.bytes() {
+            printc(c);
+        } */
 
         Ok(())
     }
