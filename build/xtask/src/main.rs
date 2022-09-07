@@ -3,12 +3,24 @@ use pico_args::Arguments;
 use std::path::{Path, PathBuf};
 use xshell::{cmd, Shell};
 
+const HELP: &str = "\
+xtask
+    The build system for xernel
+FLAGS:
+    -h, --help      Print this message.
+    --release       Build the kernel with optimizations.
+    --gdb           Start QEMU with GDB server enabled and waiting for a connection.
+SUBCOMMANDS:
+    build           Build the kernel without running it.
+    run             Build and run the kernel using QEMU.
+";
+
 fn main() -> Result<()> {
     let mut args = Arguments::from_env();
 
     // print help message if requested
     if args.contains(["-h", "--help"]) {
-        //print!("{}", HELP);
+        print!("{}", HELP);
         return Ok(());
     }
 
