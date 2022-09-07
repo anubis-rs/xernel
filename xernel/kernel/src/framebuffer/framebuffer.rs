@@ -1,19 +1,26 @@
 use lazy_static::lazy_static;
 
-use limine::{LimineFramebufferRequest, LimineFramebuffer};
+use limine::{LimineFramebuffer, LimineFramebufferRequest};
 
-use crate::{framebuffer::font::FONT};
+use crate::framebuffer::font::FONT;
 
 static FRAMEBUFFER_REQUEST: LimineFramebufferRequest = LimineFramebufferRequest::new(0);
 
 lazy_static! {
     static ref FRAMEBUFFER: &'static LimineFramebuffer = {
-        FRAMEBUFFER_REQUEST.get_response().get().unwrap().framebuffers.get().unwrap().get().unwrap()
+        FRAMEBUFFER_REQUEST
+            .get_response()
+            .get()
+            .unwrap()
+            .framebuffers
+            .get()
+            .unwrap()
+            .get()
+            .unwrap()
     };
 }
 
 pub unsafe fn printc(character: char) {
-
     let c = character as u8;
 
     debug_assert!(c.is_ascii());
@@ -24,31 +31,29 @@ pub unsafe fn printc(character: char) {
 
     let mut index: u16 = 0;
 
-    if character == '\n' {
-
-    }
+    if character == '\n' {}
 
     if character != ' ' {
         index = (c as u16 - 32) * 16;
     }
 
-    for i in index..index+16 {
+    for i in index..index + 16 {
         let bitmap: u8 = FONT[i as usize];
 
         for j in 0..8 {
-            if (bitmap & (1 << (7-j))) >= 1 {
+            if (bitmap & (1 << (7 - j))) >= 1 {
                 address.add(CURSOR as usize).write_volatile(0xff);
-                address.add((CURSOR+1) as usize).write_volatile(0xff);
-                address.add((CURSOR+2) as usize).write_volatile(0xff);
+                address.add((CURSOR + 1) as usize).write_volatile(0xff);
+                address.add((CURSOR + 2) as usize).write_volatile(0xff);
             }
-            CURSOR += (FRAMEBUFFER.bpp/8) as u64;
+            CURSOR += (FRAMEBUFFER.bpp / 8) as u64;
         }
         CURSOR -= FRAMEBUFFER.bpp as u64;
         CURSOR += FRAMEBUFFER.pitch;
     }
 
-	CURSOR += FRAMEBUFFER.bpp as u64;
-	CURSOR += (FRAMEBUFFER.bpp/8) as u64;
+    CURSOR += FRAMEBUFFER.bpp as u64;
+    CURSOR += (FRAMEBUFFER.bpp / 8) as u64;
 
-	CURSOR -= FRAMEBUFFER.pitch*16;
+    CURSOR -= FRAMEBUFFER.pitch * 16;
 }
