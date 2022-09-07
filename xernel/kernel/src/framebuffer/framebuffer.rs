@@ -35,7 +35,6 @@ pub unsafe fn printc(character: char) {
 
         CURSOR -= CURSOR % FRAMEBUFFER.pitch;
         CURSOR += FRAMEBUFFER.pitch * 17;
-        
 
     }
 
