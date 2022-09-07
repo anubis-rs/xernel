@@ -1,6 +1,6 @@
 # xernel
 is a hybrid kernel which tries to support multiple-architectures.
-It uses the limine boot protocol.
+It's using the limine protocol.
 Mostly made for learning purposes, no real world application.
 
 ## Build requirements
