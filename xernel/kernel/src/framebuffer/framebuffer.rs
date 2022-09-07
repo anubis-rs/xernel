@@ -31,7 +31,13 @@ pub unsafe fn printc(character: char) {
 
     let mut index: u16 = 0;
 
-    if character == '\n' {}
+    if character == '\n' {
+
+        CURSOR -= CURSOR % FRAMEBUFFER.pitch;
+        CURSOR += FRAMEBUFFER.pitch * 17;
+        
+
+    }
 
     if character != ' ' {
         index = (c as u16 - 32) * 16;
