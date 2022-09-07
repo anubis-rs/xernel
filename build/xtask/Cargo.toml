@@ -8,3 +8,4 @@ edition = "2018"
 [dependencies]
 xshell = "0.2.2"
 pico-args = "0.5.0"
+anyhow = "1.0.64"

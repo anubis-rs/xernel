@@ -1,5 +1,5 @@
 [package]
-name = "xernel-kernel"
+name = "xernel"
 version = "0.1.0"
 authors = ["Raphael O. <raphael.ob@protonmail.com"]
 description = ""

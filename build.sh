@@ -5,7 +5,7 @@ set -x -e
 DISKNAME="xernel.hdd"
 DISKSIZE=64
 
-cd crates/kernel
+cd xernel/kernel
 
 # 1. build the kernel
 cargo build
