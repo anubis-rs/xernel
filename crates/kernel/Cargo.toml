@@ -1,0 +1,13 @@
+[package]
+name = "xernel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+limine = "0.1.8"
+x86_64 = "0.14.10"
+volatile = "0.4.5"
+
+[dependencies.lazy_static]
+lazy_static = "1.4.0"
+features = ["spin_no_std"]
