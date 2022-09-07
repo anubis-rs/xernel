@@ -19,11 +19,11 @@ fi
 dd if=/dev/zero of=$DISKNAME bs=1M count=0 seek=$DISKSIZE
 
 mformat -i $DISKNAME -F
-mcopy -i $DISKNAME target/x86_64/debug/xernel ::/xernel
+mcopy -i $DISKNAME ../../target/x86_64/debug/xernel ::/xernel
 mcopy -i $DISKNAME limine.cfg ::/limine.cfg
 mmd -i $DISKNAME ::/EFI
 mmd -i $DISKNAME ::/EFI/BOOT
 mcopy -i $DISKNAME limine/BOOTX64.EFI ::/EFI/BOOT
 
 # 4. run the kernel with UEFI
-qemu-system-x86_64 -bios ./uefi-edk2/OVMF.fd -cdrom $DISKNAME --no-reboot -d int -D qemulog.log
+qemu-system-x86_64 -bios ./uefi-edk2/OVMF.fd -cdrom $DISKNAME --no-reboot --no-shutdown -d int -D qemulog.log
