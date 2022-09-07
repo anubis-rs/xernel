@@ -12,6 +12,9 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
+    let release = args.contains("--release");
+    let gdb = args.contains("--gdb");
+
     // cd into the root folder of this workspace
     let sh = Shell::new().unwrap();
 
@@ -20,14 +23,14 @@ fn main() -> Result<()> {
     match args.subcommand()?.as_deref() {
         Some("build") => {
             // build the kernel
-            build(&sh)?;
+            build(&sh, release)?;
         }
         Some("run") => {
             // first build the kernel
-            build(&sh)?;
+            build(&sh, release)?;
 
             // then run the produced binray in QEMU
-            run(&sh)?;
+            run(&sh, gdb)?;
         }
 
         Some(cmd) => bail!("Unknown subcommand: '{}'", cmd),
@@ -37,7 +40,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn build(sh: &Shell) -> Result<()> {
+fn build(sh: &Shell, rl: bool) -> Result<()> {
     if !Path::new(
         sh.current_dir()
             .as_path()
@@ -57,10 +60,13 @@ fn build(sh: &Shell) -> Result<()> {
         cmd!(sh, "make -C limine").run()?;
         sh.change_dir(root());
     }
+    
+    let release = if rl { &["--release"] } else { &[][..] };
 
     cmd!(
         sh,
         "cargo build
+                {release...}
                 -p xernel
                 --target ./build/targets/x86_64.json
                 -Z build-std=core,alloc,compiler_builtins
@@ -105,7 +111,10 @@ fn build(sh: &Shell) -> Result<()> {
     Ok(())
 }
 
-fn run(sh: &Shell) -> Result<()> {
+fn run(sh: &Shell, gdb: bool) -> Result<()> {
+
+    let gdb_debug = if gdb { &["-s", "-S"] } else { &[][..] };
+
     cmd!(
         sh,
         "qemu-system-x86_64 
@@ -114,7 +123,8 @@ fn run(sh: &Shell) -> Result<()> {
                 --no-reboot 
                 --no-shutdown
                 -d int 
-                -D qemu.log"
+                -D qemu.log
+                {gdb_debug...}"
     )
     .run()?;
 
