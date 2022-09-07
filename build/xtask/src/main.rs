@@ -41,25 +41,25 @@ fn main() -> Result<()> {
 
 fn build(sh: &Shell) -> Result<()> {
 
+    if !Path::new(sh.current_dir().as_path().join("xernel/kernel/limine").as_path()).exists() {
+        sh.change_dir(sh.current_dir().as_path().join("xernel/kernel"));
+        cmd!(sh, "git clone https://github.com/limine-bootloader/limine.git 
+                    --branch=v3.0-branch-binary 
+                    --depth=1").run()?;
+        cmd!(sh, "make -C limine").run()?;
+        sh.change_dir(root());
+    }
+
     cmd!(sh, "cargo build
                 -p xernel
                 --target ./build/targets/x86_64.json
                 -Z build-std=core,alloc,compiler_builtins
                 -Z build-std-features=compiler-builtins-mem
              ").run()?;
-    
 
-    if !Path::new(sh.current_dir().as_path().join("xernel/kernel/limine").as_path()).exists() {
-        cmd!(sh, "git clone https://github.com/limine-bootloader/limine.git 
-                    --branch=v3.0-branch-binary 
-                    --depth=1").run()?;
-        cmd!(sh, "make -C limine").run()?;
-    }
 
     let diskname = "xernel.hdd";
     let disksize = 64.to_string();
-
-    println!("{}", sh.current_dir().display());
     
     cmd!(sh, "dd if=/dev/zero of={diskname} bs=1M count=0 seek={disksize}").run()?;
 
