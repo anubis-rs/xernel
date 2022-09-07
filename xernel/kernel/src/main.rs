@@ -1,11 +1,13 @@
 #![no_std]
 #![no_main]
+#![feature(abi_x86_interrupt)]
 
 #[macro_use]
 extern crate lazy_static;
 
 mod framebuffer;
 mod gdt;
+mod idt;
 mod writer;
 
 use core::arch::asm;
@@ -30,6 +32,7 @@ extern "C" fn kernel_main() -> ! {
     println!("Hello");
 
     gdt::init();
+    idt::init();
     println!("GDT loaded");
 
     let bootloader_info = BOOTLOADER_INFO
