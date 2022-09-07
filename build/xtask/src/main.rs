@@ -74,7 +74,7 @@ fn build(sh: &Shell) -> Result<()> {
 
     cmd!(
         sh,
-        "dd if=/dev/zero of={diskname} bs=1M count=0 seek={disksize}"
+        "dd if=/dev/zero of={diskname} bs=1m count=0 seek={disksize}"
     )
     .run()?;
 
