@@ -35,11 +35,11 @@ fn main() -> Result<()> {
     match args.subcommand()?.as_deref() {
         Some("build") => {
             // build the kernel
-            build(&sh, release)?;
+            build(&sh, release, args)?;
         }
         Some("run") => {
             // first build the kernel
-            build(&sh, release)?;
+            build(&sh, release, args)?;
 
             // then run the produced binray in QEMU
             run(&sh, gdb)?;
@@ -52,7 +52,12 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn build(sh: &Shell, rl: bool) -> Result<()> {
+fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
+
+    let target = args
+            .opt_value_from_str::<_, String>("--target")?
+            .unwrap_or_else(|| "x86_64".to_string());
+
     if !Path::new(
         sh.current_dir()
             .as_path()
@@ -80,7 +85,7 @@ fn build(sh: &Shell, rl: bool) -> Result<()> {
         "cargo build
                 {release...}
                 -p xernel
-                --target ./build/targets/x86_64.json
+                --target ./build/targets/{target}.json
                 -Z build-std=core,alloc,compiler_builtins
                 -Z build-std-features=compiler-builtins-mem
              "
@@ -104,7 +109,7 @@ fn build(sh: &Shell, rl: bool) -> Result<()> {
     cmd!(sh, "mformat -i {diskname} -F").run()?;
     cmd!(
         sh,
-        "mcopy -i {diskname} ./target/x86_64/debug/xernel ::/xernel"
+        "mcopy -i {diskname} ./target/{target}/debug/xernel ::/xernel"
     )
     .run()?;
     cmd!(

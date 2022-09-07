@@ -32,7 +32,6 @@ pub unsafe fn printc(character: char) {
     let mut index: u16 = 0;
 
     if character == '\n' {
-
         CURSOR -= CURSOR % FRAMEBUFFER.pitch;
         CURSOR += FRAMEBUFFER.pitch * 17;
 
