@@ -2,6 +2,6 @@
     "rust-analyzer.checkOnSave.allTargets": false,
     "rust-analyzer.checkOnSave.extraArgs": [
         "--target",
-        "./.cargo/x86_64.json"
+        "./build/targets/x86_64.json"
     ]
 }
