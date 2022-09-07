@@ -1,7 +1,11 @@
 [package]
-name = "xernel"
+name = "xernel-kernel"
 version = "0.1.0"
+authors = ["Raphael O. <raphael.ob@protonmail.com"]
+description = ""
 edition = "2021"
+repository = "https://github.com/anubis-rs/xernel"
+license = ""
 
 [dependencies]
 limine = "0.1.8"

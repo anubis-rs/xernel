@@ -1,7 +1,7 @@
 [workspace]
 members = [
   "build/xtask",
-  "crates/kernel",
+  "xernel/kernel",
 ]
 
 [profile.release]
