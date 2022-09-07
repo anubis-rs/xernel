@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 use pico_args::Arguments;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use xshell::{Shell, cmd};
 
 fn main() -> Result<()> {
@@ -16,7 +16,7 @@ fn main() -> Result<()> {
     // cd into the root folder of this workspace
     let sh = Shell::new().unwrap();
 
-    sh.change_dir(root());
+    let _cwd = sh.push_dir(root());
 
     match args.subcommand()?.as_deref() {
         Some("build") => {
@@ -41,11 +41,15 @@ fn main() -> Result<()> {
 
 fn build(sh: &Shell) -> Result<()> {
 
-    sh.change_dir("xernel/kernel");
+    cmd!(sh, "cargo build
+                -p xernel
+                --target ./build/targets/x86_64.json
+                -Z build-std=core,alloc,compiler_builtins
+                -Z build-std-features=compiler-builtins-mem
+             ").run()?;
+    
 
-    cmd!(sh, "cargo build").run()?;
-
-    if !PathBuf::from(sh.current_dir().join("/limine")).exists() {
+    if !Path::new(sh.current_dir().as_path().join("xernel/kernel/limine").as_path()).exists() {
         cmd!(sh, "git clone https://github.com/limine-bootloader/limine.git 
                     --branch=v3.0-branch-binary 
                     --depth=1").run()?;
@@ -53,16 +57,18 @@ fn build(sh: &Shell) -> Result<()> {
     }
 
     let diskname = "xernel.hdd";
-    let disksize = "64";
+    let disksize = 64.to_string();
 
+    println!("{}", sh.current_dir().display());
+    
     cmd!(sh, "dd if=/dev/zero of={diskname} bs=1M count=0 seek={disksize}").run()?;
 
     cmd!(sh, "mformat -i {diskname} -F").run()?;
-    cmd!(sh, "mcopy -i {diskname} ../../target/x86_64/debug/xernel ::/xernel").run()?;
-    cmd!(sh, "mcopy -i {diskname} limine.cfg ::/limine.cfg").run()?;
+    cmd!(sh, "mcopy -i {diskname} ./target/x86_64/debug/xernel ::/xernel").run()?;
+    cmd!(sh, "mcopy -i {diskname} xernel/kernel/limine.cfg ::/limine.cfg").run()?;
     cmd!(sh, "mmd -i {diskname} ::/EFI").run()?;
     cmd!(sh, "mmd -i {diskname} ::/EFI/BOOT").run()?;
-    cmd!(sh, "mcopy -i {diskname} limine/BOOTX64.EFI ::/EFI/BOOT").run()?;
+    cmd!(sh, "mcopy -i {diskname} xernel/kernel/limine/BOOTX64.EFI ::/EFI/BOOT").run()?;
 
     Ok(())
 }
@@ -70,9 +76,10 @@ fn build(sh: &Shell) -> Result<()> {
 fn run(sh: &Shell) -> Result<()> {
 
     cmd!(sh, "qemu-system-x86_64 
-                -bios ./uefi-edk2/OVMF.fd 
-                -cdrom xernel.iso 
+                -bios ./xernel/kernel/uefi-edk2/OVMF.fd 
+                -cdrom xernel.hdd 
                 --no-reboot 
+                --no-shutdown
                 -d int 
                 -D qemu.log").run()?;
 
@@ -82,6 +89,7 @@ fn run(sh: &Shell) -> Result<()> {
 
 fn root() -> PathBuf {
     let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    path.pop();
     path.pop();
     path
 }

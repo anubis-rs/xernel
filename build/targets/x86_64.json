@@ -16,7 +16,7 @@
     "pre-link-args": {
         "ld.lld": [
             "--gc-sections",
-            "--script=.cargo/kernel.ld"
+            "--script=./build/linker-scripts/kernel.ld"
         ]
     }
 }

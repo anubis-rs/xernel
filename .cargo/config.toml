@@ -1,2 +1,2 @@
 [alias]
-kernel = "run --package xtask --"
+kernel = "run -p xtask --"
