@@ -5,14 +5,16 @@
 #[macro_use]
 extern crate lazy_static;
 
+mod arch;
 mod framebuffer;
-mod gdt;
-mod idt;
 mod writer;
 
 use core::arch::asm;
 use core::panic::PanicInfo;
 use limine::*;
+
+use arch::x64::gdt;
+use arch::x64::idt;
 
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 static MMAP: LimineMmapRequest = LimineMmapRequest::new(0);
@@ -52,7 +54,7 @@ extern "C" fn kernel_main() -> ! {
         .expect("barebones: recieved no mmap")
         .mmap();
 
-    //println!("mmap: {:#x?}", mmap);
+    println!("mmap: {:#x?}", mmap);
 
     loop {
         unsafe {
