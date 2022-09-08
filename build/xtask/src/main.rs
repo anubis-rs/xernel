@@ -13,6 +13,7 @@ FLAGS:
 SUBCOMMANDS:
     build           Build the kernel without running it.
     run             Build and run the kernel using QEMU.
+    lint            Run clippy and cargo fmt
 ";
 
 fn main() -> Result<()> {
@@ -26,6 +27,7 @@ fn main() -> Result<()> {
 
     let release = args.contains("--release");
     let gdb = args.contains("--gdb");
+    let check = args.contains("--check");
 
     // cd into the root folder of this workspace
     let sh = Shell::new().unwrap();
@@ -44,6 +46,9 @@ fn main() -> Result<()> {
             // then run the produced binray in QEMU
             run(&sh, gdb)?;
         }
+        Some("lint") => {
+            lint(&sh, check);
+        }
 
         Some(cmd) => bail!("Unknown subcommand: '{}'", cmd),
         None => bail!("You must supply a subcommand."),
@@ -53,10 +58,9 @@ fn main() -> Result<()> {
 }
 
 fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
-
     let target = args
-            .opt_value_from_str::<_, String>("--target")?
-            .unwrap_or_else(|| "x86_64".to_string());
+        .opt_value_from_str::<_, String>("--target")?
+        .unwrap_or_else(|| "x86_64".to_string());
 
     if !Path::new(
         sh.current_dir()
@@ -77,7 +81,7 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
         cmd!(sh, "make -C limine").run()?;
         sh.change_dir(root());
     }
-    
+
     let release = if rl { &["--release"] } else { &[][..] };
 
     cmd!(
@@ -95,14 +99,14 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
     let diskname = "xernel.hdd";
     let disksize = 64.to_string();
 
-    let bsUnit = match std::env::consts::OS {
+    let bs_unit = match std::env::consts::OS {
         "macos" => "m",
-        _ => "M"
+        _ => "M",
     };
 
     cmd!(
         sh,
-        "dd if=/dev/zero of={diskname} bs=1{bsUnit} count=0 seek={disksize}"
+        "dd if=/dev/zero of={diskname} bs=1{bs_unit} count=0 seek={disksize}"
     )
     .run()?;
 
@@ -129,7 +133,6 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
 }
 
 fn run(sh: &Shell, gdb: bool) -> Result<()> {
-
     let gdb_debug = if gdb { &["-s", "-S"] } else { &[][..] };
 
     cmd!(
@@ -146,6 +149,32 @@ fn run(sh: &Shell, gdb: bool) -> Result<()> {
     .run()?;
 
     Ok(())
+}
+
+fn lint(sh: &Shell, check: bool) -> Result<()> {
+
+    let _cwd = sh.push_dir(root());
+
+    cmd!(
+        sh,
+        "cargo clippy
+            -p xernel
+            --target ./build/targets/x86_64.json
+            -Zbuild-std=core,alloc,compiler_builtins"
+    )
+    .run()?;
+
+    let check_arg = if check { &["--", "--check"][..] } else { &[] };
+    cmd!(
+        sh,
+        "cargo fmt
+            -p xernel
+            {check_arg...}"
+    )
+    .run()?;
+
+    Ok(())
+
 }
 
 fn root() -> PathBuf {
