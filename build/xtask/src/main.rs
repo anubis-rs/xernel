@@ -135,9 +135,15 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
 fn run(sh: &Shell, gdb: bool) -> Result<()> {
     let gdb_debug = if gdb { &["-s", "-S"] } else { &[][..] };
 
+    let mut file_extension = "";
+
+    if wsl::is_wsl() {
+        file_extension = ".exe";
+    }
+
     cmd!(
         sh,
-        "qemu-system-x86_64 
+        "qemu-system-x86_64{file_extension}
                 -bios ./xernel/kernel/uefi-edk2/OVMF.fd 
                 -cdrom xernel.hdd 
                 --no-reboot 
