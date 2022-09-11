@@ -4,15 +4,15 @@ use crate::{println, print};
 
 static mut USABLE_PAGE_COUNT: u64 = 0;
 
+static MMAP_Request: LimineMmapRequest = LimineMmapRequest::new(0);
+
 lazy_static! {
-    static ref PAGE_LIST: PageList = {
-        let mmap: &'static [LimineMemmapEntry] = LimineMmapRequest::new(0).get_response()
-            .get()
-            .expect("barebones: recieved no mmap")
-            .mmap()
-            .unwrap();
-        
-        PageList::new(mmap)
+    static ref PAGE_LIST: PageList = PageList {
+        mmap: MMAP_Request.get_response()
+        .get()
+        .expect("barebones: recieved no mmap")
+        .mmap()
+        .unwrap()
     };
 }
 
@@ -25,7 +25,7 @@ impl PageList {
         Self { mmap }
     }
 
-    fn len() -> u64 {
+    fn len(&self) -> u64 {
         unsafe { USABLE_PAGE_COUNT }
     }
 }
@@ -44,5 +44,5 @@ pub fn init() {
         }
     }
 
-    //println!("usable page count: {}", PAGE_LIST.len());
+    println!("usable page count: {}", PAGE_LIST.len());
 }

@@ -17,7 +17,7 @@ use limine::*;
 use arch::x64::gdt;
 use arch::x64::idt;
 
-use mem::pm;
+use mem::pmm;
 
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 
@@ -39,7 +39,7 @@ extern "C" fn kernel_main() -> ! {
     idt::init();
     println!("GDT loaded");
 
-    pm::init();
+    pmm::init();
     println!("pm initialized");
 
     let bootloader_info = BOOTLOADER_INFO
