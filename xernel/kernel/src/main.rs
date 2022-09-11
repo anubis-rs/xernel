@@ -7,6 +7,7 @@ extern crate lazy_static;
 
 mod arch;
 mod framebuffer;
+mod mem;
 mod writer;
 
 use core::arch::asm;
@@ -16,8 +17,9 @@ use limine::*;
 use arch::x64::gdt;
 use arch::x64::idt;
 
+use mem::pm;
+
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
-static MMAP: LimineMmapRequest = LimineMmapRequest::new(0);
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
@@ -37,6 +39,9 @@ extern "C" fn kernel_main() -> ! {
     idt::init();
     println!("GDT loaded");
 
+    pm::init();
+    println!("pm initialized");
+
     let bootloader_info = BOOTLOADER_INFO
         .get_response()
         .get()
@@ -47,14 +52,6 @@ extern "C" fn kernel_main() -> ! {
         bootloader_info.name.to_string().unwrap(),
         bootloader_info.version.to_string().unwrap()
     );
-
-    let mmap = MMAP
-        .get_response()
-        .get()
-        .expect("barebones: recieved no mmap")
-        .mmap();
-
-    println!("mmap: {:#x?}", mmap);
 
     loop {
         unsafe {
