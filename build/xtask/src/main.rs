@@ -47,7 +47,7 @@ fn main() -> Result<()> {
             run(&sh, gdb)?;
         }
         Some("lint") => {
-            lint(&sh, check);
+            lint(&sh, check)?;
         }
 
         Some(cmd) => bail!("Unknown subcommand: '{}'", cmd),
