@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use x86_64::set_general_handler;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
-use crate::{println, print};
+use crate::{print, println};
 
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
@@ -17,9 +17,7 @@ pub fn init() {
 }
 
 fn interrupt_handler(stack_frame: InterruptStackFrame, index: u8, error_code: Option<u64>) {
-
     println!("IP: {:?}", stack_frame.instruction_pointer);
     println!("index: {}", index);
     println!("error_code: {}", error_code.unwrap_or(0));
-
 }

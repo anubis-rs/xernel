@@ -159,7 +159,6 @@ unsafe fn search_bit() -> Option<usize> {
     let mut current_index: u64 = LAST_ALLOCATED_PAGE_INDEX + 1;
 
     loop {
-
         if current_index >= PAGE_LIST.len() {
             current_index = 0;
         }
