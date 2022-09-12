@@ -11,6 +11,8 @@ mod framebuffer;
 #[macro_use]
 mod logger;
 mod mem;
+
+#[macro_use]
 mod writer;
 
 use core::arch::asm;
