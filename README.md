@@ -1,9 +1,16 @@
 # xernel
-is a hybrid kernel which tries to support multiple-architectures.
+A kernel which tries to support multiple architectures/platforms using a hybrid kernel architecture.
 It's using the limine protocol.
 Mostly made for learning purposes, no real world application.
 
-## Build requirements
+## Building
+For building you simply need a working Rust installation with the nightly toolchain installed.
+We use xtask as our workflow for building and running the kernel.
+Therefore the command `cargo kernel` is used.
+
+See `cargo kernel help` for a list of subcommands and available flags.
+
+You can simply use `cargo kernel build` or `cargo kernel run`, it is going to use x64 as default target.
 
 ## Contact
 Feel free to reach out to `Lockna#5599` or `mp#2453` on Discord
