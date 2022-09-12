@@ -11,10 +11,10 @@ lazy_static! {
         FRAMEBUFFER_REQUEST
             .get_response()
             .get()
-            .unwrap()
+            .expect("limine-protocol: invalid framebuffer response");
             .framebuffers
-            .get()
-            .unwrap()
+            .first()
+            .expect("limine-protocol: could not get framebuffer")
             .get()
             .unwrap()
     };
