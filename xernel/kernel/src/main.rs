@@ -38,17 +38,16 @@ fn panic(info: &PanicInfo) -> ! {
 // define the kernel's entry point function
 #[no_mangle]
 extern "C" fn kernel_main() -> ! {
-    println!("Hello");
-
-    dbg!("hello");
-    dbg!("hello {}", "world");
-
     gdt::init();
     idt::init();
     println!("GDT loaded");
 
     pmm::init();
     println!("pm initialized");
+
+    // test allocate a page
+    let addr = pmm::alloc().unwrap();
+    pmm::free(addr);
 
     let bootloader_info = BOOTLOADER_INFO
         .get_response()
