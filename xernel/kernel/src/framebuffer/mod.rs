@@ -1,5 +1,7 @@
 mod font;
 
+use core::ptr::copy;
+
 use crate::framebuffer::font::FONT;
 use limine::{LimineFramebuffer, LimineFramebufferRequest};
 
@@ -24,21 +26,49 @@ pub unsafe fn printc(character: char) {
     let c = character as u8;
 
     static mut CURSOR: u64 = 0;
+    static mut CHAR_LINE: u64 = 0;
 
     let address = FRAMEBUFFER.address.as_mut_ptr().unwrap().cast::<u8>();
 
     let mut index: u16 = 0;
 
+    if CURSOR >= fb_lenght() {
+        CURSOR -= FRAMEBUFFER.pitch * 17;
+
+        copy(address.add((FRAMEBUFFER.pitch*17) as usize), address, (fb_lenght() - FRAMEBUFFER.pitch * 17) as usize);
+
+        for i in 0..FRAMEBUFFER.pitch*17 {
+            address.add((CURSOR + i) as usize).write_volatile(0x0);
+        }
+    }
+
     if character == '\n' {
         CURSOR -= CURSOR % FRAMEBUFFER.pitch;
         CURSOR += FRAMEBUFFER.pitch * 17;
 
+        CHAR_LINE = 0;
+
         return;
+    }
+
+    if character == '\t' {
+        CURSOR += 32*4*4;
+
+        return;
+    }
+
+    if CHAR_LINE == FRAMEBUFFER.width/9 {
+        CHAR_LINE = 0;
+
+        CURSOR -= CURSOR % FRAMEBUFFER.pitch;
+        CURSOR += FRAMEBUFFER.pitch * 17;
     }
 
     if character != ' ' {
         index = (c as u16 - 32) * 16;
     }
+
+    CHAR_LINE += 1;
 
     for i in index..index + 16 {
         let bitmap: u8 = FONT[i as usize];
@@ -59,4 +89,8 @@ pub unsafe fn printc(character: char) {
     CURSOR += (FRAMEBUFFER.bpp / 8) as u64;
 
     CURSOR -= FRAMEBUFFER.pitch * 16;
+}
+
+fn fb_lenght() -> u64 {
+    (FRAMEBUFFER.width * FRAMEBUFFER.height) as u64
 }
