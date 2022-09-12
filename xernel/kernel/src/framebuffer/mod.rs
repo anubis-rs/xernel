@@ -32,12 +32,23 @@ pub unsafe fn printc(character: char) {
 
     let mut index: u16 = 0;
 
+    if CHAR_LINE == FRAMEBUFFER.width / 9 {
+        CHAR_LINE = 0;
+
+        CURSOR -= CURSOR % FRAMEBUFFER.pitch;
+        CURSOR += FRAMEBUFFER.pitch * 17;
+    }
+
     if CURSOR >= fb_length() - FRAMEBUFFER.pitch * 17 {
         CURSOR -= FRAMEBUFFER.pitch * 17;
 
-        copy(address.add((FRAMEBUFFER.pitch*17) as usize), address, (fb_length() - FRAMEBUFFER.pitch * 17) as usize);
+        copy(
+            address.add((FRAMEBUFFER.pitch * 17) as usize),
+            address,
+            (fb_length() - FRAMEBUFFER.pitch * 17) as usize,
+        );
 
-        for i in 0..FRAMEBUFFER.pitch*17 {
+        for i in 0..FRAMEBUFFER.pitch * 17 {
             address.add((CURSOR + i) as usize).write_volatile(0x00);
         }
     }
@@ -52,16 +63,9 @@ pub unsafe fn printc(character: char) {
     }
 
     if character == '\t' {
-        CURSOR += 32*4*4;
+        CURSOR += 32 * 4 * 4;
 
         return;
-    }
-
-    if CHAR_LINE == FRAMEBUFFER.width/9 {
-        CHAR_LINE = 0;
-
-        CURSOR -= CURSOR % FRAMEBUFFER.pitch;
-        CURSOR += FRAMEBUFFER.pitch * 17;
     }
 
     if character != ' ' {
