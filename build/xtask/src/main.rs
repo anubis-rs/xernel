@@ -148,6 +148,7 @@ fn run(sh: &Shell, gdb: bool) -> Result<()> {
                 -cdrom xernel.hdd 
                 --no-reboot 
                 --no-shutdown
+                -debugcon stdio
                 -d int 
                 -D qemu.log
                 {gdb_debug...}"

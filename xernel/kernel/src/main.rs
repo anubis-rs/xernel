@@ -7,6 +7,9 @@ extern crate lazy_static;
 
 mod arch;
 mod framebuffer;
+
+#[macro_use]
+mod logger;
 mod mem;
 mod writer;
 
@@ -34,6 +37,9 @@ fn panic(info: &PanicInfo) -> ! {
 #[no_mangle]
 extern "C" fn kernel_main() -> ! {
     println!("Hello");
+
+    dbg!("hello");
+    dbg!("hello {}", "world");
 
     gdt::init();
     idt::init();
