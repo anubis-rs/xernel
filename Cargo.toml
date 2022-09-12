@@ -2,6 +2,7 @@
 members = [
   "build/xtask",
   "xernel/kernel",
+  "crates/libxernel",
 ]
 
 [profile.release]

@@ -12,3 +12,4 @@ limine = "0.1.8"
 x86_64 = "0.14.10"
 volatile = "0.4.5"
 lazy_static = { version = "1.4.0", features = ["spin_no_std"]}
+libxernel = { path = "../../crates/libxernel" }

@@ -159,7 +159,6 @@ fn run(sh: &Shell, gdb: bool) -> Result<()> {
 }
 
 fn lint(sh: &Shell, check: bool) -> Result<()> {
-
     let _cwd = sh.push_dir(root());
 
     cmd!(
@@ -181,7 +180,6 @@ fn lint(sh: &Shell, check: bool) -> Result<()> {
     .run()?;
 
     Ok(())
-
 }
 
 fn root() -> PathBuf {
