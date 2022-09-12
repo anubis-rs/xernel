@@ -32,13 +32,13 @@ pub unsafe fn printc(character: char) {
 
     let mut index: u16 = 0;
 
-    if CURSOR >= fb_lenght() {
+    if CURSOR >= fb_length() - FRAMEBUFFER.pitch * 17 {
         CURSOR -= FRAMEBUFFER.pitch * 17;
 
-        copy(address.add((FRAMEBUFFER.pitch*17) as usize), address, (fb_lenght() - FRAMEBUFFER.pitch * 17) as usize);
+        copy(address.add((FRAMEBUFFER.pitch*17) as usize), address, (fb_length() - FRAMEBUFFER.pitch * 17) as usize);
 
         for i in 0..FRAMEBUFFER.pitch*17 {
-            address.add((CURSOR + i) as usize).write_volatile(0x0);
+            address.add((CURSOR + i) as usize).write_volatile(0x00);
         }
     }
 
@@ -91,6 +91,6 @@ pub unsafe fn printc(character: char) {
     CURSOR -= FRAMEBUFFER.pitch * 16;
 }
 
-fn fb_lenght() -> u64 {
-    (FRAMEBUFFER.width * FRAMEBUFFER.height) as u64
+fn fb_length() -> u64 {
+    (FRAMEBUFFER.height * FRAMEBUFFER.pitch) as u64
 }
