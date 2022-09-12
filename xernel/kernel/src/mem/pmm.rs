@@ -1,8 +1,6 @@
 use limine::{LimineMemmapEntry, LimineMemoryMapEntryType, LimineMmapRequest};
 use x86_64::PhysAddr;
 
-use crate::{print, println};
-
 pub const PAGE_SIZE: u64 = 4096;
 
 static mut USABLE_PAGE_COUNT: u64 = 0;
@@ -100,7 +98,6 @@ pub fn init() {
         bitmap_page_count += 1;
     }
 
-    println!("bitmap page count: {}", bitmap_page_count);
     for i in 0..bitmap_page_count {
         set_bit(i);
     }
@@ -122,6 +119,22 @@ fn set_bit(index: usize) {
     }
 }
 
+fn get_bit(index: usize) -> bool {
+    let page_index = index / 8 / PAGE_SIZE as usize;
+    let bit_index = index % (PAGE_SIZE as usize * 8);
+
+    let page_addr = PAGE_LIST.index(page_index);
+    let byte_offset = bit_index / 8;
+    let bit_offset = bit_index % 8;
+
+    let byte_addr = (page_addr.as_u64() + byte_offset as u64) as *mut u8;
+
+    unsafe {
+        let byte = byte_addr.read_volatile();
+        byte & (1 << bit_offset) != 0
+    }
+}
+
 fn clear_bit(index: usize) {
     let page_index = index / 8 / PAGE_SIZE as usize;
     let bit_index = index % (PAGE_SIZE as usize * 8);
@@ -138,54 +151,38 @@ fn clear_bit(index: usize) {
     }
 }
 
-fn search_bit() -> Option<usize> {
-    // TODO: optimize by remembering the last index
+static mut LAST_ALLOCATED_PAGE_INDEX: u64 = 0;
 
-    let mut current_page: u64 = 0;
+unsafe fn search_bit() -> Option<usize> {
+    // TODO: optimize by checking multiple bits at once
+
+    let mut current_index: u64 = LAST_ALLOCATED_PAGE_INDEX + 1;
 
     loop {
-        let addr = PAGE_LIST.index(current_page as usize);
 
-        // check page
-        for i in 0..PAGE_SIZE {
-            let byte_addr = (addr.as_u64() + i) as *mut u8;
-
-            // check if it is ok to read this byte
-            if (current_page * PAGE_SIZE * 8) as usize + (i * 8) as usize
-                >= PAGE_LIST.len() as usize
-            {
-                return None;
-            }
-
-            unsafe {
-                let byte = byte_addr.read_volatile();
-
-                if byte != 0xFF {
-                    // find the bit
-                    for j in 0..8 {
-                        let is_set = byte & (1 << j) != 0;
-                        let idx = (current_page * PAGE_SIZE * 8) as usize + (i * 8 + j) as usize;
-
-                        if idx > PAGE_LIST.len() as usize {
-                            return None;
-                        }
-
-                        byte_addr.write_volatile(byte | (1 << j));
-
-                        if !is_set {
-                            return Some(idx);
-                        }
-                    }
-                }
-            }
+        if current_index >= PAGE_LIST.len() {
+            current_index = 0;
         }
 
-        current_page += 1;
+        if current_index == LAST_ALLOCATED_PAGE_INDEX {
+            return None;
+        }
+
+        let is_used = get_bit(current_index as usize);
+
+        if !is_used {
+            LAST_ALLOCATED_PAGE_INDEX = current_index;
+            set_bit(current_index as usize);
+
+            return Some(current_index as usize);
+        }
+
+        current_index += 1;
     }
 }
 
 pub fn alloc() -> Option<PhysAddr> {
-    let idx = search_bit()?;
+    let idx = unsafe { search_bit()? };
 
     Some(PAGE_LIST.index(idx))
 }
