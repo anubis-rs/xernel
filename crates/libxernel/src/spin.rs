@@ -33,7 +33,7 @@ impl<T> Spinlock<T> {
 
             while self.is_locked.load(Ordering::Relaxed) {
                 unsafe {
-                    asm!("pause");
+                    core::hint::spin_loop();
                 }
             }
         }
