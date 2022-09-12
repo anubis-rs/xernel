@@ -12,16 +12,16 @@ lazy_static! {
             .get()
             .expect("limine-protocol: invalid framebuffer response")
             .framebuffers()
-            .expect("limine-protocol: could not get framebuffers")
+            .unwrap()
             .first()
             .expect("limine-protocol: could not get first framebuffer")
     };
 }
 
 pub unsafe fn printc(character: char) {
-    let c = character as u8;
+    debug_assert!(character.is_ascii());
 
-    debug_assert!(c.is_ascii());
+    let c = character as u8;
 
     static mut CURSOR: u64 = 0;
 
