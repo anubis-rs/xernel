@@ -1,27 +1,37 @@
+use libxernel::spin::Spinlock;
 use limine::{LimineMemmapEntry, LimineMemoryMapEntryType, LimineMmapRequest};
-use x86_64::{PhysAddr, structures::paging::PhysFrame};
+use x86_64::{
+    structures::paging::{PhysFrame, Size4KiB},
+    PhysAddr,
+};
 
 pub const FRAME_SIZE: u64 = 4096;
 
 static mut USABLE_FRAME_COUNT: u64 = 0;
 static MMAP_REQUEST: LimineMmapRequest = LimineMmapRequest::new(0);
 
+// TODO: create struct for bit address (addres + offset) to remove duplicate code in get_bit, set_bit, clear_bit
+
 lazy_static! {
-    static ref FRAME_LIST: FrameList = FrameList {
-        mmap: MMAP_REQUEST
-            .get_response()
-            .get()
-            .expect("barebones: recieved no mmap")
-            .mmap()
-            .unwrap()
-    };
+    static ref MEMORY_MAP: &'static [LimineMemmapEntry] = MMAP_REQUEST
+        .get_response()
+        .get()
+        .expect("barebones: recieved no mmap")
+        .mmap()
+        .unwrap();
 }
 
-struct FrameList {
+pub static FRAME_ALLOCATOR: Spinlock<FrameAllocator> = Spinlock::new(FrameAllocator {
+    mmap: &[],
+    last_index: 0,
+});
+
+pub struct FrameAllocator {
     mmap: &'static [LimineMemmapEntry],
+    last_index: u64,
 }
 
-impl FrameList {
+impl FrameAllocator {
     fn len(&self) -> u64 {
         unsafe { USABLE_FRAME_COUNT }
     }
@@ -79,10 +89,104 @@ impl FrameList {
 
         panic!("FrameList addr_to_index out of bounds");
     }
+
+    fn set_bit(&self, index: usize) {
+        let frame_index = index / 8 / FRAME_SIZE as usize;
+        let bit_index = index % (FRAME_SIZE as usize * 8);
+
+        let frame_addr = self.index(frame_index);
+        let byte_offset = bit_index / 8;
+        let bit_offset = bit_index % 8;
+
+        let byte_addr = (frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
+
+        unsafe {
+            let byte = byte_addr.read_volatile();
+            byte_addr.write_volatile(byte | (1 << bit_offset));
+        }
+    }
+
+    fn get_bit(&self, index: usize) -> bool {
+        let frame_index = index / 8 / FRAME_SIZE as usize;
+        let bit_index = index % (FRAME_SIZE as usize * 8);
+
+        let frame_addr = self.index(frame_index);
+        let byte_offset = bit_index / 8;
+        let bit_offset = bit_index % 8;
+
+        let byte_addr = (frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
+
+        unsafe {
+            let byte = byte_addr.read_volatile();
+            byte & (1 << bit_offset) != 0
+        }
+    }
+
+    fn clear_bit(&self, index: usize) {
+        let frame_index = index / 8 / FRAME_SIZE as usize;
+        let bit_index = index % (FRAME_SIZE as usize * 8);
+
+        let frame_addr = self.index(frame_index);
+        let byte_offset = bit_index / 8;
+        let bit_offset = bit_index % 8;
+
+        let byte_addr = (frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
+
+        unsafe {
+            let byte = byte_addr.read_volatile();
+            byte_addr.write_volatile(byte & !(1 << bit_offset));
+        }
+    }
+
+    unsafe fn search_bit(&mut self) -> Option<usize> {
+        // TODO: optimize by checking multiple bits at once
+
+        let mut current_index: u64 = self.last_index + 1;
+
+        loop {
+            if current_index >= self.len() {
+                current_index = 0;
+            }
+
+            if current_index == self.last_index {
+                return None;
+            }
+
+            let is_used = self.get_bit(current_index as usize);
+
+            if !is_used {
+                self.last_index = current_index;
+                self.set_bit(current_index as usize);
+
+                return Some(current_index as usize);
+            }
+
+            current_index += 1;
+        }
+    }
+}
+
+unsafe impl x86_64::structures::paging::FrameAllocator<Size4KiB> for FrameAllocator {
+    fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
+        let idx = unsafe { self.search_bit()? };
+
+        Some(self.index(idx))
+    }
+}
+
+impl x86_64::structures::paging::FrameDeallocator<Size4KiB> for FrameAllocator {
+    unsafe fn deallocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {
+        let idx = self.addr_to_index(frame.start_address());
+        self.clear_bit(idx);
+    }
 }
 
 pub fn init() {
-    for entry in FRAME_LIST.mmap {
+    let mut frame_allocator = FRAME_ALLOCATOR.lock();
+
+    frame_allocator.mmap = &MEMORY_MAP;
+
+    for entry in frame_allocator.mmap {
         if entry.typ == LimineMemoryMapEntryType::Usable {
             unsafe {
                 USABLE_FRAME_COUNT += entry.len / FRAME_SIZE as u64;
@@ -91,7 +195,7 @@ pub fn init() {
     }
 
     // create the bitmap
-    let bitmap_size = FRAME_LIST.len() / 8;
+    let bitmap_size = frame_allocator.len() / 8;
     let mut bitmap_frame_count = (bitmap_size / FRAME_SIZE) as usize;
 
     if bitmap_size % FRAME_SIZE as u64 != 0 {
@@ -99,98 +203,6 @@ pub fn init() {
     }
 
     for i in 0..bitmap_frame_count {
-        set_bit(i);
+        frame_allocator.set_bit(i);
     }
-}
-
-fn set_bit(index: usize) {
-    let frame_index = index / 8 / FRAME_SIZE as usize;
-    let bit_index = index % (FRAME_SIZE as usize * 8);
-
-    let frame_addr = FRAME_LIST.index(frame_index);
-    let byte_offset = bit_index / 8;
-    let bit_offset = bit_index % 8;
-
-    let byte_addr = (frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
-
-    unsafe {
-        let byte = byte_addr.read_volatile();
-        byte_addr.write_volatile(byte | (1 << bit_offset));
-    }
-}
-
-fn get_bit(index: usize) -> bool {
-    let frame_index = index / 8 / FRAME_SIZE as usize;
-    let bit_index = index % (FRAME_SIZE as usize * 8);
-
-    let frame_addr = FRAME_LIST.index(frame_index);
-    let byte_offset = bit_index / 8;
-    let bit_offset = bit_index % 8;
-
-    let byte_addr = (frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
-
-    unsafe {
-        let byte = byte_addr.read_volatile();
-        byte & (1 << bit_offset) != 0
-    }
-}
-
-fn clear_bit(index: usize) {
-    let frame_index = index / 8 / FRAME_SIZE as usize;
-    let bit_index = index % (FRAME_SIZE as usize * 8);
-
-    let frame_addr = FRAME_LIST.index(frame_index);
-    let byte_offset = bit_index / 8;
-    let bit_offset = bit_index % 8;
-
-    let byte_addr = (frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
-
-    unsafe {
-        let byte = byte_addr.read_volatile();
-        byte_addr.write_volatile(byte & !(1 << bit_offset));
-    }
-}
-
-static mut LAST_ALLOCATED_FRAME_INDEX: u64 = 0;
-
-unsafe fn search_bit() -> Option<usize> {
-    // TODO: optimize by checking multiple bits at once
-
-    let mut current_index: u64 = LAST_ALLOCATED_FRAME_INDEX + 1;
-
-    loop {
-        if current_index >= FRAME_LIST.len() {
-            current_index = 0;
-        }
-
-        if current_index == LAST_ALLOCATED_FRAME_INDEX {
-            return None;
-        }
-
-        let is_used = get_bit(current_index as usize);
-
-        if !is_used {
-            LAST_ALLOCATED_FRAME_INDEX = current_index;
-            set_bit(current_index as usize);
-
-            return Some(current_index as usize);
-        }
-
-        current_index += 1;
-    }
-}
-
-pub fn alloc() -> Option<PhysFrame> {
-    let idx = unsafe { search_bit()? };
-
-    Some(FRAME_LIST.index(idx))
-}
-
-pub fn free(addr: PhysAddr) {
-    let idx = FRAME_LIST.addr_to_index(addr);
-    clear_bit(idx);
-}
-
-pub fn free_frame(addr: PhysFrame) {
-    free(addr.start_address());
 }

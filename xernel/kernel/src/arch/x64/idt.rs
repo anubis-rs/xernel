@@ -1,7 +1,7 @@
+use core::arch::asm;
 use lazy_static::lazy_static;
 use x86_64::set_general_handler;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
-use core::arch::asm;
 
 use crate::{print, println};
 

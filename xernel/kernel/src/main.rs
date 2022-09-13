@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 #![feature(abi_x86_interrupt)]
+#![feature(core_intrinsics)]
 
 #[macro_use]
 extern crate lazy_static;
@@ -23,6 +24,8 @@ use arch::x64::gdt;
 use arch::x64::idt;
 
 use mem::{pmm, vmm};
+use x86_64::structures::paging::FrameAllocator;
+use x86_64::structures::paging::FrameDeallocator;
 
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 
@@ -46,8 +49,14 @@ extern "C" fn kernel_main() -> ! {
     println!("pm initialized");
 
     // test allocate a page
-    let addr = pmm::alloc().unwrap();
-    pmm::free_frame(addr);
+    let mut frame_allocator = pmm::FRAME_ALLOCATOR.lock();
+
+    unsafe {
+        let frame = frame_allocator.allocate_frame().unwrap();
+        frame_allocator.deallocate_frame(frame);
+    }
+
+    drop(frame_allocator);
 
     vmm::init();
     println!("vm initialized");
