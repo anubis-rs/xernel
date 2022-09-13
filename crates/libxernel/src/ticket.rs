@@ -1,4 +1,9 @@
-use core::{sync::atomic::AtomicUsize, cell::UnsafeCell, sync::atomic::Ordering, ops::{Deref, DerefMut}};
+use core::{
+    cell::UnsafeCell,
+    ops::{Deref, DerefMut},
+    sync::atomic::AtomicUsize,
+    sync::atomic::Ordering,
+};
 
 pub struct TicketMutex<T> {
     next_ticket: AtomicUsize,
@@ -15,7 +20,6 @@ unsafe impl<T> Send for TicketMutex<T> {}
 unsafe impl<T> Sync for TicketMutex<T> {}
 
 impl<T> TicketMutex<T> {
-
     pub const fn new(data: T) -> Self {
         TicketMutex {
             next_ticket: AtomicUsize::new(0),
@@ -25,7 +29,6 @@ impl<T> TicketMutex<T> {
     }
 
     pub fn lock(&self) -> TicketMutexGuard<'_, T> {
-
         let ticket = self.next_ticket.fetch_add(1, Ordering::Acquire);
 
         while self.next_serving.load(Ordering::Acquire) != ticket {
@@ -36,11 +39,9 @@ impl<T> TicketMutex<T> {
             mutex: &self,
             ticket: ticket,
         }
-
     }
 
     pub fn try_lock(&self) -> Option<TicketMutexGuard<'_, T>> {
-
         let ticket = self
             .next_ticket
             .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |ticket| {
@@ -55,9 +56,7 @@ impl<T> TicketMutex<T> {
             ticket,
             mutex: self,
         })
-
     }
-
 }
 
 impl<'a, T: 'a> Drop for TicketMutexGuard<'a, T> {
