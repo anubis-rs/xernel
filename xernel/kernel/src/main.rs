@@ -22,7 +22,7 @@ use limine::*;
 use arch::x64::gdt;
 use arch::x64::idt;
 
-use mem::pmm;
+use mem::{pmm, vmm};
 
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 
@@ -47,7 +47,10 @@ extern "C" fn kernel_main() -> ! {
 
     // test allocate a page
     let addr = pmm::alloc().unwrap();
-    pmm::free(addr);
+    pmm::free_frame(addr);
+
+    vmm::init();
+    println!("vm initialized");
 
     let bootloader_info = BOOTLOADER_INFO
         .get_response()
