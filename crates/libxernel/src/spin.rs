@@ -1,5 +1,4 @@
 use core::{
-    arch::asm,
     cell::UnsafeCell,
     ops::{Deref, DerefMut},
     sync::atomic::{AtomicBool, Ordering},
@@ -25,16 +24,14 @@ impl<T> Spinlock<T> {
         }
     }
 
-    pub fn lock(&self) -> Option<MutexGuard<'_, T>> {
+    pub fn lock(&self) -> MutexGuard<'_, T> {
         loop {
             if !self.is_locked.swap(true, Ordering::Acquire) {
-                return Some(MutexGuard { mutex: self });
+                return MutexGuard { mutex: self };
             }
 
             while self.is_locked.load(Ordering::Relaxed) {
-                unsafe {
-                    core::hint::spin_loop();
-                }
+                core::hint::spin_loop();
             }
         }
     }

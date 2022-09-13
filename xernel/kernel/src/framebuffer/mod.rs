@@ -34,7 +34,7 @@ lazy_static! {
 pub unsafe fn printc(character: char) {
     debug_assert!(character.is_ascii());
 
-    let mut fb = FRAMEBUFFER.lock().unwrap();
+    let mut fb = FRAMEBUFFER.lock();
 
     let c = character as u8;
 
