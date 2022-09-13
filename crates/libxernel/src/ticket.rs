@@ -80,3 +80,9 @@ impl<'a, T> DerefMut for TicketMutexGuard<'a, T> {
         unsafe { &mut *self.mutex.data.get() }
     }
 }
+
+impl<'a, T> TicketMutexGuard<'a, T> {
+    pub fn ticket(&self) -> usize {
+        self.ticket
+    }
+}
