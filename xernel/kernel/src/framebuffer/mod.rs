@@ -3,7 +3,7 @@ mod font;
 use core::ptr::copy;
 
 use crate::framebuffer::font::FONT;
-use libxernel::spin::Spinlock;
+use libxernel::{spin::Spinlock, ticket::TicketMutex};
 use limine::{LimineFramebuffer, LimineFramebufferRequest};
 
 struct Framebuffer {
@@ -13,7 +13,7 @@ struct Framebuffer {
 
 static FRAMEBUFFER_REQUEST: LimineFramebufferRequest = LimineFramebufferRequest::new(0);
 
-static FRAMEBUFFER: Spinlock<Framebuffer> = Spinlock::new(Framebuffer {
+static FRAMEBUFFER: TicketMutex<Framebuffer> = TicketMutex::new(Framebuffer {
     cursor: 0,
     char_current_line: 0,
 });
