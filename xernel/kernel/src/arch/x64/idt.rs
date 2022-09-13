@@ -1,4 +1,3 @@
-#![feature(abi_x86_interrupt)]
 use lazy_static::lazy_static;
 use x86_64::set_general_handler;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
