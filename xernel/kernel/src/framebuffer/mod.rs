@@ -3,7 +3,7 @@ mod font;
 use core::ptr::copy;
 
 use crate::framebuffer::font::FONT;
-use libxernel::{spin::Spinlock, ticket::TicketMutex};
+use libxernel::ticket::TicketMutex;
 use limine::{LimineFramebuffer, LimineFramebufferRequest};
 
 struct Framebuffer {
