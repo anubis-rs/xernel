@@ -8,9 +8,13 @@ use crate::{
 };
 use libxernel::spin::Spinlock;
 use limine::LimineKernelAddressRequest;
+use x86_64::structures::paging::mapper::CleanUp;
 use x86_64::{
     registers::control::{Cr3, Cr3Flags},
-    structures::paging::{mapper::MapToError, FrameAllocator},
+    structures::paging::{
+        mapper::{MapToError, UnmapError},
+        FrameAllocator,
+    },
 };
 use x86_64::{
     structures::paging::{
@@ -107,6 +111,24 @@ impl PageMapper<'_> {
             PhysFrame::from_start_address(PhysAddr::new(phys)).unwrap(),
             Cr3Flags::empty(),
         );
+    }
+
+    pub unsafe fn clean_up(&mut self) {
+        self.offset_pt.clean_up(&mut *FRAME_ALLOCATOR.lock());
+    }
+
+    pub fn unmap(&mut self, virt: VirtAddr, flush_tlb: bool) -> Result<(), UnmapError> {
+        let page: Page<Size4KiB> = Page::containing_address(virt);
+
+        let (_, flusher) = self.offset_pt.unmap(page)?;
+
+        if flush_tlb {
+            flusher.flush();
+        } else {
+            flusher.ignore();
+        }
+
+        Ok(())
     }
 }
 
