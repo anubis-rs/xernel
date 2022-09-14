@@ -3,7 +3,9 @@ use crate::{
     mem::{pmm::FRAME_SIZE, KERNEL_OFFSET},
     print, println,
 };
-use x86_64::{structures::paging::FrameAllocator, registers::control::{Cr3, Cr3Flags}};
+use limine::LimineKernelAddressRequest;
+use x86_64::structures::paging::mapper::TranslateResult::Mapped;
+use x86_64::{structures::paging::{FrameAllocator, Translate}, registers::control::{Cr3, Cr3Flags}};
 use x86_64::{
     structures::paging::{
         Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, PhysFrame, Size4KiB,
@@ -11,12 +13,20 @@ use x86_64::{
     PhysAddr, VirtAddr,
 };
 
+static KERNEL_ADDRESS_REQUEST: LimineKernelAddressRequest = LimineKernelAddressRequest::new(0);
+
 pub fn init() {
     unsafe {
         // create new pagetable and map the kernel + all memory maps in higher half
         println!("higher half offset: {:x}", *HIGHER_HALF_OFFSET);
 
         let mut frame_allocator = super::pmm::FRAME_ALLOCATOR.lock();
+
+        let kernel_base_address = KERNEL_ADDRESS_REQUEST.get_response().get().unwrap().physical_base;
+        let kernel_virt_address = KERNEL_ADDRESS_REQUEST.get_response().get().unwrap().virtual_base;
+
+        println!("{:x}", kernel_base_address);
+        println!("{:x}", kernel_virt_address);
 
         let lvl4_frame = frame_allocator.allocate_frame().unwrap();
         let lvl4_table = lvl4_frame.start_address().as_u64() as *mut PageTable;
@@ -28,13 +38,12 @@ pub fn init() {
 
         let mut count = 0;
 
-        // map the kernel
-        for start_adress in (KERNEL_OFFSET..0xffff_ffff_ffff_ffff).step_by(FRAME_SIZE as usize) {
+        for address in (0..0x80000000).step_by(FRAME_SIZE as usize) {
             count += 1;
 
             let frame: PhysFrame<Size4KiB> =
-                PhysFrame::containing_address(PhysAddr::new(start_adress - KERNEL_OFFSET));
-            let page = Page::containing_address(VirtAddr::new(start_adress));
+                PhysFrame::containing_address(PhysAddr::new(address + kernel_base_address));
+            let page = Page::containing_address(VirtAddr::new(address + KERNEL_OFFSET));
 
             let flags = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::WRITABLE; // TODO: remove writable
 
