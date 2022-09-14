@@ -48,21 +48,6 @@ pub fn init() {
 
         let mut count = 0;
 
-        for address in (0..0x100000000).step_by(FRAME_SIZE as usize) {
-            count += 1;
-
-            let frame: PhysFrame<Size4KiB> = PhysFrame::containing_address(PhysAddr::new(address));
-            let page = Page::containing_address(VirtAddr::new(address + *HIGHER_HALF_OFFSET));
-
-            let flags = PageTableFlags::PRESENT
-                | PageTableFlags::USER_ACCESSIBLE
-                | PageTableFlags::WRITABLE;
-
-            let map_to_result = mapper.map_to(page, frame, flags, &mut *frame_allocator);
-
-            map_to_result.unwrap().ignore();
-        }
-
         for address in (0..0x80000000).step_by(FRAME_SIZE as usize) {
             count += 1;
 
@@ -84,6 +69,8 @@ pub fn init() {
             for start_adress in (memory_entry.base..memory_entry.base + memory_entry.len)
                 .step_by(FRAME_SIZE as usize)
             {
+                count += 1;
+
                 let frame: PhysFrame<Size4KiB> =
                     PhysFrame::containing_address(PhysAddr::new(start_adress));
                 let page =
@@ -95,9 +82,7 @@ pub fn init() {
 
                 let map_to_result = mapper.map_to(page, frame, flags, &mut *frame_allocator);
 
-                if let Ok(map_to) = map_to_result {
-                    map_to.ignore();
-                }
+                map_to_result.unwrap().ignore();
             }
         }
 
