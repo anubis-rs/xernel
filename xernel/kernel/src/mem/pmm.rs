@@ -27,7 +27,7 @@ pub static FRAME_ALLOCATOR: Spinlock<FrameAllocator> = Spinlock::new(FrameAlloca
 });
 
 pub struct FrameAllocator {
-    mmap: &'static [LimineMemmapEntry],
+    pub mmap: &'static [LimineMemmapEntry],
     last_index: u64,
 }
 
