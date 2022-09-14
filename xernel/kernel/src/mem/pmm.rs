@@ -5,6 +5,8 @@ use x86_64::{
     PhysAddr,
 };
 
+use super::HIGHER_HALF_OFFSET;
+
 pub const FRAME_SIZE: u64 = 4096;
 
 static mut USABLE_FRAME_COUNT: u64 = 0;
@@ -98,7 +100,7 @@ impl FrameAllocator {
         let byte_offset = bit_index / 8;
         let bit_offset = bit_index % 8;
 
-        let byte_addr = (frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
+        let byte_addr = (*HIGHER_HALF_OFFSET + frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
 
         unsafe {
             let byte = byte_addr.read_volatile();
@@ -114,7 +116,7 @@ impl FrameAllocator {
         let byte_offset = bit_index / 8;
         let bit_offset = bit_index % 8;
 
-        let byte_addr = (frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
+        let byte_addr = (*HIGHER_HALF_OFFSET + frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
 
         unsafe {
             let byte = byte_addr.read_volatile();
@@ -130,7 +132,7 @@ impl FrameAllocator {
         let byte_offset = bit_index / 8;
         let bit_offset = bit_index % 8;
 
-        let byte_addr = (frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
+        let byte_addr = (*HIGHER_HALF_OFFSET + frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
 
         unsafe {
             let byte = byte_addr.read_volatile();
