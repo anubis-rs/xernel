@@ -29,7 +29,7 @@ impl<T> TicketMutex<T> {
     }
 
     pub fn lock(&self) -> TicketMutexGuard<'_, T> {
-        let ticket = self.next_ticket.fetch_add(1, Ordering::Acquire);
+        let ticket = self.next_ticket.fetch_add(1, Ordering::Relaxed);
 
         while self.next_serving.load(Ordering::Acquire) != ticket {
             core::hint::spin_loop();
