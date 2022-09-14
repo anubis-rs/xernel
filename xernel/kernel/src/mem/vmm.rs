@@ -1,12 +1,16 @@
-use super::HIGHER_HALF_OFFSET;
+use super::{pmm::FRAME_ALLOCATOR, HIGHER_HALF_OFFSET};
 use crate::{
-    mem::{pmm::FRAME_SIZE, KERNEL_OFFSET},
+    mem::{
+        pmm::{FRAME_SIZE, MEMORY_MAP},
+        KERNEL_OFFSET,
+    },
     print, println,
 };
+use libxernel::spin::Spinlock;
 use limine::LimineKernelAddressRequest;
 use x86_64::{
     registers::control::{Cr3, Cr3Flags},
-    structures::paging::FrameAllocator,
+    structures::paging::{mapper::MapToError, FrameAllocator},
 };
 use x86_64::{
     structures::paging::{
@@ -17,12 +21,99 @@ use x86_64::{
 
 static KERNEL_ADDRESS_REQUEST: LimineKernelAddressRequest = LimineKernelAddressRequest::new(0);
 
+pub static KERNEL_PAGE_MAPPER: Spinlock<Option<PageMapper>> = Spinlock::new(None);
+
+pub struct PageMapper<'a> {
+    offset_pt: OffsetPageTable<'a>,
+}
+
+impl PageMapper<'_> {
+    pub fn new(lvl4_table: PhysFrame, zero_out_frame: bool) -> Self {
+        let page_table = unsafe { &mut *(lvl4_table.start_address().as_u64() as *mut PageTable) };
+
+        if zero_out_frame {
+            page_table.zero();
+        }
+
+        Self {
+            offset_pt: unsafe {
+                OffsetPageTable::new(page_table, VirtAddr::new(*HIGHER_HALF_OFFSET))
+            },
+        }
+    }
+
+    pub unsafe fn map(
+        &mut self,
+        phys: PhysAddr,
+        virt: VirtAddr,
+        flags: PageTableFlags,
+        flush_tlb: bool,
+    ) -> Result<(), MapToError<Size4KiB>> {
+        let frame = PhysFrame::containing_address(phys);
+        let page = Page::containing_address(virt);
+
+        let result = self
+            .offset_pt
+            .map_to(page, frame, flags, &mut *FRAME_ALLOCATOR.lock())?;
+
+        if flush_tlb {
+            result.flush();
+        } else {
+            result.ignore();
+        }
+
+        Ok(())
+    }
+
+    pub unsafe fn map_range(
+        &mut self,
+        phys: PhysAddr,
+        virt: VirtAddr,
+        amount: usize,
+        flags: PageTableFlags,
+        flush_tlb: bool,
+    ) -> Result<(), MapToError<Size4KiB>> {
+        let mut pages_to_map = amount as u64 / FRAME_SIZE;
+
+        if amount as u64 % FRAME_SIZE != 0 {
+            pages_to_map += 1;
+        }
+
+        let mut frame_allocator = FRAME_ALLOCATOR.lock();
+
+        for i in 0..pages_to_map {
+            let frame = PhysFrame::containing_address(phys + i as u64 * FRAME_SIZE);
+            let page = Page::containing_address(virt + i as u64 * FRAME_SIZE);
+
+            let result = self
+                .offset_pt
+                .map_to(page, frame, flags, &mut *frame_allocator)?;
+
+            if flush_tlb {
+                result.flush();
+            } else {
+                result.ignore();
+            }
+        }
+
+        Ok(())
+    }
+
+    pub unsafe fn load_pt(&mut self) {
+        let pt = self.offset_pt.level_4_table();
+        let phys = pt as *const _ as u64;
+
+        Cr3::write(
+            PhysFrame::from_start_address(PhysAddr::new(phys)).unwrap(),
+            Cr3Flags::empty(),
+        );
+    }
+}
+
 pub fn init() {
     unsafe {
         // create new pagetable and map the kernel + all memory maps in higher half
         println!("higher half offset: {:x}", *HIGHER_HALF_OFFSET);
-
-        let mut frame_allocator = super::pmm::FRAME_ALLOCATOR.lock();
 
         let kernel_base_address = KERNEL_ADDRESS_REQUEST
             .get_response()
@@ -38,67 +129,43 @@ pub fn init() {
         println!("{:x}", kernel_base_address);
         println!("{:x}", kernel_virt_address);
 
-        let lvl4_frame = frame_allocator.allocate_frame().unwrap();
-        let lvl4_table = lvl4_frame.start_address().as_u64() as *mut PageTable;
+        let mut frame_allocator = super::pmm::FRAME_ALLOCATOR.lock();
+        let lvl4_table = frame_allocator.allocate_frame().unwrap();
+        drop(frame_allocator);
 
-        (*lvl4_table).zero();
+        let mut mapper = PageMapper::new(lvl4_table, true);
 
-        // the bootloader has identity mapped all memory regions
-        let mut mapper = OffsetPageTable::new(&mut *lvl4_table, VirtAddr::new(0));
-
-        let mut count = 0;
-
-        for address in (0..0x80000000).step_by(FRAME_SIZE as usize) {
-            count += 1;
-
-            let frame: PhysFrame<Size4KiB> =
-                PhysFrame::containing_address(PhysAddr::new(address + kernel_base_address));
-            let page = Page::containing_address(VirtAddr::new(address + KERNEL_OFFSET));
-
-            let flags = PageTableFlags::PRESENT
-                | PageTableFlags::USER_ACCESSIBLE
-                | PageTableFlags::WRITABLE;
-
-            let map_to_result = mapper.map_to(page, frame, flags, &mut *frame_allocator);
-
-            map_to_result.unwrap().ignore();
-        }
+        // TODO: calculate amount and not hardcode
+        mapper
+            .map_range(
+                PhysAddr::new(kernel_base_address),
+                VirtAddr::new(KERNEL_OFFSET),
+                0x800000,
+                PageTableFlags::PRESENT
+                    | PageTableFlags::USER_ACCESSIBLE
+                    | PageTableFlags::WRITABLE,
+                false,
+            )
+            .unwrap();
 
         // map all memory regions in higher half
-        for memory_entry in frame_allocator.mmap {
-            for start_adress in (memory_entry.base..memory_entry.base + memory_entry.len)
-                .step_by(FRAME_SIZE as usize)
-            {
-                count += 1;
-
-                let frame: PhysFrame<Size4KiB> =
-                    PhysFrame::containing_address(PhysAddr::new(start_adress));
-                let page =
-                    Page::containing_address(VirtAddr::new(start_adress + *HIGHER_HALF_OFFSET));
-
-                let flags = PageTableFlags::PRESENT
-                    | PageTableFlags::USER_ACCESSIBLE
-                    | PageTableFlags::WRITABLE;
-
-                let map_to_result = mapper.map_to(page, frame, flags, &mut *frame_allocator);
-
-                map_to_result.unwrap().ignore();
-            }
+        for memory_entry in *MEMORY_MAP {
+            mapper
+                .map_range(
+                    PhysAddr::new(memory_entry.base),
+                    VirtAddr::new(memory_entry.base + *HIGHER_HALF_OFFSET),
+                    memory_entry.len as usize,
+                    PageTableFlags::PRESENT
+                        | PageTableFlags::USER_ACCESSIBLE
+                        | PageTableFlags::WRITABLE,
+                    false,
+                )
+                .unwrap();
         }
 
-        println!("count: {}", count);
+        mapper.load_pt();
 
-        println!("cr3 = {:x}", lvl4_frame.start_address().as_u64());
-        println!(
-            "next frame = {:x}",
-            frame_allocator
-                .allocate_frame()
-                .unwrap()
-                .start_address()
-                .as_u64()
-        );
-
-        Cr3::write(lvl4_frame, Cr3Flags::empty());
+        *KERNEL_PAGE_MAPPER.lock() = Some(mapper);
 
         dbg!("new page table loaded");
     }

@@ -15,7 +15,7 @@ static MMAP_REQUEST: LimineMmapRequest = LimineMmapRequest::new(0);
 // TODO: create struct for bit address (addres + offset) to remove duplicate code in get_bit, set_bit, clear_bit
 
 lazy_static! {
-    static ref MEMORY_MAP: &'static [LimineMemmapEntry] = MMAP_REQUEST
+    pub static ref MEMORY_MAP: &'static [LimineMemmapEntry] = MMAP_REQUEST
         .get_response()
         .get()
         .expect("barebones: recieved no mmap")
@@ -100,7 +100,9 @@ impl FrameAllocator {
         let byte_offset = bit_index / 8;
         let bit_offset = bit_index % 8;
 
-        let byte_addr = (*HIGHER_HALF_OFFSET + frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
+        let byte_addr = (*HIGHER_HALF_OFFSET
+            + frame_addr.start_address().as_u64()
+            + byte_offset as u64) as *mut u8;
 
         unsafe {
             let byte = byte_addr.read_volatile();
@@ -116,7 +118,9 @@ impl FrameAllocator {
         let byte_offset = bit_index / 8;
         let bit_offset = bit_index % 8;
 
-        let byte_addr = (*HIGHER_HALF_OFFSET + frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
+        let byte_addr = (*HIGHER_HALF_OFFSET
+            + frame_addr.start_address().as_u64()
+            + byte_offset as u64) as *mut u8;
 
         unsafe {
             let byte = byte_addr.read_volatile();
@@ -132,7 +136,9 @@ impl FrameAllocator {
         let byte_offset = bit_index / 8;
         let bit_offset = bit_index % 8;
 
-        let byte_addr = (*HIGHER_HALF_OFFSET + frame_addr.start_address().as_u64() + byte_offset as u64) as *mut u8;
+        let byte_addr = (*HIGHER_HALF_OFFSET
+            + frame_addr.start_address().as_u64()
+            + byte_offset as u64) as *mut u8;
 
         unsafe {
             let byte = byte_addr.read_volatile();
