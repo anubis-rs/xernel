@@ -26,7 +26,8 @@ use x86_64::{
 
 static KERNEL_ADDRESS_REQUEST: LimineKernelAddressRequest = LimineKernelAddressRequest::new(0);
 
-pub static KERNEL_PAGE_MAPPER: Spinlock<InitAtBoot<PageMapper>> = Spinlock::new(InitAtBoot::Uninitialized);
+pub static KERNEL_PAGE_MAPPER: Spinlock<InitAtBoot<PageMapper>> =
+    Spinlock::new(InitAtBoot::Uninitialized);
 
 pub struct PageMapper<'a> {
     offset_pt: OffsetPageTable<'a>,
