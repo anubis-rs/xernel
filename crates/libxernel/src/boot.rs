@@ -21,3 +21,18 @@ impl<T> Deref for InitAtBoot<T> {
         }
     }
 }
+
+impl<T> DerefMut for InitAtBoot<T> {
+
+    fn deref_mut(&mut self) -> &mut T {
+        match self {
+            InitAtBoot::Initialized(ref mut x) => x,
+            InitAtBoot::Uninitialized => {
+                #[cfg(debug_assertions)]
+                panic!("tried to access boot resource that is not initialized");
+                #[cfg(not(debug_assertions))]
+                unsafe { core::hint::unreachable_unchecked() }
+            }
+        }
+    }
+}
