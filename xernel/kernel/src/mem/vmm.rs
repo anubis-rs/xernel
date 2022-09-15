@@ -6,6 +6,7 @@ use crate::{
     },
     print, println,
 };
+use libxernel::boot::InitAtBoot;
 use libxernel::spin::Spinlock;
 use limine::LimineKernelAddressRequest;
 use x86_64::{
@@ -21,7 +22,7 @@ use x86_64::{
 
 static KERNEL_ADDRESS_REQUEST: LimineKernelAddressRequest = LimineKernelAddressRequest::new(0);
 
-pub static KERNEL_PAGE_MAPPER: Spinlock<Option<PageMapper>> = Spinlock::new(None);
+pub static KERNEL_PAGE_MAPPER: Spinlock<InitAtBoot<PageMapper>> = Spinlock::new(InitAtBoot::Uninitialized);
 
 pub struct PageMapper<'a> {
     offset_pt: OffsetPageTable<'a>,
@@ -165,7 +166,7 @@ pub fn init() {
 
         mapper.load_pt();
 
-        *KERNEL_PAGE_MAPPER.lock() = Some(mapper);
+        *KERNEL_PAGE_MAPPER.lock() = InitAtBoot::Initialized(mapper);
 
         dbg!("new page table loaded");
     }
