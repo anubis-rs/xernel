@@ -2,6 +2,9 @@
 #![no_main]
 #![feature(abi_x86_interrupt)]
 #![feature(core_intrinsics)]
+#![feature(alloc_error_handler)]
+
+extern crate alloc;
 
 #[macro_use]
 extern crate lazy_static;
@@ -16,6 +19,7 @@ mod mem;
 #[macro_use]
 mod writer;
 
+use alloc::boxed::Box;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use limine::*;
@@ -23,7 +27,7 @@ use limine::*;
 use arch::x64::gdt;
 use arch::x64::idt;
 
-use mem::{pmm, vmm};
+use mem::{heap, pmm, vmm};
 use x86_64::structures::paging::FrameAllocator;
 use x86_64::structures::paging::FrameDeallocator;
 
@@ -60,6 +64,9 @@ extern "C" fn kernel_main() -> ! {
 
     vmm::init();
     println!("vm initialized");
+
+    heap::init();
+    println!("alloc initialized");
 
     let bootloader_info = BOOTLOADER_INFO
         .get_response()
