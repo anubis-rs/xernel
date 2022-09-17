@@ -50,6 +50,10 @@ fn main() -> Result<()> {
             lint(&sh, check)?;
         }
 
+        Some("help") => {
+            print!("{}", HELP);
+        }
+
         Some(cmd) => bail!("Unknown subcommand: '{}'", cmd),
         None => bail!("You must supply a subcommand."),
     }
