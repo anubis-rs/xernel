@@ -11,7 +11,7 @@ impl<T> Deref for InitAtBoot<T> {
 
     fn deref(&self) -> &T {
         match self {
-            InitAtBoot::Initialized(ref x) => x,
+            InitAtBoot::Initialized(x) => x,
             InitAtBoot::Uninitialized => {
                 #[cfg(debug_assertions)]
                 panic!("tried to access boot resource that is not initialized");
@@ -26,7 +26,7 @@ impl<T> DerefMut for InitAtBoot<T> {
 
     fn deref_mut(&mut self) -> &mut T {
         match self {
-            InitAtBoot::Initialized(ref mut x) => x,
+            InitAtBoot::Initialized(x) => x,
             InitAtBoot::Uninitialized => {
                 #[cfg(debug_assertions)]
                 panic!("tried to access boot resource that is not initialized");
