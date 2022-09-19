@@ -56,7 +56,6 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
 
 pub fn init() {
     let mut heap = HEAP.lock();
-    let mut frame_allocator = FRAME_ALLOCATOR.lock();
     let mut page_mapper = KERNEL_PAGE_MAPPER.lock();
 
     for start_address in (HEAP_START_ADDR
@@ -64,7 +63,10 @@ pub fn init() {
         .step_by(FRAME_SIZE as usize)
     {
         dbg!("mapping heap frame at {:#x}", start_address);
-        let page = frame_allocator.allocate_frame().unwrap();
+        let page = {
+            let mut allocator = FRAME_ALLOCATOR.lock();
+            allocator.allocate_frame().unwrap()
+        };
         unsafe {
             page_mapper
                 .map(
@@ -76,6 +78,8 @@ pub fn init() {
                 .unwrap();
         }
     }
+
+    dbg!("end init");
 
     unsafe {
         heap.init(
