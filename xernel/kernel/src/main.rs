@@ -19,7 +19,6 @@ mod mem;
 #[macro_use]
 mod writer;
 
-use alloc::boxed::Box;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use limine::*;
@@ -66,7 +65,14 @@ extern "C" fn kernel_main() -> ! {
     println!("vm initialized");
 
     heap::init();
-    println!("alloc initialized");
+    println!("heap initialized");
+
+    use alloc::boxed::Box;
+
+    let mut test_allocation = Box::new(42);
+    println!("test allocation: {}", test_allocation);
+    *test_allocation = 123;
+    println!("test allocation: {}", test_allocation);
 
     let bootloader_info = BOOTLOADER_INFO
         .get_response()

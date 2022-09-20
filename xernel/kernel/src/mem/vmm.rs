@@ -35,7 +35,7 @@ pub struct PageMapper<'a> {
 
 impl PageMapper<'_> {
     pub fn new(lvl4_table: PhysFrame, zero_out_frame: bool) -> Self {
-        let page_table = unsafe { &mut *(lvl4_table.start_address().as_u64() as *mut PageTable) };
+        let page_table = unsafe { &mut *((lvl4_table.start_address().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable) };
 
         if zero_out_frame {
             page_table.zero();
@@ -107,7 +107,7 @@ impl PageMapper<'_> {
 
     pub unsafe fn load_pt(&mut self) {
         let pt = self.offset_pt.level_4_table();
-        let phys = pt as *const _ as u64;
+        let phys = pt as *const _ as u64 - *HIGHER_HALF_OFFSET;
 
         Cr3::write(
             PhysFrame::from_start_address(PhysAddr::new(phys)).unwrap(),
