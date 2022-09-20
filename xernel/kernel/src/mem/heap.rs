@@ -6,9 +6,6 @@ use linked_list_allocator::Heap;
 use x86_64::structures::paging::{FrameAllocator, PageTableFlags};
 use x86_64::VirtAddr;
 
-use crate::mem::HIGHER_HALF_OFFSET;
-use crate::{print, println};
-
 use super::{
     pmm::{FRAME_ALLOCATOR, FRAME_SIZE},
     vmm::KERNEL_PAGE_MAPPER,
@@ -27,8 +24,6 @@ static ALLOCATOR: Allocator = Allocator;
 
 unsafe impl GlobalAlloc for Allocator {
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
-        println!("requested layout: {:#?}", layout);
-
         let mut heap = HEAP.lock();
 
         // TODO: check if the allocation fails and maybe increase the heap size to make it work
@@ -38,8 +33,6 @@ unsafe impl GlobalAlloc for Allocator {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
-        println!("deallocating layout: {:#?}", layout);
-
         if ptr.is_null() {
             return;
         }
@@ -59,14 +52,11 @@ pub fn init() {
     let mut heap = HEAP.lock();
     let mut page_mapper = KERNEL_PAGE_MAPPER.lock();
 
-    dbg!("higher half start: {:#x}", *HIGHER_HALF_OFFSET);
-
     for start_address in (HEAP_START_ADDR
         ..HEAP_START_ADDR + (HEAP_INITIAL_PAGE_COUNT * FRAME_SIZE) as usize)
         .step_by(FRAME_SIZE as usize)
     {
-        dbg!("mapping heap frame at {:#x}", start_address);
-        let page = {    
+        let page = {
             let mut allocator = FRAME_ALLOCATOR.lock();
             allocator.allocate_frame().unwrap()
         };
@@ -82,8 +72,6 @@ pub fn init() {
                 .unwrap();
         }
     }
-
-    dbg!("end init");
 
     unsafe {
         heap.init(

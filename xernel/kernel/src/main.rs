@@ -69,6 +69,7 @@ extern "C" fn kernel_main() -> ! {
     println!("heap initialized");
 
     acpi::init();
+    println!("acpi initialized");
 
     use alloc::boxed::Box;
 

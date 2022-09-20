@@ -36,8 +36,8 @@ impl<T> TicketMutex<T> {
         }
 
         TicketMutexGuard {
-            mutex: &self,
-            ticket: ticket,
+            mutex: self,
+            ticket,
         }
     }
 
