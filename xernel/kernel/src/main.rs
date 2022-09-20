@@ -9,6 +9,7 @@ extern crate alloc;
 #[macro_use]
 extern crate lazy_static;
 
+mod acpi;
 mod arch;
 mod framebuffer;
 
@@ -66,6 +67,8 @@ extern "C" fn kernel_main() -> ! {
 
     heap::init();
     println!("heap initialized");
+
+    acpi::init();
 
     use alloc::boxed::Box;
 
