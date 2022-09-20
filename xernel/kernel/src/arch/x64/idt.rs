@@ -1,9 +1,9 @@
 use core::arch::asm;
 use lazy_static::lazy_static;
-use x86_64::set_general_handler;
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 use x86_64::registers::control::Cr2;
+use x86_64::set_general_handler;
 use x86_64::structures::idt::PageFaultErrorCode;
+use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
 use crate::{print, println};
 
@@ -33,7 +33,6 @@ extern "x86-interrupt" fn page_fault_handler(
     stack_frame: InterruptStackFrame,
     error_code: PageFaultErrorCode,
 ) {
-
     println!("EXCEPTION: PAGE FAULT");
     println!("Accessed Address: {:?}", Cr2::read());
     println!("Error Code: {:?}", error_code);
