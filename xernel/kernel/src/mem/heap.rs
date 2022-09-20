@@ -76,7 +76,7 @@ pub fn init() {
                 .map(
                     page.start_address(),
                     VirtAddr::new(start_address as u64),
-                    PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE,
+                    PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE | PageTableFlags::PRESENT,
                     true,
                 )
                 .unwrap();
