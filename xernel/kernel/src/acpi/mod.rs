@@ -37,7 +37,7 @@ impl AcpiHandler for OffsetAcpiHandler {
     }
 
     fn unmap_physical_region<T>(_region: &PhysicalMapping<Self, T>) {
-        todo!("unmap_physical_region")
+        // the region is never unmapped
     }
 }
 
