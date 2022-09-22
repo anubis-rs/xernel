@@ -1,13 +1,14 @@
+pub mod hpet;
+
 use core::ptr::NonNull;
 
 use crate::mem::HIGHER_HALF_OFFSET;
 use crate::{print, println};
-use acpi_parsing::platform::interrupt::Apic;
 use acpi_parsing::{AcpiHandler, AcpiTables, PhysicalMapping};
 use limine::LimineRsdpRequest;
 
 #[derive(Clone)]
-struct OffsetAcpiHandler;
+struct AcpiMapper;
 
 static RSDP_REQUEST: LimineRsdpRequest = LimineRsdpRequest::new(0);
 
@@ -18,10 +19,20 @@ lazy_static! {
 pub fn init() {
     lazy_static::initialize(&ACPI);
 
-    println!("{:?}", ACPI.apic_info);
+    let plat_info = ACPI
+        .tables
+        .platform_info()
+        .expect("failed to get platform info");
+
+    let apic_info = match plat_info.interrupt_model {
+        acpi_parsing::InterruptModel::Apic(apic_info) => apic_info,
+        _ => panic!("no apic in this system"),
+    };
+
+    println!("{:?}", apic_info);
 }
 
-impl AcpiHandler for OffsetAcpiHandler {
+impl AcpiHandler for AcpiMapper {
     unsafe fn map_physical_region<T>(
         &self,
         physical_address: usize,
@@ -41,9 +52,8 @@ impl AcpiHandler for OffsetAcpiHandler {
     }
 }
 
-#[derive(Debug)]
 pub struct Acpi {
-    pub apic_info: Apic,
+    tables: AcpiTables<AcpiMapper>,
 }
 
 impl Acpi {
@@ -52,21 +62,14 @@ impl Acpi {
 
         let acpi_tables = unsafe {
             AcpiTables::from_rsdp(
-                OffsetAcpiHandler,
+                AcpiMapper,
                 address.unwrap() as usize - *HIGHER_HALF_OFFSET as usize,
             )
             .expect("failed to get acpi tables")
         };
 
-        let plat_info = acpi_tables
-            .platform_info()
-            .expect("failed to get platform info");
-
-        let apic_info = match plat_info.interrupt_model {
-            acpi_parsing::InterruptModel::Apic(apic_info) => apic_info,
-            _ => panic!("no apic in this system"),
-        };
-
-        Self { apic_info }
+        Self {
+            tables: acpi_tables,
+        }
     }
 }
