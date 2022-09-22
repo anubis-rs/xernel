@@ -49,6 +49,8 @@ extern "C" fn kernel_main() -> ! {
     idt::init();
     println!("GDT loaded");
 
+    idt::disable_pic();
+
     pmm::init();
     println!("pm initialized");
 
