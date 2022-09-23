@@ -31,6 +31,9 @@ use mem::{heap, pmm, vmm};
 use x86_64::structures::paging::FrameAllocator;
 use x86_64::structures::paging::FrameDeallocator;
 
+use crate::acpi::hpet;
+use crate::arch::x64::apic;
+
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 
 #[panic_handler]
@@ -72,6 +75,10 @@ extern "C" fn kernel_main() -> ! {
 
     acpi::init();
     println!("acpi initialized");
+
+    apic::init();
+
+    hpet::init();
 
     use alloc::boxed::Box;
 
