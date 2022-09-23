@@ -3,8 +3,9 @@ pub mod hpet;
 use core::ptr::NonNull;
 
 use crate::mem::HIGHER_HALF_OFFSET;
-use crate::{print, println};
-use acpi_parsing::{AcpiHandler, AcpiTables, PhysicalMapping};
+use crate::{print, println, panic};
+use acpi_parsing::platform::interrupt::Apic;
+use acpi_parsing::{AcpiHandler, AcpiTables, PhysicalMapping, InterruptModel};
 use limine::LimineRsdpRequest;
 
 #[derive(Clone)]
@@ -18,18 +19,6 @@ lazy_static! {
 
 pub fn init() {
     lazy_static::initialize(&ACPI);
-
-    let plat_info = ACPI
-        .tables
-        .platform_info()
-        .expect("failed to get platform info");
-
-    let apic_info = match plat_info.interrupt_model {
-        acpi_parsing::InterruptModel::Apic(apic_info) => apic_info,
-        _ => panic!("no apic in this system"),
-    };
-
-    println!("{:?}", apic_info);
 }
 
 impl AcpiHandler for AcpiMapper {
@@ -71,5 +60,13 @@ impl Acpi {
         Self {
             tables: acpi_tables,
         }
+    }
+}
+
+pub fn get_apic() -> Apic {
+    match ACPI.tables.platform_info().unwrap().interrupt_model {
+        InterruptModel::Apic(apic) => apic,
+        InterruptModel::Unknown => panic!("No apic found"),
+        _ => unreachable!(),
     }
 }
