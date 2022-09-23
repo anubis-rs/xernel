@@ -73,7 +73,7 @@ impl LocalAPIC {
     pub fn enable_apic(&mut self) {
         self.set_siv(0xFF);
         unsafe {
-            self.write(0xF0, self.read(0xF0) >> 8 | 1);
+            self.write(0xF0, self.read(0xF0) | 1 << 8);
         }
     }
 }
