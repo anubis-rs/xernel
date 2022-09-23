@@ -57,8 +57,8 @@ pub fn disable_pic() {
     outb(0xa0, 0x11);
 
     // Set IWC2 (IRQ base offsets)
-    outb(0x21, 0xe0);
-    outb(0xa1, 0xe8);
+    outb(0x21, 0x20);
+    outb(0xa1, 0x28);
 
     // Set ICW3
     outb(0x21, 4);
