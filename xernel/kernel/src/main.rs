@@ -76,9 +76,9 @@ extern "C" fn kernel_main() -> ! {
     acpi::init();
     println!("acpi initialized");
 
-    apic::init();
-
     hpet::init();
+
+    apic::init();
 
     use alloc::boxed::Box;
 
