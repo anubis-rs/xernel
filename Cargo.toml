@@ -4,8 +4,3 @@ members = [
   "xernel/kernel",
   "crates/libxernel",
 ]
-
-[profile.release]
-lto = "fat"
-overflow-checks = true
-debug-assertions = true

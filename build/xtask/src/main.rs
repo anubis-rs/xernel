@@ -100,6 +100,8 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
     )
     .run()?;
 
+    let build_dir = if rl { "release" } else { "debug" };
+
     let diskname = "xernel.hdd";
     let disksize = 64.to_string();
 
@@ -117,7 +119,7 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
     cmd!(sh, "mformat -i {diskname} -F").run()?;
     cmd!(
         sh,
-        "mcopy -i {diskname} ./target/{target}/debug/xernel ::/xernel"
+        "mcopy -i {diskname} ./target/{target}/{build_dir}/xernel ::/xernel"
     )
     .run()?;
     cmd!(
