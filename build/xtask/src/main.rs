@@ -10,9 +10,12 @@ FLAGS:
     -h, --help      Print this message.
     --release       Build the kernel with optimizations.
     --gdb           Start QEMU with GDB server enabled and waiting for a connection.
+    --check         Only checks if the format is correct, without making changes (Can only be used with the fmt or lint subcommand)
 SUBCOMMANDS:
     build           Build the kernel without running it.
     run             Build and run the kernel using QEMU.
+    fmt             Run cargo fmt
+    clippy          Run clippy
     lint            Run clippy and cargo fmt
 ";
 
@@ -47,7 +50,14 @@ fn main() -> Result<()> {
             run(&sh, gdb)?;
         }
         Some("lint") => {
-            lint(&sh, check)?;
+            fmt(&sh, check)?;
+            clippy(&sh)?;
+        }
+        Some("fmt") => {
+            fmt(&sh, check)?;
+        }
+        Some("clippy") => {
+            clippy(&sh)?;
         }
 
         Some("help") => {
@@ -164,7 +174,7 @@ fn run(sh: &Shell, gdb: bool) -> Result<()> {
     Ok(())
 }
 
-fn lint(sh: &Shell, check: bool) -> Result<()> {
+fn clippy(sh: &Shell) -> Result<()> {
     let _cwd = sh.push_dir(root());
 
     cmd!(
@@ -175,6 +185,12 @@ fn lint(sh: &Shell, check: bool) -> Result<()> {
             -Zbuild-std=core,alloc,compiler_builtins"
     )
     .run()?;
+
+    Ok(())
+}
+
+fn fmt(sh: &Shell, check: bool) -> Result<()> {
+    let _cwd = sh.push_dir(root());
 
     let check_arg = if check { &["--", "--check"][..] } else { &[] };
     cmd!(
