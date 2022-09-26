@@ -1,10 +1,7 @@
-use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
 use libxernel::boot::InitAtBoot;
+use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
 
-use crate::{
-    mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET},
-    print, println, dbg,
-};
+use crate::mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};
 
 use super::ACPI;
 
@@ -24,12 +21,16 @@ pub fn init() {
     let mut mapper = KERNEL_PAGE_MAPPER.lock();
 
     unsafe {
-        mapper.map(
-            PhysAddr::new(hpet_info.base_address as u64),
-            VirtAddr::new(hpet_info.base_address as u64 + *HIGHER_HALF_OFFSET),
-            PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::WRITABLE,
-            true,
-        ).unwrap();
+        mapper
+            .map(
+                PhysAddr::new(hpet_info.base_address as u64),
+                VirtAddr::new(hpet_info.base_address as u64 + *HIGHER_HALF_OFFSET),
+                PageTableFlags::PRESENT
+                    | PageTableFlags::USER_ACCESSIBLE
+                    | PageTableFlags::WRITABLE,
+                true,
+            )
+            .unwrap();
 
         let period = (read(0) >> 32) & u64::MAX;
         let f = (u64::pow(10, 15) as f64 / period as f64) as u64;
@@ -37,16 +38,19 @@ pub fn init() {
         HPET_FREQUENCY.set_once(f);
 
         // set ENABLE_CNF bit
-        write(HPET_CONFIGURATION_REGISTER_OFFSET, read(HPET_CONFIGURATION_REGISTER_OFFSET) | 1);
+        write(
+            HPET_CONFIGURATION_REGISTER_OFFSET,
+            read(HPET_CONFIGURATION_REGISTER_OFFSET) | 1,
+        );
     }
 }
 
 pub fn read_main_counter() -> u64 {
-    return read(HPET_MAIN_COUNTER_REGISTER_OFFSET);
+    read(HPET_MAIN_COUNTER_REGISTER_OFFSET)
 }
 
 pub fn frequency() -> u64 {
-    return *HPET_FREQUENCY;
+    *HPET_FREQUENCY
 }
 
 fn write(offset: u64, val: u64) {
@@ -60,7 +64,5 @@ fn write(offset: u64, val: u64) {
 fn read(offset: u64) -> u64 {
     let hpet_ptr = *HPET_BASE_ADDRESS as *mut u64;
 
-    unsafe {
-        core::ptr::read_volatile(hpet_ptr.byte_offset(offset as isize) as *const u64)
-    }
+    unsafe { core::ptr::read_volatile(hpet_ptr.byte_offset(offset as isize) as *const u64) }
 }

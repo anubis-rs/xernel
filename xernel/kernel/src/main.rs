@@ -34,7 +34,6 @@ use x86_64::structures::paging::FrameDeallocator;
 
 use crate::acpi::hpet;
 use crate::arch::x64::apic;
-use crate::arch::x64::apic::APIC;
 
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 

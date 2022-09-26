@@ -3,7 +3,6 @@ pub mod hpet;
 use core::ptr::NonNull;
 
 use crate::mem::HIGHER_HALF_OFFSET;
-use crate::{panic, print, println};
 use acpi_parsing::platform::interrupt::Apic;
 use acpi_parsing::{AcpiHandler, AcpiTables, InterruptModel, PhysicalMapping};
 use limine::LimineRsdpRequest;

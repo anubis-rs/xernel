@@ -1,12 +1,9 @@
 use crate::arch::x64::apic::timer;
-use crate::arch::x64::apic::APIC;
 use crate::arch::x64::ports::outb;
 use core::arch::asm;
-use libxernel::spin::Spinlock;
 use x86_64::registers::control::Cr2;
 use x86_64::set_general_handler;
-use x86_64::structures::idt::HandlerFunc;
-use x86_64::structures::idt::{Entry, PageFaultErrorCode};
+use x86_64::structures::idt::PageFaultErrorCode;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
 use crate::{dbg, print, println};
@@ -19,7 +16,7 @@ lazy_static! {
         idt.page_fault.set_handler_fn(page_fault_handler);
         idt.general_protection_fault
             .set_handler_fn(general_fault_handler);
-        
+
         idt[0x40].set_handler_fn(timer);
         idt
     };

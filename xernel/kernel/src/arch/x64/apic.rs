@@ -1,6 +1,5 @@
 use core::arch::asm;
 
-use crate::arch::x64::idt;
 use libxernel::{boot::InitAtBoot, ticket::TicketMutex};
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
@@ -62,7 +61,7 @@ pub extern "x86-interrupt" fn timer(stack_frame: InterruptStackFrame) {
     let mut apic = APIC.lock();
 
     dbg!("timer");
-    
+
     apic.eoi();
 }
 
