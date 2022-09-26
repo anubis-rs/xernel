@@ -25,6 +25,9 @@ impl<T> InitAtBoot<T> {
 
 }
 
+unsafe impl<T> Send for InitAtBoot<T> {}
+unsafe impl<T> Sync for InitAtBoot<T> {}
+
 impl<T> Deref for InitAtBoot<T> {
     type Target = T;
 

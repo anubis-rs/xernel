@@ -3,6 +3,7 @@
 #![feature(abi_x86_interrupt)]
 #![feature(core_intrinsics)]
 #![feature(alloc_error_handler)]
+#![feature(pointer_byte_offsets)]
 
 extern crate alloc;
 
