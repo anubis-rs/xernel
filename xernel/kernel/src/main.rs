@@ -33,6 +33,7 @@ use x86_64::structures::paging::FrameDeallocator;
 
 use crate::acpi::hpet;
 use crate::arch::x64::apic;
+use crate::arch::x64::apic::APIC;
 
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 
@@ -53,6 +54,7 @@ extern "C" fn kernel_main() -> ! {
     println!("GDT loaded");
 
     idt::disable_pic();
+    idt::set_handler(64, apic::timer);
 
     pmm::init();
     println!("pm initialized");
@@ -79,6 +81,8 @@ extern "C" fn kernel_main() -> ! {
     hpet::init();
 
     apic::init();
+
+    APIC.lock().enable_timer();
 
     use alloc::boxed::Box;
 

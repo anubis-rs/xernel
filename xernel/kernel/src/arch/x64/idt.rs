@@ -1,13 +1,15 @@
+use crate::arch::x64::apic::timer;
+use crate::arch::x64::apic::APIC;
+use crate::arch::x64::ports::outb;
 use core::arch::asm;
 use libxernel::spin::Spinlock;
 use x86_64::registers::control::Cr2;
 use x86_64::set_general_handler;
-use x86_64::structures::idt::PageFaultErrorCode;
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
-use crate::arch::x64::ports::outb;
 use x86_64::structures::idt::HandlerFunc;
+use x86_64::structures::idt::{Entry, PageFaultErrorCode};
+use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
-use crate::{print, println};
+use crate::{dbg, print, println};
 
 static IDT: Spinlock<InterruptDescriptorTable> = Spinlock::new(InterruptDescriptorTable::new());
 
@@ -16,8 +18,12 @@ pub fn init() {
 
     set_general_handler!(&mut idt, interrupt_handler);
     idt.page_fault.set_handler_fn(page_fault_handler);
+    idt.general_protection_fault
+        .set_handler_fn(general_fault_handler);
 
-    unsafe { idt.load_unsafe(); }
+    unsafe {
+        idt.load_unsafe();
+    }
 }
 
 pub fn set_handler(entry: usize, handler: HandlerFunc) {
@@ -47,6 +53,15 @@ extern "x86-interrupt" fn page_fault_handler(
         unsafe {
             asm!("hlt");
         }
+    }
+}
+
+extern "x86-interrupt" fn general_fault_handler(stack_frame: InterruptStackFrame, error_code: u64) {
+    println!("EXCEPTION: GENERAL FAULT");
+    println!("{:?}", stack_frame);
+    println!("{}", error_code);
+    unsafe {
+        asm!("hlt");
     }
 }
 
