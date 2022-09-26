@@ -54,7 +54,6 @@ extern "C" fn kernel_main() -> ! {
     println!("GDT loaded");
 
     idt::disable_pic();
-    idt::set_handler(64, apic::timer);
 
     pmm::init();
     println!("pm initialized");
@@ -81,8 +80,6 @@ extern "C" fn kernel_main() -> ! {
     hpet::init();
 
     apic::init();
-
-    APIC.lock().enable_timer();
 
     use alloc::boxed::Box;
 
