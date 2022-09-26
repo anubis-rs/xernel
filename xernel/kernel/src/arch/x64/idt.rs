@@ -54,6 +54,9 @@ extern "x86-interrupt" fn page_fault_handler(
 }
 
 extern "x86-interrupt" fn general_fault_handler(stack_frame: InterruptStackFrame, error_code: u64) {
+    dbg!("EXCEPTION: GENERAL PROTECTION FAULT");
+    dbg!("{:?}", stack_frame);
+    dbg!("{:b}", error_code);
     println!("EXCEPTION: GENERAL FAULT");
     println!("{:?}", stack_frame);
     println!("{}", error_code);

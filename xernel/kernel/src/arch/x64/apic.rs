@@ -15,9 +15,7 @@ pub struct LocalAPIC {
     address: u64,
 }
 
-static APIC_BASE_ADDRESS: InitAtBoot<u64> = InitAtBoot::Uninitialized;
-
-pub static APIC: TicketMutex<InitAtBoot<LocalAPIC>> = TicketMutex::new(InitAtBoot::Uninitialized);
+pub static APIC: TicketMutex<InitAtBoot<LocalAPIC>> = TicketMutex::new(InitAtBoot::new());
 
 pub fn init() {
     let apic_info = acpi::get_apic();
@@ -44,7 +42,7 @@ pub fn init() {
 
     let mut apic = APIC.lock();
 
-    *apic = InitAtBoot::Initialized(LocalAPIC { address: apic_base });
+    apic.set_once(LocalAPIC { address: apic_base });
 
     apic.enable_apic();
 
@@ -62,7 +60,9 @@ pub fn init() {
 
 pub extern "x86-interrupt" fn timer(stack_frame: InterruptStackFrame) {
     let mut apic = APIC.lock();
+
     dbg!("timer");
+    
     apic.eoi();
 }
 

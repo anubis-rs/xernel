@@ -27,7 +27,7 @@ use x86_64::{
 static KERNEL_ADDRESS_REQUEST: LimineKernelAddressRequest = LimineKernelAddressRequest::new(0);
 
 pub static KERNEL_PAGE_MAPPER: Spinlock<InitAtBoot<PageMapper>> =
-    Spinlock::new(InitAtBoot::Uninitialized);
+    Spinlock::new(InitAtBoot::new());
 
 pub struct PageMapper<'a> {
     offset_pt: OffsetPageTable<'a>,
@@ -191,6 +191,6 @@ pub fn init() {
 
         mapper.load_pt();
 
-        *KERNEL_PAGE_MAPPER.lock() = InitAtBoot::Initialized(mapper);
+        KERNEL_PAGE_MAPPER.lock().set_once(mapper);
     }
 }
