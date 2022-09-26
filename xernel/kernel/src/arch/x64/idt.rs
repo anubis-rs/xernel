@@ -11,25 +11,22 @@ use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
 use crate::{dbg, print, println};
 
-static IDT: Spinlock<InterruptDescriptorTable> = Spinlock::new(InterruptDescriptorTable::new());
+lazy_static! {
+    static ref IDT: InterruptDescriptorTable = {
+        let mut idt = InterruptDescriptorTable::new();
 
-pub fn init() {
-    let mut idt = IDT.lock();
-
-    set_general_handler!(&mut idt, interrupt_handler);
-    idt.page_fault.set_handler_fn(page_fault_handler);
-    idt.general_protection_fault
-        .set_handler_fn(general_fault_handler);
-
-    unsafe {
-        idt.load_unsafe();
-    }
+        set_general_handler!(&mut idt, interrupt_handler);
+        idt.page_fault.set_handler_fn(page_fault_handler);
+        idt.general_protection_fault
+            .set_handler_fn(general_fault_handler);
+        
+        idt[0x40].set_handler_fn(timer);
+        idt
+    };
 }
 
-pub fn set_handler(entry: usize, handler: HandlerFunc) {
-    let mut idt = IDT.lock();
-
-    idt[entry].set_handler_fn(handler);
+pub fn init() {
+    IDT.load();
 }
 
 fn interrupt_handler(stack_frame: InterruptStackFrame, index: u8, error_code: Option<u64>) {
