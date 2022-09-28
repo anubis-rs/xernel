@@ -16,7 +16,7 @@ pub struct LocalAPIC {
 }
 
 pub static APIC: TicketMutex<LocalAPIC> = TicketMutex::new(LocalAPIC { address: 0 });
-static APIC_FREQUENCY : InitAtBoot<u64> = InitAtBoot::new();
+static APIC_FREQUENCY: InitAtBoot<u64> = InitAtBoot::new();
 
 pub fn init() {
     let apic_info = acpi::get_apic();
@@ -50,7 +50,7 @@ pub fn init() {
     // calculate frequency of APIC timer
     unsafe {
         // set the divisor to 1
-        apic.write(0x3e0, 1);
+        apic.write(0x3e0, 0b1011);
 
         let hpet_cycles_to_wait = hpet::frequency() / 100;
 
@@ -90,7 +90,10 @@ pub extern "x86-interrupt" fn timer(stack_frame: InterruptStackFrame) {
 
         let diff = hpet_counter - last_hpet_counter;
 
-        dbg!("time since last timer: {} ms", diff * 1000 / hpet::frequency());
+        dbg!(
+            "time since last timer: {} ms",
+            diff * 1000 / hpet::frequency()
+        );
 
         last_hpet_counter = hpet::read_main_counter();
     }
