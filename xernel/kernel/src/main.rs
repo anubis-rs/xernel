@@ -101,7 +101,7 @@ extern "C" fn kernel_main() -> ! {
 
     loop {
         unsafe {
-            asm!("hlt");
+            asm!("nop");
         }
     }
 }

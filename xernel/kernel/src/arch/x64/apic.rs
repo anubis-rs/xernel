@@ -4,6 +4,7 @@ use libxernel::{boot::InitAtBoot, ticket::TicketMutex};
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
 
+use crate::acpi::hpet;
 use crate::{
     acpi, dbg,
     mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET},
@@ -45,6 +46,34 @@ pub fn init() {
 
     apic.enable_apic();
 
+    // calculate frequency of APIC timer
+    unsafe {
+        // set the divisor to 1
+        apic.write(0x3e0, 1);
+
+        let hpet_cycles_to_wait = hpet::frequency() / 100;
+
+        let hpet_start_counter = hpet::read_main_counter();
+
+        // set the initial count to 0xffffffff
+        apic.write(0x380, 0xffffffff);
+
+        // wait for 10 ms
+        while hpet::read_main_counter() - hpet_start_counter < hpet_cycles_to_wait {}
+
+        let apic_ticks = 0xffffffff - apic.read(0x390);
+
+        let hpet_end_counter = hpet::read_main_counter();
+
+        let hpet_ticks = hpet_end_counter - hpet_start_counter;
+
+        let apic_frequency = apic_ticks as u64 * hpet::frequency() / hpet_ticks;
+
+        println!("hpet_ticks: {}, apic_ticks: {}", hpet_ticks, apic_ticks);
+        println!("APIC frequency: {} Hz", apic_frequency);
+        println!("HPET frequency: {} Hz", hpet::frequency());
+    }
+
     unsafe {
         println!("{:x}", apic.read(0x20));
         println!("{:x}", apic.read(0x30));
@@ -75,7 +104,6 @@ impl LocalAPIC {
     }
 
     pub fn eoi(&mut self) {
-        dbg!("eoi");
         unsafe { self.write(0xB0, 0) }
     }
 
@@ -89,17 +117,16 @@ impl LocalAPIC {
     }
 
     pub fn enable_apic(&mut self) {
-        self.set_siv(0xFF);
         unsafe {
-            self.write(0xF0, self.read(0xF0) | 1 << 8);
+            self.set_siv(self.read(0xF0) | 1 << 8);
         }
     }
 
     /// Enable timer with a specific value.
     pub fn enable_timer(&mut self) {
         unsafe {
-            self.write(0x3E0, 0x3);
-            self.write(0x380, 0x10000);
+            self.write(0x3E0, 3);
+            self.write(0x380, 0xfffffff);
             self.write(0x320, (1 << 17) | 0x40);
             dbg!("timer register is 0b{:b}", self.read(0x320));
         }
