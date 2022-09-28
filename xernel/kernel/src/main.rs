@@ -4,6 +4,7 @@
 #![feature(core_intrinsics)]
 #![feature(alloc_error_handler)]
 #![feature(pointer_byte_offsets)]
+#![allow(unused)]
 
 extern crate alloc;
 
