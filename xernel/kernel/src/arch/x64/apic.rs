@@ -16,6 +16,7 @@ pub struct LocalAPIC {
 }
 
 pub static APIC: TicketMutex<InitAtBoot<LocalAPIC>> = TicketMutex::new(InitAtBoot::new());
+static APIC_FREQUENCY : InitAtBoot<u64> = InitAtBoot::new();
 
 pub fn init() {
     let apic_info = acpi::get_apic();
@@ -69,27 +70,30 @@ pub fn init() {
 
         let apic_frequency = apic_ticks as u64 * hpet::frequency() / hpet_ticks;
 
+        APIC_FREQUENCY.set_once(apic_frequency);
+
         println!("hpet_ticks: {}, apic_ticks: {}", hpet_ticks, apic_ticks);
         println!("APIC frequency: {} Hz", apic_frequency);
         println!("HPET frequency: {} Hz", hpet::frequency());
     }
 
-    unsafe {
-        println!("{:x}", apic.read(0x20));
-        println!("{:x}", apic.read(0x30));
-        println!("{:x}", apic.read(0xF0));
-        println!("{:x}", apic.read(0x320));
-
-        asm!("sti");
-    }
-
-    apic.enable_timer();
+    apic.create_periodic_timer(0x40, 1000 * 1000);
 }
+
+static mut last_hpet_counter: u64 = 0;
 
 pub extern "x86-interrupt" fn timer(stack_frame: InterruptStackFrame) {
     let mut apic = APIC.lock();
 
-    dbg!("timer");
+    unsafe {
+        let hpet_counter = hpet::read_main_counter();
+
+        let diff = hpet_counter - last_hpet_counter;
+
+        dbg!("time since last timer: {} ms", diff * 1000 / hpet::frequency());
+
+        last_hpet_counter = hpet::read_main_counter();
+    }
 
     apic.eoi();
 }
@@ -122,6 +126,31 @@ impl LocalAPIC {
         }
     }
 
+    pub fn create_periodic_timer(&mut self, int_no: u8, micro_seconds_period: u64) {
+        let mut apic_ticks = *APIC_FREQUENCY * micro_seconds_period / (1000 * 1000);
+        apic_ticks /= 16;
+
+        println!("apic_ticks: {}", apic_ticks);
+
+        unsafe {
+            // set divider to 16
+            self.write(0x3e0, 3);
+
+            // set the interrupt vector & periodic mode
+            self.write(0x320, (1 << 17) | int_no as u32);
+
+            // set the counter to the calculated value
+            self.write(0x380, apic_ticks as u32);
+        }
+    }
+
+    pub fn stop(&mut self) {
+        unsafe {
+            self.write(0x380, 0);
+        }
+    }
+
+    /*
     /// Enable timer with a specific value.
     pub fn enable_timer(&mut self) {
         unsafe {
@@ -131,4 +160,5 @@ impl LocalAPIC {
             dbg!("timer register is 0b{:b}", self.read(0x320));
         }
     }
+    */
 }

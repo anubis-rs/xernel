@@ -29,6 +29,7 @@ use arch::x64::gdt;
 use arch::x64::idt;
 
 use mem::{heap, pmm, vmm};
+use x86_64::instructions::interrupts;
 use x86_64::structures::paging::FrameAllocator;
 use x86_64::structures::paging::FrameDeallocator;
 
@@ -81,6 +82,8 @@ extern "C" fn kernel_main() -> ! {
 
     apic::init();
 
+    interrupts::enable();
+
     use alloc::boxed::Box;
 
     let mut test_allocation = Box::new(42);
@@ -101,7 +104,7 @@ extern "C" fn kernel_main() -> ! {
 
     loop {
         unsafe {
-            asm!("nop");
+            asm!("hlt");
         }
     }
 }
