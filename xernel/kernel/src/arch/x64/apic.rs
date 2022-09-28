@@ -15,7 +15,7 @@ pub struct LocalAPIC {
     address: u64,
 }
 
-pub static APIC: TicketMutex<InitAtBoot<LocalAPIC>> = TicketMutex::new(InitAtBoot::new());
+pub static APIC: TicketMutex<LocalAPIC> = TicketMutex::new(LocalAPIC { address: 0 });
 static APIC_FREQUENCY : InitAtBoot<u64> = InitAtBoot::new();
 
 pub fn init() {
@@ -43,7 +43,7 @@ pub fn init() {
 
     let mut apic = APIC.lock();
 
-    apic.set_once(LocalAPIC { address: apic_base });
+    apic.address = apic_base;
 
     apic.enable_apic();
 
