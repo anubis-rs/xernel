@@ -3,7 +3,6 @@ use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
 
 use crate::acpi::hpet;
-use crate::dbg;
 use crate::{
     acpi,
     mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET},
