@@ -1,4 +1,4 @@
-use crate::arch::x64::apic::timer;
+use crate::arch::x64::apic::{timer, apic_spurious_interrupt};
 use crate::arch::x64::ports::outb;
 use core::arch::asm;
 use x86_64::registers::control::Cr2;
@@ -18,6 +18,7 @@ lazy_static! {
             .set_handler_fn(general_fault_handler);
 
         idt[0x40].set_handler_fn(timer);
+        idt[0xff].set_handler_fn(apic_spurious_interrupt);
         idt
     };
 }

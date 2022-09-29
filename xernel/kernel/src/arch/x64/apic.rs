@@ -82,6 +82,12 @@ pub extern "x86-interrupt" fn timer(_stack_frame: InterruptStackFrame) {
     apic.eoi();
 }
 
+pub extern "x86-interrupt" fn apic_spurious_interrupt(_stack_frame: InterruptStackFrame) {
+    let mut apic = APIC.lock();
+
+    apic.eoi();
+}
+
 impl LocalAPIC {
     pub unsafe fn read(&self, reg: u64) -> u32 {
         ((self.address + reg) as *const u32).read_volatile()
@@ -106,7 +112,7 @@ impl LocalAPIC {
 
     pub fn enable_apic(&mut self) {
         unsafe {
-            self.set_siv(self.read(0xF0) | 1 << 8);
+            self.set_siv(0x1ff);
 
             // set the task priority to 0
             self.write(0x80, 0);
