@@ -3,6 +3,7 @@ use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
 
 use crate::acpi::hpet;
+use crate::dbg;
 use crate::{
     acpi,
     mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET},
@@ -105,6 +106,9 @@ impl LocalAPIC {
     pub fn enable_apic(&mut self) {
         unsafe {
             self.set_siv(self.read(0xF0) | 1 << 8);
+
+            // set the task priority to 0
+            self.write(0x80, 0);
         }
     }
 
