@@ -1,4 +1,4 @@
-use crate::arch::x64::apic::{timer, apic_spurious_interrupt};
+use crate::arch::x64::apic::{apic_spurious_interrupt, timer};
 use crate::arch::x64::ports::outb;
 use core::arch::asm;
 use x86_64::registers::control::Cr2;

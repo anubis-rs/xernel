@@ -38,6 +38,7 @@ use crate::acpi::hpet;
 use crate::arch::x64::apic;
 
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
+static SMP_REQUEST: LimineSmpRequest = LimineSmpRequest::new(0);
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
@@ -85,13 +86,6 @@ extern "C" fn kernel_main() -> ! {
 
     interrupts::enable();
 
-    use alloc::boxed::Box;
-
-    let mut test_allocation = Box::new(42);
-    debug!("test allocation: {}", test_allocation);
-    *test_allocation = 123;
-    debug!("test allocation: {}", test_allocation);
-
     let bootloader_info = BOOTLOADER_INFO
         .get_response()
         .get()
@@ -102,6 +96,29 @@ extern "C" fn kernel_main() -> ! {
         bootloader_info.name.to_string().unwrap(),
         bootloader_info.version.to_string().unwrap()
     );
+
+    let smp_response = unsafe { &mut *SMP_REQUEST.get_response().as_mut_ptr().unwrap() };
+    let bsp_lapic_id = smp_response.bsp_lapic_id;
+
+    for cpu in smp_response.cpus().unwrap().iter_mut() {
+        if cpu.lapic_id != bsp_lapic_id {
+            cpu.goto_address = x86_64_ap_main as *const () as u64;
+        }
+    }
+
+    loop {
+        unsafe {
+            asm!("hlt");
+        }
+    }
+}
+
+#[no_mangle]
+extern "C" fn x86_64_ap_main(boot_info: *const LimineSmpInfo) -> ! {
+    let boot_info = unsafe { &*boot_info };
+    // let ap_id = boot_info.processor_id as usize;
+
+    info!("booting CPU {:#?}", boot_info);
 
     loop {
         unsafe {
