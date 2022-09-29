@@ -4,9 +4,9 @@ use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
 
 use crate::acpi::hpet;
 use crate::{
-    acpi,
+    acpi, debug,
     mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET},
-    print, println,
+    println,
 };
 
 pub struct LocalAPIC {
@@ -20,7 +20,7 @@ pub fn init() {
     let apic_info = acpi::get_apic();
     println!("{:?}", apic_info);
 
-    println!("{:x}", apic_info.local_apic_address);
+    debug!("{:x}", apic_info.local_apic_address);
 
     let apic_base = apic_info.local_apic_address + *HIGHER_HALF_OFFSET;
 

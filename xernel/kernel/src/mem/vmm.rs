@@ -1,10 +1,10 @@
 use super::{pmm::FRAME_ALLOCATOR, HIGHER_HALF_OFFSET};
 use crate::{
+    debug,
     mem::{
         pmm::{FRAME_SIZE, MEMORY_MAP},
         KERNEL_OFFSET,
     },
-    print, println,
 };
 use libxernel::boot::InitAtBoot;
 use libxernel::spin::Spinlock;
@@ -138,7 +138,7 @@ impl PageMapper<'_> {
 pub fn init() {
     unsafe {
         // create new pagetable and map the kernel + all memory maps in higher half
-        println!("higher half offset: {:x}", *HIGHER_HALF_OFFSET);
+        debug!("higher half offset: {:x}", *HIGHER_HALF_OFFSET);
 
         let kernel_base_address = KERNEL_ADDRESS_REQUEST
             .get_response()
@@ -151,8 +151,8 @@ pub fn init() {
             .unwrap()
             .virtual_base;
 
-        println!("{:x}", kernel_base_address);
-        println!("{:x}", kernel_virt_address);
+        debug!("{:x}", kernel_base_address);
+        debug!("{:x}", kernel_virt_address);
 
         let mut frame_allocator = super::pmm::FRAME_ALLOCATOR.lock();
         let lvl4_table = frame_allocator.allocate_frame().unwrap();

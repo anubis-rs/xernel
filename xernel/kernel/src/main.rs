@@ -43,8 +43,8 @@ static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 fn panic(info: &PanicInfo) -> ! {
     // print the panic info
     // NOTE: this might panic again, but it is better than printing nothing
-    println!("\nKernel PANIC !!!");
-    println!("panic info: {:#?}", info);
+    error!("\nKernel PANIC !!!");
+    error!("panic info: {:#?}", info);
     loop {}
 }
 
@@ -53,12 +53,12 @@ fn panic(info: &PanicInfo) -> ! {
 extern "C" fn kernel_main() -> ! {
     gdt::init();
     idt::init();
-    println!("GDT loaded");
+    info!("GDT loaded");
 
     idt::disable_pic();
 
     pmm::init();
-    println!("pm initialized");
+    info!("pm initialized");
 
     // test allocate a page
     let mut frame_allocator = pmm::FRAME_ALLOCATOR.lock();
@@ -71,13 +71,13 @@ extern "C" fn kernel_main() -> ! {
     drop(frame_allocator);
 
     vmm::init();
-    println!("vm initialized");
+    info!("vm initialized");
 
     heap::init();
-    println!("heap initialized");
+    info!("heap initialized");
 
     acpi::init();
-    println!("acpi initialized");
+    info!("acpi initialized");
 
     hpet::init();
 
@@ -88,16 +88,16 @@ extern "C" fn kernel_main() -> ! {
     use alloc::boxed::Box;
 
     let mut test_allocation = Box::new(42);
-    println!("test allocation: {}", test_allocation);
+    debug!("test allocation: {}", test_allocation);
     *test_allocation = 123;
-    println!("test allocation: {}", test_allocation);
+    debug!("test allocation: {}", test_allocation);
 
     let bootloader_info = BOOTLOADER_INFO
         .get_response()
         .get()
         .expect("barebones: recieved no bootloader info");
 
-    println!(
+    info!(
         "bootloader: (name={:?}, version={:?})",
         bootloader_info.name.to_string().unwrap(),
         bootloader_info.version.to_string().unwrap()
