@@ -1,8 +1,13 @@
 use core::fmt;
 use core::fmt::Write;
 
+use libxernel::ticket::TicketMutex;
+
 use crate::framebuffer::FRAMEBUFFER;
+
 struct Writer;
+
+static WRITER: TicketMutex<Writer> = TicketMutex::new(Writer);
 
 impl core::fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
@@ -44,14 +49,14 @@ macro_rules! print {
 
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
-    let mut writer = Writer;
+    let mut writer = WRITER.lock();
     // UNWRAP: We always return `Ok(())` inside `write_str` so this is unreachable.
     writer.write_fmt(args).unwrap();
 }
 
 #[doc(hidden)]
 pub fn _println(args: fmt::Arguments) {
-    let mut writer = Writer;
+    let mut writer = WRITER.lock();
     // UNWRAP: We always return `Ok(())` inside `write_str` so this is unreachable.
     writer.write_fmt(args).unwrap();
     writer.write_char('\n').unwrap();
@@ -60,7 +65,7 @@ pub fn _println(args: fmt::Arguments) {
 #[doc(hidden)]
 pub fn _log_print(args: fmt::Arguments, level: &str, r: u8, g: u8, b: u8) {
     // UNWRAP: We always return `Ok(())` inside `write_str` so this is unreachable.
-    let mut writer = Writer;
+    let mut writer = WRITER.lock();
 
     writer.write_char('[').unwrap();
 
