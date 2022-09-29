@@ -1,4 +1,4 @@
-use libxernel::boot::InitAtBoot;
+use libxernel::{boot::InitAtBoot, once::Once};
 use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
 
 use crate::mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};
@@ -8,9 +8,9 @@ use super::ACPI;
 const HPET_CONFIGURATION_REGISTER_OFFSET: u64 = 0x10;
 const HPET_MAIN_COUNTER_REGISTER_OFFSET: u64 = 0xF0;
 
-static HPET_FREQUENCY: InitAtBoot<u64> = InitAtBoot::new();
-static HPET_CLOCK_TICK_UNIT: InitAtBoot<u16> = InitAtBoot::new();
-static HPET_BASE_ADDRESS: InitAtBoot<u64> = InitAtBoot::new();
+static HPET_FREQUENCY: Once<u64> = Once::new();
+static HPET_CLOCK_TICK_UNIT: Once<u16> = Once::new();
+static HPET_BASE_ADDRESS: Once<u64> = Once::new();
 
 pub fn init() {
     let hpet_info = acpi_parsing::HpetInfo::new(&ACPI.tables).unwrap();

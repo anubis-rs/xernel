@@ -1,3 +1,4 @@
+use libxernel::once::Once;
 use libxernel::{boot::InitAtBoot, ticket::TicketMutex};
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
@@ -14,7 +15,7 @@ pub struct LocalAPIC {
 }
 
 pub static APIC: TicketMutex<LocalAPIC> = TicketMutex::new(LocalAPIC { address: 0 });
-static APIC_FREQUENCY: InitAtBoot<u64> = InitAtBoot::new();
+static APIC_FREQUENCY: Once<u64> = Once::new();
 
 pub fn init() {
     let apic_info = acpi::get_apic();
@@ -68,6 +69,7 @@ pub fn init() {
 
         let apic_frequency = apic_ticks as u64 * hpet::frequency() / hpet_ticks;
 
+        //APIC_FREQUENCY = InitAtBoot::Initialized(apic_frequency);
         APIC_FREQUENCY.set_once(apic_frequency);
     }
 
