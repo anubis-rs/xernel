@@ -6,7 +6,7 @@ use x86_64::set_general_handler;
 use x86_64::structures::idt::PageFaultErrorCode;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
-use crate::{dbg, print, println};
+use crate::{dbg, println};
 
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {

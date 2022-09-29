@@ -59,12 +59,13 @@ pub fn _println(args: fmt::Arguments) {
 
 #[doc(hidden)]
 pub fn _log_print(args: fmt::Arguments, level: &str, r: u8, g: u8, b: u8) {
+    // UNWRAP: We always return `Ok(())` inside `write_str` so this is unreachable.
     let mut writer = Writer;
 
     writer.write_char('[').unwrap();
 
     FRAMEBUFFER.lock().set_color(r, g, b);
-    writer.write_str(level);
+    writer.write_str(level).unwrap();
     FRAMEBUFFER.lock().set_color(0xff, 0xff, 0xff);
     writer.write_str("] ").unwrap();
     writer.write_fmt(args).unwrap();
