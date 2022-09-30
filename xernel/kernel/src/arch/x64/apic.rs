@@ -1,5 +1,5 @@
 use libxernel::once::Once;
-use libxernel::{boot::InitAtBoot, ticket::TicketMutex};
+use libxernel::ticket::TicketMutex;
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
 
