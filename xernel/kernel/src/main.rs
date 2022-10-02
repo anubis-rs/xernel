@@ -116,9 +116,12 @@ extern "C" fn kernel_main() -> ! {
 #[no_mangle]
 extern "C" fn x86_64_ap_main(boot_info: *const LimineSmpInfo) -> ! {
     let boot_info = unsafe { &*boot_info };
-    // let ap_id = boot_info.processor_id as usize;
+    let ap_id = boot_info.processor_id as usize;
 
     info!("booting CPU {:#?}", boot_info);
+
+    gdt::init_ap();
+    info!("CPU{}: gdt initialized", ap_id);
 
     loop {
         unsafe {

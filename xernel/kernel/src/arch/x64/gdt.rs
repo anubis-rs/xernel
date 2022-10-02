@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+use libxernel::ticket::TicketMutex;
 use x86_64::instructions::segmentation::{Segment, CS, DS, ES, FS, GS, SS};
 use x86_64::instructions::tables::load_tss;
 use x86_64::structures::gdt::SegmentSelector;
@@ -38,6 +40,8 @@ lazy_static! {
     };
 }
 
+static GDT_AP: TicketMutex<Vec<(GlobalDescriptorTable, Selectors)>> = TicketMutex::new(Vec::new());
+
 #[derive(Debug)]
 struct Selectors {
     code_selector: SegmentSelector,
@@ -57,4 +61,8 @@ pub fn init() {
 
         load_tss(GDT.1.tss_selector);
     }
+}
+
+pub fn init_ap() {
+
 }
