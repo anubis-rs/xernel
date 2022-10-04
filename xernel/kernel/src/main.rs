@@ -36,6 +36,7 @@ use x86_64::structures::paging::FrameDeallocator;
 
 use crate::acpi::hpet;
 use crate::arch::x64::apic;
+use crate::mem::vmm::KERNEL_PAGE_MAPPER;
 
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 static SMP_REQUEST: LimineSmpRequest = LimineSmpRequest::new(0);
@@ -118,9 +119,16 @@ extern "C" fn x86_64_ap_main(boot_info: *const LimineSmpInfo) -> ! {
     let boot_info = unsafe { &*boot_info };
     let ap_id = boot_info.processor_id as usize;
 
+    {
+        let mut kernel_page_mapper = KERNEL_PAGE_MAPPER.lock();
+        unsafe {
+            kernel_page_mapper.load_pt();
+        }
+    }
+
     info!("booting CPU {:#?}", boot_info);
 
-    gdt::init_ap();
+    gdt::init_ap(ap_id);
     info!("CPU{}: gdt initialized", ap_id);
 
     loop {

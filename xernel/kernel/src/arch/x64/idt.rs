@@ -1,6 +1,6 @@
 use crate::arch::x64::apic::{apic_spurious_interrupt, timer};
-use crate::arch::x64::ports::outb;
 use crate::arch::x64::gdt::DOUBLE_FAULT_IST_INDEX;
+use crate::arch::x64::ports::outb;
 use core::arch::asm;
 use x86_64::registers::control::Cr2;
 use x86_64::set_general_handler;
@@ -15,7 +15,9 @@ lazy_static! {
 
         set_general_handler!(&mut idt, interrupt_handler);
         unsafe {
-            idt.double_fault.set_handler_fn(double_fault_handler).set_stack_index(DOUBLE_FAULT_IST_INDEX);
+            idt.double_fault
+                .set_handler_fn(double_fault_handler)
+                .set_stack_index(DOUBLE_FAULT_IST_INDEX);
         }
         idt.page_fault.set_handler_fn(page_fault_handler);
         idt.general_protection_fault
@@ -52,7 +54,6 @@ extern "x86-interrupt" fn double_fault_handler(
         }
     }
 }
-
 
 extern "x86-interrupt" fn page_fault_handler(
     stack_frame: InterruptStackFrame,

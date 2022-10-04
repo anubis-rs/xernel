@@ -1,3 +1,4 @@
+use alloc::boxed::Box;
 use alloc::vec::Vec;
 use libxernel::ticket::TicketMutex;
 use x86_64::instructions::segmentation::{Segment, CS, DS, ES, FS, GS, SS};
@@ -24,7 +25,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref GDT: (GlobalDescriptorTable, Selectors) = {
+    static ref GDT_BSP: (GlobalDescriptorTable, Selectors) = {
         let mut gdt = GlobalDescriptorTable::new();
         let code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
         let data_selector = gdt.add_entry(Descriptor::kernel_data_segment());
@@ -40,7 +41,15 @@ lazy_static! {
     };
 }
 
-static GDT_AP: TicketMutex<Vec<(GlobalDescriptorTable, Selectors)>> = TicketMutex::new(Vec::new());
+static GDT_AP: TicketMutex<Vec<Gdt>> = TicketMutex::new(Vec::new());
+
+#[derive(Debug)]
+struct Gdt {
+    gdt: &'static GlobalDescriptorTable,
+    selectors: Selectors,
+    tss: &'static TaskStateSegment,
+    ap_id: usize,
+}
 
 #[derive(Debug)]
 struct Selectors {
@@ -50,19 +59,52 @@ struct Selectors {
 }
 
 pub fn init() {
-    GDT.0.load();
+    GDT_BSP.0.load();
     unsafe {
-        CS::set_reg(GDT.1.code_selector);
-        SS::set_reg(GDT.1.data_selector);
-        DS::set_reg(GDT.1.data_selector);
-        ES::set_reg(GDT.1.data_selector);
-        FS::set_reg(GDT.1.data_selector);
-        GS::set_reg(GDT.1.data_selector);
+        CS::set_reg(GDT_BSP.1.code_selector);
+        SS::set_reg(GDT_BSP.1.data_selector);
+        DS::set_reg(GDT_BSP.1.data_selector);
+        ES::set_reg(GDT_BSP.1.data_selector);
+        FS::set_reg(GDT_BSP.1.data_selector);
+        GS::set_reg(GDT_BSP.1.data_selector);
 
-        load_tss(GDT.1.tss_selector);
+        load_tss(GDT_BSP.1.tss_selector);
     }
 }
 
-pub fn init_ap() {
+pub fn init_ap(ap_id: usize) {
+    let mut gdt_ap = GDT_AP.lock();
 
+    let gdt: &'static mut GlobalDescriptorTable = Box::leak(Box::new(GlobalDescriptorTable::new()));
+    let code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
+    let data_selector = gdt.add_entry(Descriptor::kernel_data_segment());
+    gdt.add_entry(Descriptor::user_code_segment());
+    gdt.add_entry(Descriptor::user_data_segment());
+
+    let tss: &'static mut TaskStateSegment = Box::leak(Box::new(TaskStateSegment::new()));
+    // TODO: set the interrupt stack to be able to handle double faults
+    let tss_selector = gdt.add_entry(Descriptor::tss_segment(tss));
+
+    gdt_ap.push(Gdt {
+        gdt,
+        selectors: Selectors {
+            code_selector,
+            data_selector,
+            tss_selector,
+        },
+        tss,
+        ap_id,
+    });
+
+    gdt.load();
+    unsafe {
+        CS::set_reg(code_selector);
+        SS::set_reg(data_selector);
+        DS::set_reg(data_selector);
+        ES::set_reg(data_selector);
+        FS::set_reg(data_selector);
+        GS::set_reg(data_selector);
+
+        load_tss(tss_selector);
+    }
 }
