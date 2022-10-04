@@ -5,7 +5,7 @@ authors = ["Raphael O. <raphael.ob@protonmail.com"]
 description = ""
 edition = "2021"
 repository = "https://github.com/anubis-rs/xernel"
-license = ""
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 limine = "0.1.8"
