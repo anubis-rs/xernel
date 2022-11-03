@@ -33,14 +33,15 @@ pub static FRAMEBUFFER: TicketMutex<Framebuffer> = TicketMutex::new(Framebuffer 
 lazy_static! {
     static ref FRAMEBUFFER_DATA: &'static LimineFramebuffer = {
         FRAMEBUFFER_REQUEST
-            .get_response()
-            .get()
-            .expect("limine-protocol: invalid framebuffer response")
-            .framebuffers()
-            .unwrap()
-            .first()
-            .expect("limine-protocol: could not get first framebuffer")
+                .get_response()
+                .get()
+                .expect("limine-protocol: invalid framebuffer response")
+                .framebuffers()
+                .first()
+                .expect("limine-protocol: could not get first framebuffer")
     };
+
+
 }
 
 impl Framebuffer {
@@ -49,7 +50,7 @@ impl Framebuffer {
 
         let c = character as u8;
 
-        let address = FRAMEBUFFER_DATA.address.as_mut_ptr().unwrap().cast::<u8>();
+        let address = FRAMEBUFFER_DATA.address.as_ptr().unwrap().cast::<u8>();
 
         let mut index: u16 = 0;
 

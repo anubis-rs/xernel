@@ -94,16 +94,17 @@ extern "C" fn kernel_main() -> ! {
 
     info!(
         "bootloader: (name={:?}, version={:?})",
-        bootloader_info.name.to_string().unwrap(),
-        bootloader_info.version.to_string().unwrap()
+        bootloader_info.name.to_str().unwrap(),
+        bootloader_info.version.to_str().unwrap()
     );
 
-    let smp_response = unsafe { &mut *SMP_REQUEST.get_response().as_mut_ptr().unwrap() };
+    let smp_response = SMP_REQUEST.get_response().get_mut().unwrap();
+
     let bsp_lapic_id = smp_response.bsp_lapic_id;
 
-    for cpu in smp_response.cpus().unwrap().iter_mut() {
+    for cpu in smp_response.cpus().iter_mut() {
         if cpu.lapic_id != bsp_lapic_id {
-            cpu.goto_address = x86_64_ap_main as *const () as u64;
+            cpu.goto_address = x86_64_ap_main;
         }
     }
 
