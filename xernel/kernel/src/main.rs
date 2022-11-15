@@ -14,6 +14,7 @@ extern crate lazy_static;
 mod acpi;
 mod arch;
 mod framebuffer;
+mod sched;
 
 #[macro_use]
 mod logger;
