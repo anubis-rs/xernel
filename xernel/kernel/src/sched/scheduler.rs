@@ -37,11 +37,13 @@ impl Scheduler {
     }
 
     pub fn run_next_task(&mut self) {
-        let new_task = self.tasks.pop_front().unwrap();
+        let old_task = self.tasks.pop_front().unwrap();
 
-        println!("{:?}", new_task);
+        println!("{:?}", old_task);
 
-        self.tasks.push_front(new_task.clone());
+        self.tasks.push_back(old_task.clone());
+
+        let new_task = self.tasks.get(0).unwrap();
 
         restore_context(&new_task.context);
     }
