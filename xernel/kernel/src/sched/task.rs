@@ -1,7 +1,13 @@
+use core::sync::atomic::{AtomicUsize, Ordering};
+
 use alloc::rc::Weak;
 use alloc::vec::Vec;
 use x86_64::structures::paging::PageTable;
 use x86_64::VirtAddr;
+
+use crate::sched::context::TaskContext;
+
+static TASK_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 pub enum TaskStatus {
     Running,
@@ -16,20 +22,48 @@ pub enum TaskPriority {
     High,
 }
 
-pub struct TaskContext {
-    // todo: add registers
-}
-
 pub struct Task {
     pub id: u64,
-    // Maybe we should use a pointer to the page table instead of the page table itself
     pub page_table: Option<PageTable>,
     pub parent: Weak<Task>,
     pub children: Vec<Task>,
     pub status: TaskStatus,
     pub priority: TaskPriority,
-    pub stack: *mut u8,
-    pub stack_size: usize,
-    pub entry_point: VirtAddr,
     pub context: TaskContext,
+    pub is_kernel_task: bool,
+}
+
+// TODO: Implement clone for Task
+// TODO: Add method for creating a new task which gets a Rust function as an entry point
+
+impl Task {
+    pub fn new_kernel_task(entry_point: VirtAddr, rsp: VirtAddr, rflags: u64) -> Self {
+        Self {
+            id: TASK_ID_COUNTER.fetch_add(1, Ordering::SeqCst) as u64,
+            page_table: None,
+            parent: Weak::new(),
+            children: Vec::new(),
+            status: TaskStatus::Waiting,
+            priority: TaskPriority::Normal,
+            context: TaskContext::new(entry_point, rsp, rflags),
+            is_kernel_task: true,
+        }
+    }
+
+    pub fn new_user_task(entry_point: VirtAddr, rsp: VirtAddr, rflags: u64) -> Self {
+        Self {
+            id: TASK_ID_COUNTER.fetch_add(1, Ordering::SeqCst) as u64,
+            page_table: Some(PageTable::new()),
+            parent: Weak::new(),
+            children: Vec::new(),
+            status: TaskStatus::Waiting,
+            priority: TaskPriority::Normal,
+            context: TaskContext::new(entry_point, rsp, rflags),
+            is_kernel_task: false,
+        }
+    }
+
+    pub fn set_priority(&mut self, priority: TaskPriority) {
+        self.priority = priority;
+    }
 }
