@@ -3,9 +3,9 @@ use crate::arch::x64::gdt::DOUBLE_FAULT_IST_INDEX;
 use crate::arch::x64::ports::outb;
 use core::arch::asm;
 use x86_64::registers::control::Cr2;
-use x86_64::set_general_handler;
 use x86_64::structures::idt::PageFaultErrorCode;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
+use x86_64::{set_general_handler, VirtAddr};
 
 use crate::{dbg, println};
 
@@ -23,7 +23,9 @@ lazy_static! {
         idt.general_protection_fault
             .set_handler_fn(general_fault_handler);
 
-        idt[0x40].set_handler_fn(timer);
+        unsafe {
+            idt[0x40].set_handler_addr(VirtAddr::new(timer as u64));
+        }
         idt[0xff].set_handler_fn(apic_spurious_interrupt);
         idt
     };
@@ -44,10 +46,14 @@ fn interrupt_handler(stack_frame: InterruptStackFrame, index: u8, error_code: Op
 
 extern "x86-interrupt" fn double_fault_handler(
     stack_frame: InterruptStackFrame,
-    _error_code: u64,
+    error_code: u64,
 ) -> ! {
+    dbg!("EXCEPTION: DOUBLE FAULT");
+    dbg!("{:#?}", stack_frame);
+    dbg!("{}", error_code);
     println!("EXCEPTION: DOUBLE FAULT");
     println!("{:#?}", stack_frame);
+    println!("{}", error_code);
     loop {
         unsafe {
             asm!("hlt");
@@ -74,7 +80,7 @@ extern "x86-interrupt" fn general_fault_handler(stack_frame: InterruptStackFrame
     dbg!("EXCEPTION: GENERAL PROTECTION FAULT");
     dbg!("{:?}", stack_frame);
     dbg!("{:b}", error_code);
-    println!("EXCEPTION: GENERAL FAULT");
+    println!("EXCEPTION: GENERAL PROTECTION FAULT");
     println!("{:?}", stack_frame);
     println!("{}", error_code);
     unsafe {

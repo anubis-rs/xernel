@@ -9,6 +9,7 @@ use crate::sched::context::TaskContext;
 
 static TASK_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
+#[derive(Debug, Clone)]
 pub enum TaskStatus {
     Running,
     Waiting,
@@ -16,12 +17,14 @@ pub enum TaskStatus {
     Zombie,
 }
 
+#[derive(Debug, Clone)]
 pub enum TaskPriority {
     Low,
     Normal,
     High,
 }
 
+#[derive(Debug, Clone)]
 pub struct Task {
     pub id: u64,
     pub page_table: Option<PageTable>,
@@ -32,9 +35,6 @@ pub struct Task {
     pub context: TaskContext,
     pub is_kernel_task: bool,
 }
-
-// TODO: Implement clone for Task
-// TODO: Add method for creating a new task which gets a Rust function as an entry point
 
 impl Task {
     pub fn new_kernel_task(entry_point: VirtAddr, rsp: VirtAddr, rflags: u64) -> Self {

@@ -159,8 +159,7 @@ fn run(sh: &Shell, gdb: bool) -> Result<()> {
 
     cmd!(
         sh,
-        "qemu-system-x86_64{file_extension}
-                -smp 4        
+        "qemu-system-x86_64{file_extension}  
                 -bios ./xernel/kernel/uefi-edk2/OVMF.fd 
                 -cdrom xernel.hdd 
                 --no-reboot 

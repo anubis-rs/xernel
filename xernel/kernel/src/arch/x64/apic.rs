@@ -1,3 +1,4 @@
+use core::arch::asm;
 use libxernel::once::Once;
 use libxernel::ticket::TicketMutex;
 use x86_64::structures::idt::InterruptStackFrame;
@@ -76,10 +77,29 @@ pub fn init() {
     apic.create_periodic_timer(0x40, 1000 * 1000);
 }
 
-pub extern "x86-interrupt" fn timer(_stack_frame: InterruptStackFrame) {
-    let mut apic = APIC.lock();
-
-    apic.eoi();
+#[naked]
+pub extern "C" fn timer(_stack_frame: InterruptStackFrame) {
+    unsafe {
+        asm!(
+            "push r15;
+            push r14; 
+            push r13;
+            push r12;
+            push r11;
+            push r10;
+            push r9;
+            push r8;
+            push rdi;
+            push rsi;
+            push rdx;
+            push rcx;
+            push rbx;
+            push rax;
+            push rbp;
+            call schedule_handle",
+            options(noreturn)
+        );
+    }
 }
 
 pub extern "x86-interrupt" fn apic_spurious_interrupt(_stack_frame: InterruptStackFrame) {

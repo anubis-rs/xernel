@@ -4,6 +4,7 @@
 #![feature(core_intrinsics)]
 #![feature(alloc_error_handler)]
 #![feature(pointer_byte_offsets)]
+#![feature(naked_functions)]
 #![allow(dead_code)]
 
 extern crate alloc;
@@ -23,6 +24,7 @@ mod mem;
 #[macro_use]
 mod writer;
 
+use alloc::vec;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use limine::*;
@@ -34,10 +36,13 @@ use mem::{heap, pmm, vmm};
 use x86_64::instructions::interrupts;
 use x86_64::structures::paging::FrameAllocator;
 use x86_64::structures::paging::FrameDeallocator;
+use x86_64::VirtAddr;
 
 use crate::acpi::hpet;
 use crate::arch::x64::apic;
 use crate::mem::vmm::KERNEL_PAGE_MAPPER;
+use crate::sched::scheduler::SCHEDULER;
+use crate::sched::task::Task;
 
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 static SMP_REQUEST: LimineSmpRequest = LimineSmpRequest::new(0);
@@ -55,8 +60,9 @@ fn panic(info: &PanicInfo) -> ! {
 #[no_mangle]
 extern "C" fn kernel_main() -> ! {
     gdt::init();
-    idt::init();
     info!("GDT loaded");
+    idt::init();
+    info!("IDT loaded");
 
     idt::disable_pic();
 
@@ -86,8 +92,6 @@ extern "C" fn kernel_main() -> ! {
 
     apic::init();
 
-    interrupts::enable();
-
     let bootloader_info = BOOTLOADER_INFO
         .get_response()
         .get()
@@ -98,6 +102,18 @@ extern "C" fn kernel_main() -> ! {
         bootloader_info.name.to_str().unwrap(),
         bootloader_info.version.to_str().unwrap()
     );
+
+    let stack = vec![0; 4096];
+
+    let kernel_task = Task::new_kernel_task(
+        VirtAddr::new(test as *const () as u64),
+        VirtAddr::new(stack.as_ptr() as u64),
+        0,
+    );
+
+    SCHEDULER.lock().add_task(kernel_task);
+
+    interrupts::enable();
 
     let smp_response = SMP_REQUEST.get_response().get_mut().unwrap();
 
@@ -132,6 +148,16 @@ extern "C" fn x86_64_ap_main(boot_info: *const LimineSmpInfo) -> ! {
 
     gdt::init_ap(ap_id);
     info!("CPU{}: gdt initialized", ap_id);
+
+    loop {
+        unsafe {
+            asm!("hlt");
+        }
+    }
+}
+
+fn test() {
+    println!("hello");
 
     loop {
         unsafe {
