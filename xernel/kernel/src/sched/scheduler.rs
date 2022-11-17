@@ -1,19 +1,20 @@
+use crate::dbg;
 use crate::sched::context::restore_context;
 use crate::{arch::x64::apic::APIC, println, Task};
 use alloc::collections::VecDeque;
-use core::arch::asm;
-
+use libxernel::spin::Spinlock;
 use libxernel::ticket::TicketMutex;
 
 use super::context::TaskContext;
+use super::task::TaskStatus;
 
 pub struct Scheduler {
-    tasks: VecDeque<Task>,
+    pub tasks: VecDeque<Task>,
 }
 
 lazy_static! {
-    pub static ref SCHEDULER: TicketMutex<Scheduler> = {
-        let tm = TicketMutex::new(Scheduler::new());
+    pub static ref SCHEDULER: Spinlock<Scheduler> = {
+        let tm = Spinlock::new(Scheduler::new());
         tm
     };
 }
@@ -36,18 +37,17 @@ impl Scheduler {
         task.context = ctx;
     }
 
-    pub fn run_next_task(&mut self) {
+    pub fn get_next_task(&mut self) -> &Task {
         let old_task = self.tasks.pop_front().unwrap();
-
-        println!("{:?}", old_task);
 
         self.tasks.push_back(old_task.clone());
 
-        let new_task = self.tasks.get(0).unwrap();
+        self.tasks.get(0).unwrap()
+    }
 
-        println!("{:?}", new_task);
-
-        restore_context(&new_task.context);
+    pub fn set_current_task_waiting(&mut self) {
+        let mut task = self.tasks.get_mut(0).unwrap();
+        task.status = TaskStatus::Waiting;
     }
 }
 
@@ -55,17 +55,20 @@ impl Scheduler {
 pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     println!("test");
     let mut sched = SCHEDULER.lock();
-
     sched.save_ctx(ctx);
+
+    sched.set_current_task_waiting();
 
     let mut apic = APIC.lock();
     apic.eoi();
+    TicketMutex::unlock(apic);
 
-    sched.run_next_task();
+    x86_64::instructions::interrupts::enable();
 
-    loop {
-        unsafe {
-            asm!("hlt");
-        }
-    }
+    let new_task = sched.get_next_task().clone();
+    Spinlock::unlock(sched);
+
+    println!("{:b}", new_task.context.rflags);
+    dbg!("restoring context");
+    restore_context(&new_task.context);
 }

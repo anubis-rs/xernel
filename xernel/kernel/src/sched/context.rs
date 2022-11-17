@@ -54,7 +54,7 @@ impl TaskContext {
 }
 
 #[naked]
-pub extern "C" fn restore_context(ctx: &TaskContext) {
+pub extern "C" fn restore_context(ctx: &TaskContext) -> ! {
     unsafe {
         asm!(
             "mov rsp, rdi;

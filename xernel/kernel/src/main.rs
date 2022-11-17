@@ -28,12 +28,12 @@ use alloc::vec;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use limine::*;
+use x86_64::instructions::interrupts;
 
 use arch::x64::gdt;
 use arch::x64::idt;
 
 use mem::{heap, pmm, vmm};
-use x86_64::instructions::interrupts;
 use x86_64::structures::paging::FrameAllocator;
 use x86_64::structures::paging::FrameDeallocator;
 use x86_64::VirtAddr;
@@ -110,7 +110,7 @@ extern "C" fn kernel_main() -> ! {
     let kernel_task = Task::new_kernel_task(
         VirtAddr::new(task1 as *const () as u64),
         VirtAddr::new(stack1.as_ptr() as u64 + 4096), // stack grows down
-        0,
+        0x202,
     );
 
     let stack2 = vec![0; 4096];
@@ -118,14 +118,12 @@ extern "C" fn kernel_main() -> ! {
     let kernel_task2 = Task::new_kernel_task(
         VirtAddr::new(task2 as *const () as u64),
         VirtAddr::new(stack2.as_ptr() as u64 + 4096), // stack grows down
-        0,
+        0x202,
     );
 
     SCHEDULER.lock().add_task(main_task);
     SCHEDULER.lock().add_task(kernel_task);
     SCHEDULER.lock().add_task(kernel_task2);
-
-    interrupts::enable();
 
     let smp_response = SMP_REQUEST.get_response().get_mut().unwrap();
 
@@ -137,10 +135,12 @@ extern "C" fn kernel_main() -> ! {
         }
     }
 
-    let mut var = 5;
+    interrupts::enable();
+
+    let mut var = 1;
 
     loop {
-        for i in 0..i16::MAX {
+        for _ in 0..i16::MAX {
             unsafe {
                 asm!("nop");
             }
@@ -149,19 +149,14 @@ extern "C" fn kernel_main() -> ! {
         dbg!("hello from main {}", var);
         var += 1;
     }
-
-    loop {
-        unsafe {
-            asm!("hlt");
-        }
-    }
 }
 
+#[no_mangle]
 fn task1() {
-    let mut var = 5;
+    let mut var = 1;
 
     loop {
-        for i in 0..i16::MAX {
+        for _ in 0..i16::MAX {
             unsafe {
                 asm!("nop");
             }
@@ -173,10 +168,10 @@ fn task1() {
 }
 
 fn task2() {
-    let mut var = -5;
+    let mut var = -1;
 
     loop {
-        for i in 0..i16::MAX {
+        for _ in 0..i16::MAX {
             unsafe {
                 asm!("nop");
             }
