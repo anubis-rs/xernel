@@ -103,15 +103,27 @@ extern "C" fn kernel_main() -> ! {
         bootloader_info.version.to_str().unwrap()
     );
 
-    let stack = vec![0; 4096];
+    let main_task = Task::new_kernel_task(VirtAddr::new(0), VirtAddr::new(0), 0);
+
+    let stack1 = vec![0; 4096];
 
     let kernel_task = Task::new_kernel_task(
-        VirtAddr::new(test as *const () as u64),
-        VirtAddr::new(stack.as_ptr() as u64 + 4096), // stack grows down
+        VirtAddr::new(task1 as *const () as u64),
+        VirtAddr::new(stack1.as_ptr() as u64 + 4096), // stack grows down
         0,
     );
 
+    let stack2 = vec![0; 4096];
+
+    let kernel_task2 = Task::new_kernel_task(
+        VirtAddr::new(task2 as *const () as u64),
+        VirtAddr::new(stack2.as_ptr() as u64 + 4096), // stack grows down
+        0,
+    );
+
+    SCHEDULER.lock().add_task(main_task);
     SCHEDULER.lock().add_task(kernel_task);
+    SCHEDULER.lock().add_task(kernel_task2);
 
     interrupts::enable();
 
@@ -121,8 +133,21 @@ extern "C" fn kernel_main() -> ! {
 
     for cpu in smp_response.cpus().iter_mut() {
         if cpu.lapic_id != bsp_lapic_id {
-            cpu.goto_address = x86_64_ap_main;
+            cpu.goto_address = arch::x64::x86_64_ap_main;
         }
+    }
+
+    let mut var = 5;
+
+    loop {
+        for i in 0..i16::MAX {
+            unsafe {
+                asm!("nop");
+            }
+        }
+
+        dbg!("hello from main {}", var);
+        var += 1;
     }
 
     loop {
@@ -132,36 +157,32 @@ extern "C" fn kernel_main() -> ! {
     }
 }
 
-#[no_mangle]
-extern "C" fn x86_64_ap_main(boot_info: *const LimineSmpInfo) -> ! {
-    let boot_info = unsafe { &*boot_info };
-    let ap_id = boot_info.processor_id as usize;
-
-    {
-        let mut kernel_page_mapper = KERNEL_PAGE_MAPPER.lock();
-        unsafe {
-            kernel_page_mapper.load_pt();
-        }
-    }
-
-    info!("booting CPU {:#?}", boot_info);
-
-    gdt::init_ap(ap_id);
-    info!("CPU{}: gdt initialized", ap_id);
+fn task1() {
+    let mut var = 5;
 
     loop {
-        unsafe {
-            asm!("hlt");
+        for i in 0..i16::MAX {
+            unsafe {
+                asm!("nop");
+            }
         }
+
+        dbg!("hello from task1 {}", var);
+        var += 1;
     }
 }
 
-fn test() {
-    println!("hello");
+fn task2() {
+    let mut var = -5;
 
     loop {
-        unsafe {
-            asm!("hlt");
+        for i in 0..i16::MAX {
+            unsafe {
+                asm!("nop");
+            }
         }
+
+        dbg!("hello from task2 {}", var);
+        var -= 1;
     }
 }

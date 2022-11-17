@@ -45,19 +45,21 @@ impl Scheduler {
 
         let new_task = self.tasks.get(0).unwrap();
 
+        println!("{:?}", new_task);
+
         restore_context(&new_task.context);
     }
 }
 
 #[no_mangle]
 pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
-    println!("dont tell me what tod o {:?}", ctx);
-
+    println!("test");
     let mut sched = SCHEDULER.lock();
 
-    //sched.save_ctx(ctx);
+    sched.save_ctx(ctx);
 
-    APIC.lock().eoi();
+    let mut apic = APIC.lock();
+    apic.eoi();
 
     sched.run_next_task();
 
