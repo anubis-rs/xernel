@@ -107,7 +107,7 @@ extern "C" fn kernel_main() -> ! {
 
     let kernel_task = Task::new_kernel_task(
         VirtAddr::new(test as *const () as u64),
-        VirtAddr::new(stack.as_ptr() as u64),
+        VirtAddr::new(stack.as_ptr() as u64 + 4096), // stack grows down
         0,
     );
 
