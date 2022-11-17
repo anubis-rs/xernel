@@ -68,7 +68,7 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     let new_task = sched.get_next_task().clone();
     Spinlock::unlock(sched);
 
-    println!("{:b}", new_task.context.rflags);
+    println!("{:?}", new_task.context);
     dbg!("restoring context");
     restore_context(&new_task.context);
 }

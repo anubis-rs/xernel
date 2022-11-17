@@ -27,7 +27,7 @@ pub struct TaskContext {
 }
 
 impl TaskContext {
-    pub fn new(entry_point: VirtAddr, rsp: VirtAddr, rflags: u64) -> Self {
+    pub fn new() -> Self {
         Self {
             rbp: 0,
             rax: 0,
@@ -44,11 +44,11 @@ impl TaskContext {
             r13: 0,
             r14: 0,
             r15: 0,
-            rip: entry_point.as_u64(),
-            cs: 8,
-            rflags: rflags,
-            rsp: rsp.as_u64(),
-            ss: 16,
+            rip: 0,
+            cs: 0,
+            rflags: 0,
+            rsp: 0,
+            ss: 0,
         }
     }
 }

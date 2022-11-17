@@ -103,23 +103,11 @@ extern "C" fn kernel_main() -> ! {
         bootloader_info.version.to_str().unwrap()
     );
 
-    let main_task = Task::new_kernel_task(VirtAddr::new(0), VirtAddr::new(0), 0);
+    let main_task = Task::new_kernel_task(VirtAddr::new(0));
 
-    let stack1 = vec![0; 4096];
+    let kernel_task = Task::new_kernel_task(VirtAddr::new(task1 as *const () as u64));
 
-    let kernel_task = Task::new_kernel_task(
-        VirtAddr::new(task1 as *const () as u64),
-        VirtAddr::new(stack1.as_ptr() as u64 + 4096), // stack grows down
-        0x202,
-    );
-
-    let stack2 = vec![0; 4096];
-
-    let kernel_task2 = Task::new_kernel_task(
-        VirtAddr::new(task2 as *const () as u64),
-        VirtAddr::new(stack2.as_ptr() as u64 + 4096), // stack grows down
-        0x202,
-    );
+    let kernel_task2 = Task::new_kernel_task(VirtAddr::new(task2 as *const () as u64));
 
     SCHEDULER.lock().add_task(main_task);
     SCHEDULER.lock().add_task(kernel_task);
