@@ -44,6 +44,10 @@ impl<T> Spinlock<T> {
         }
         None
     }
+
+    pub fn unlock(guard: MutexGuard<'_, T>) {
+        drop(guard);
+    }
 }
 
 impl<'a, T: 'a> Drop for MutexGuard<'a, T> {

@@ -57,6 +57,10 @@ impl<T> TicketMutex<T> {
             mutex: self,
         })
     }
+
+    pub fn unlock(guard: TicketMutexGuard<'_, T>) {
+        drop(guard);
+    }
 }
 
 impl<'a, T: 'a> Drop for TicketMutexGuard<'a, T> {
