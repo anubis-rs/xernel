@@ -1,10 +1,10 @@
+use libxernel::once::Once;
 use libxernel::spin::Spinlock;
-use limine::{LimineMemmapEntry, LimineMemoryMapEntryType, LimineMemmapRequest, NonNullPtr};
+use limine::{LimineMemmapEntry, LimineMemmapRequest, LimineMemoryMapEntryType, NonNullPtr};
 use x86_64::{
     structures::paging::{PhysFrame, Size4KiB},
     PhysAddr,
 };
-use libxernel::once::Once;
 
 use super::HIGHER_HALF_OFFSET;
 
@@ -16,10 +16,6 @@ static MMAP_REQUEST: LimineMemmapRequest = LimineMemmapRequest::new(0);
 // TODO: create struct for bit address (addres + offset) to remove duplicate code in get_bit, set_bit, clear_bit
 
 pub static MEMORY_MAP: Once<&'static [NonNullPtr<LimineMemmapEntry>]> = Once::new();
-
-// lazy_static! {
-//     pub static ref MEMORY_MAP: &'static [NonNullPtr<LimineMemmapEntry>] =    
-// }
 
 pub static FRAME_ALLOCATOR: Spinlock<FrameAllocator> = Spinlock::new(FrameAllocator {
     mmap: &[],
@@ -190,11 +186,13 @@ impl x86_64::structures::paging::FrameDeallocator<Size4KiB> for FrameAllocator {
 pub fn init() {
     let mut frame_allocator = FRAME_ALLOCATOR.lock();
 
-    MEMORY_MAP.set_once(MMAP_REQUEST
-        .get_response()
-        .get()
-        .expect("barebones: recieved no mmap")
-        .memmap());
+    MEMORY_MAP.set_once(
+        MMAP_REQUEST
+            .get_response()
+            .get()
+            .expect("barebones: recieved no mmap")
+            .memmap(),
+    );
 
     frame_allocator.mmap = &MEMORY_MAP;
 

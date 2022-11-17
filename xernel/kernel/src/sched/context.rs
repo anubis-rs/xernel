@@ -1,5 +1,4 @@
 use core::arch::asm;
-use x86_64::VirtAddr;
 
 #[derive(Debug, Clone)]
 #[repr(C)]

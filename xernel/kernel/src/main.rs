@@ -24,7 +24,6 @@ mod mem;
 #[macro_use]
 mod writer;
 
-use alloc::vec;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use limine::*;

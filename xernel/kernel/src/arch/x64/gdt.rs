@@ -32,7 +32,7 @@ lazy_static! {
         let tss_selector = gdt.add_entry(Descriptor::tss_segment(&TSS));
         gdt.add_entry(Descriptor::user_code_segment());
         gdt.add_entry(Descriptor::user_data_segment());
-    
+
         (
             gdt,
             Selectors {

@@ -13,10 +13,7 @@ pub struct Scheduler {
 }
 
 lazy_static! {
-    pub static ref SCHEDULER: Spinlock<Scheduler> = {
-        let tm = Spinlock::new(Scheduler::new());
-        tm
-    };
+    pub static ref SCHEDULER: Spinlock<Scheduler> = Spinlock::new(Scheduler::new());
 }
 
 impl Scheduler {
@@ -40,7 +37,7 @@ impl Scheduler {
     pub fn get_next_task(&mut self) -> &Task {
         let old_task = self.tasks.pop_front().unwrap();
 
-        self.tasks.push_back(old_task.clone());
+        self.tasks.push_back(old_task);
 
         self.tasks.get(0).unwrap()
     }
@@ -50,11 +47,6 @@ impl Scheduler {
         task.status = TaskStatus::Waiting;
     }
 }
-
-/*  FIXME: This function takes like 25kb size of stack, why???!?
-            maybe inline assembly in timer interrupt or restore_context
-            faulty
-*/
 
 #[no_mangle]
 pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
