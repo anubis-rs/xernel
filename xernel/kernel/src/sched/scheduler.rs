@@ -51,6 +51,11 @@ impl Scheduler {
     }
 }
 
+/*  FIXME: This function takes like 25kb size of stack, why???!?
+            maybe inline assembly in timer interrupt or restore_context
+            faulty
+*/
+
 #[no_mangle]
 pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     println!("test");

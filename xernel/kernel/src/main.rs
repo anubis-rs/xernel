@@ -59,6 +59,8 @@ fn panic(info: &PanicInfo) -> ! {
 // define the kernel's entry point function
 #[no_mangle]
 extern "C" fn kernel_main() -> ! {
+    // FIXME: Check why release build doesnt go further than gdt loaded
+
     gdt::init();
     info!("GDT loaded");
     idt::init();

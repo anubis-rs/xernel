@@ -41,8 +41,11 @@ pub struct Task {
 
 impl Task {
     pub fn new_kernel_task(entry_point: VirtAddr) -> Self {
+        /*  FIXME: Only allocate kernel stacks on the kernel heap
+                    Write function for vmm to allocate stack for user land programs (stack, heap, etc.)
+        */
         let task_stack = unsafe {
-            let layout = Layout::from_size_align_unchecked(4096, 0x1000);
+            let layout = Layout::from_size_align_unchecked(STACK_SIZE as usize, 0x1000);
             alloc_zeroed(layout).add(layout.size())
         };
 
