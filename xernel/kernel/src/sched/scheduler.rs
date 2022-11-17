@@ -39,11 +39,11 @@ impl Scheduler {
 
         self.tasks.push_back(old_task);
 
-        self.tasks.get(0).unwrap()
+        self.tasks.front_mut().unwrap()
     }
 
     pub fn set_current_task_waiting(&mut self) {
-        let mut task = self.tasks.get_mut(0).unwrap();
+        let mut task = self.tasks.front_mut().unwrap();
         task.status = TaskStatus::Waiting;
     }
 }

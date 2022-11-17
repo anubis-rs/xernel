@@ -157,7 +157,7 @@ pub fn init() {
 
         let mut frame_allocator = super::pmm::FRAME_ALLOCATOR.lock();
         let lvl4_table = frame_allocator.allocate_frame().unwrap();
-        drop(frame_allocator);
+        Spinlock::unlock(frame_allocator);
 
         let mut mapper = PageMapper::new(lvl4_table, true);
 

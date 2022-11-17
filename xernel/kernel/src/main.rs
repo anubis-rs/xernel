@@ -26,6 +26,7 @@ mod writer;
 
 use core::arch::asm;
 use core::panic::PanicInfo;
+use libxernel::spin::Spinlock;
 use limine::*;
 use x86_64::instructions::interrupts;
 
@@ -78,7 +79,7 @@ extern "C" fn kernel_main() -> ! {
         frame_allocator.deallocate_frame(frame);
     }
 
-    drop(frame_allocator);
+    Spinlock::unlock(frame_allocator);
 
     vmm::init();
     info!("vm initialized");
