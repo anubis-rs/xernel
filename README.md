@@ -16,6 +16,19 @@ You can simply use `cargo kernel build` or `cargo kernel run`, it is going to us
 ## Contact
 Feel free to reach out to `Lockna#5599` or `mp#2453` on Discord
 
+## TODO
+Things which are still to do:
+- [ ] Rewrite mem module
+    - Rewrite page frame allocator so it uses a buddy allocator
+    - Rewrite the virtual memory manager, just make it better
+    - Switch from linked_list_allocator to a buddy allocator for heap too
+- [ ] Implement a virtual file system
+- [ ] Implement a driver system
+- [ ] Implement a proper syscall interface
+- [ ] Implement a proper userspace
+- [ ] Implement a proper init system
+
+
 ## Contributing
 Contributions to code and documentation are heavily appreciated, may it be a bug fix or a improvent of the existing code or code documentation.
 New features would be gladly taken over by us, as the project was created for exactly this purpose.

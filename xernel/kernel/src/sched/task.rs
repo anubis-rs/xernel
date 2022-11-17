@@ -27,6 +27,8 @@ pub enum TaskPriority {
     High,
 }
 
+// TODO: Remove is_kernel_task member, since it can be checked by segment registers (cs and ds)
+
 #[derive(Debug, Clone)]
 pub struct Task {
     pub id: u64,
@@ -39,11 +41,10 @@ pub struct Task {
     pub is_kernel_task: bool,
 }
 
+// TODO: Try implement function new_task_from_fn which takes in a simple rust function which casts to u64
+
 impl Task {
     pub fn new_kernel_task(entry_point: VirtAddr) -> Self {
-        /*  FIXME: Only allocate kernel stacks on the kernel heap
-                    Write function for vmm to allocate stack for user land programs (stack, heap, etc.)
-        */
         let task_stack = unsafe {
             let layout = Layout::from_size_align_unchecked(STACK_SIZE as usize, 0x1000);
             alloc_zeroed(layout).add(layout.size())
@@ -70,6 +71,8 @@ impl Task {
     }
 
     pub fn new_user_task(entry_point: VirtAddr) -> Self {
+        // TODO: Alloc user stack via vmm, don't use kernel heap
+
         let task_stack = unsafe {
             let layout = Layout::from_size_align_unchecked(4096, 0x1000);
             alloc_zeroed(layout).add(layout.size())
@@ -77,6 +80,7 @@ impl Task {
 
         let mut ctx = TaskContext::new();
 
+        // TODO: Set segment registers to user land
         //ctx.ss = 0x10;
         //ctx.cs = 0x8;
         ctx.rip = entry_point.as_u64();

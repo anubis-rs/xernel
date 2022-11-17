@@ -42,19 +42,22 @@ impl Scheduler {
         self.tasks.front_mut().unwrap()
     }
 
-    pub fn set_current_task_waiting(&mut self) {
+    pub fn set_current_task_status(&mut self, status: TaskStatus) {
         let mut task = self.tasks.front_mut().unwrap();
-        task.status = TaskStatus::Waiting;
+        task.status = status;
     }
 }
 
 #[no_mangle]
 pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
-    println!("test");
+    // TODO: Switch page table if user task
+    // TODO: Take priority in account
+    // TODO: Change TaskStatus accordingly
+
     let mut sched = SCHEDULER.lock();
     sched.save_ctx(ctx);
 
-    sched.set_current_task_waiting();
+    sched.set_current_task_status(TaskStatus::Waiting);
 
     let mut apic = APIC.lock();
     apic.eoi();
@@ -65,7 +68,7 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     let new_task = sched.get_next_task().clone();
     Spinlock::unlock(sched);
 
-    println!("{:?}", new_task.context);
+    println!("{:?}", new_task);
     dbg!("restoring context");
     restore_context(&new_task.context);
 }
