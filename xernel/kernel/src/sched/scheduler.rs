@@ -30,19 +30,23 @@ impl Scheduler {
     pub fn schedule_task() {}
 
     pub fn save_ctx(&mut self, ctx: TaskContext) {
+        // FIXME: Plain unwrap, use if let
         let mut task = self.tasks.get_mut(0).unwrap();
         task.context = ctx;
     }
 
     pub fn get_next_task(&mut self) -> &Task {
+        // FIXME: Plain unwrap, use if let
         let old_task = self.tasks.pop_front().unwrap();
 
         self.tasks.push_back(old_task);
 
+        // FIXME: Plain unwrap, use if let
         self.tasks.front_mut().unwrap()
     }
 
     pub fn set_current_task_status(&mut self, status: TaskStatus) {
+        // FIXME: Plain unwrap, use if let
         let mut task = self.tasks.front_mut().unwrap();
         task.status = status;
     }
@@ -59,16 +63,16 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
 
     sched.set_current_task_status(TaskStatus::Waiting);
 
+    x86_64::instructions::interrupts::enable();
+
+    let new_ctx = sched.get_next_task().context.clone();
+    Spinlock::unlock(sched);
+
     let mut apic = APIC.lock();
     apic.eoi();
     TicketMutex::unlock(apic);
 
-    x86_64::instructions::interrupts::enable();
-
-    let new_task = sched.get_next_task().clone();
-    Spinlock::unlock(sched);
-
-    println!("{:?}", new_task);
     dbg!("restoring context");
-    restore_context(&new_task.context);
+
+    restore_context(&new_ctx);
 }

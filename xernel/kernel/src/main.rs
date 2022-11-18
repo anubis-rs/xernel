@@ -113,6 +113,8 @@ extern "C" fn kernel_main() -> ! {
     SCHEDULER.lock().add_task(kernel_task);
     SCHEDULER.lock().add_task(kernel_task2);
 
+    interrupts::enable();
+
     let smp_response = SMP_REQUEST.get_response().get_mut().unwrap();
 
     let bsp_lapic_id = smp_response.bsp_lapic_id;
@@ -122,8 +124,6 @@ extern "C" fn kernel_main() -> ! {
             cpu.goto_address = arch::x64::x86_64_ap_main;
         }
     }
-
-    interrupts::enable();
 
     let mut var = 1;
 

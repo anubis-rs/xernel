@@ -52,8 +52,8 @@ impl Task {
 
         let mut ctx = TaskContext::new();
 
-        ctx.ss = 0x10;
-        ctx.cs = 0x8;
+        ctx.ss = 0x10; // kernel stack segment
+        ctx.cs = 0x8; // kernel code segment
         ctx.rip = entry_point.as_u64();
         ctx.rsp = task_stack as u64;
         ctx.rflags = 0x202;
