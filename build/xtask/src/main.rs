@@ -149,7 +149,7 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
 }
 
 fn run(sh: &Shell, gdb: bool) -> Result<()> {
-    let gdb_debug = if gdb { &["-s", "-S"] } else { &[][..] };
+    let gdb_debug = if gdb { &["-s"] } else { &[][..] };
 
     let mut file_extension = "";
 
@@ -167,7 +167,7 @@ fn run(sh: &Shell, gdb: bool) -> Result<()> {
                 -debugcon stdio
                 -d int 
                 -D qemu.log
-                {gdb_debug...}"
+                -s {gdb_debug...}"
     )
     .run()?;
 
