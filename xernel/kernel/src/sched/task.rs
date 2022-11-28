@@ -102,8 +102,8 @@ impl Task {
         let mut ctx = TaskContext::new();
 
         // TODO: Check if data segment has to be set too, currently setting stack segment to data
-        ctx.ss = 0x2b; // user stack segment
-        ctx.cs = 0x23; // user code segment
+        ctx.ss = 0x33; // user stack segment
+        ctx.cs = 0x2b; // user code segment
         ctx.rip = entry_point.as_u64();
         ctx.rsp = task_stack as u64;
         ctx.rflags = 0x200;
