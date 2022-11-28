@@ -38,10 +38,7 @@ pub struct Task {
     pub status: TaskStatus,
     pub priority: TaskPriority,
     pub context: TaskContext,
-    pub is_kernel_task: bool,
 }
-
-// TODO: Try implement function new_task_from_fn which takes in a simple rust function which casts to u64
 
 impl Task {
     pub fn new_kernel_task(entry_point: VirtAddr) -> Self {
@@ -59,14 +56,38 @@ impl Task {
         ctx.rflags = 0x202;
 
         Self {
-            id: TASK_ID_COUNTER.fetch_add(1, Ordering::SeqCst) as u64,
+            id: TASK_ID_COUNTER.fetch_add(1, Ordering::AcqRel) as u64,
             page_table: None,
             parent: Weak::new(),
             children: Vec::new(),
             status: TaskStatus::Waiting,
             priority: TaskPriority::Normal,
             context: ctx,
-            is_kernel_task: true,
+        }
+    }
+
+    pub fn kernel_task_from_fn(entry: fn()) -> Self {
+        let task_stack = unsafe {
+            let layout = Layout::from_size_align_unchecked(STACK_SIZE as usize, 0x1000);
+            alloc_zeroed(layout).add(layout.size())
+        };
+
+        let mut ctx = TaskContext::new();
+
+        ctx.ss = 0x10; // kernel stack segment
+        ctx.cs = 0x8; // kernel code segment
+        ctx.rip = entry as u64;
+        ctx.rsp = task_stack as u64;
+        ctx.rflags = 0x202;
+
+        Self {
+            id: TASK_ID_COUNTER.fetch_add(1, Ordering::AcqRel) as u64,
+            page_table: None,
+            parent: Weak::new(),
+            children: Vec::new(),
+            status: TaskStatus::Waiting,
+            priority: TaskPriority::Normal,
+            context: ctx,
         }
     }
 
@@ -80,26 +101,33 @@ impl Task {
 
         let mut ctx = TaskContext::new();
 
-        // TODO: Set segment registers to user land
-        //ctx.ss = 0x10;
-        //ctx.cs = 0x8;
+        // TODO: Check if data segment has to be set too, currently setting stack segment to data
+        ctx.ss = 0x2b; // user stack segment
+        ctx.cs = 0x23; // user code segment
         ctx.rip = entry_point.as_u64();
         ctx.rsp = task_stack as u64;
         ctx.rflags = 0x200;
 
         Self {
-            id: TASK_ID_COUNTER.fetch_add(1, Ordering::SeqCst) as u64,
+            id: TASK_ID_COUNTER.fetch_add(1, Ordering::AcqRel) as u64,
             page_table: Some(PageTable::new()),
             parent: Weak::new(),
             children: Vec::new(),
             status: TaskStatus::Waiting,
             priority: TaskPriority::Normal,
             context: ctx,
-            is_kernel_task: false,
         }
     }
 
     pub fn set_priority(&mut self, priority: TaskPriority) {
         self.priority = priority;
+    }
+
+    pub fn is_kernel_task(&self) -> bool {
+        if self.context.cs == 0x8 && self.context.ss == 0x10 {
+            true
+        } else {
+            false
+        }
     }
 }
