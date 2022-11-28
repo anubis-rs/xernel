@@ -88,7 +88,7 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
         cmd!(
             sh,
             "git clone https://github.com/limine-bootloader/limine.git 
-                    --branch=v3.0-branch-binary 
+                    --branch=v4.x-branch-binary
                     --depth=1"
         )
         .run()?;

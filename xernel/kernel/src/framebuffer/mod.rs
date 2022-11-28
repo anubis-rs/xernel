@@ -5,15 +5,11 @@ use core::{
     ptr::{copy, read_volatile},
 };
 
-use crate::{
-    dbg, debug,
-    framebuffer::font::FONT,
-    info,
-    mem::{pmm::MMAP_REQUEST, HIGHER_HALF_OFFSET},
-};
+use crate::{dbg, debug, framebuffer::font::FONT, info, mem::HIGHER_HALF_OFFSET};
 use libxernel::ticket::TicketMutex;
 use limine::{
-    LimineFramebuffer, LimineFramebufferRequest, LimineMemoryMapEntryType, LimineModuleRequest,
+    LimineFramebuffer, LimineFramebufferRequest, LimineMemmapRequest, LimineMemoryMapEntryType,
+    LimineModuleRequest,
 };
 
 pub struct Framebuffer {
@@ -30,7 +26,6 @@ pub struct Color {
 
 static FRAMEBUFFER_REQUEST: LimineFramebufferRequest = LimineFramebufferRequest::new(0);
 static MODULE_REQUEST: LimineModuleRequest = LimineModuleRequest::new(0);
-static MMAP_REQUEST: LimineMemmapRequest = LimineMemmapRequest::new(0);
 
 pub static FRAMEBUFFER: TicketMutex<Framebuffer> = TicketMutex::new(Framebuffer {
     cursor: 0,
@@ -161,22 +156,7 @@ pub fn show_start_image() {
 
         dbg!("{:?}", module);
 
-        let mut kernel_mmap: u64 = 0;
-
-        let mmap = MMAP_REQUEST
-            .get_response()
-            .get()
-            .expect("barebones: recieved no mmap")
-            .memmap();
-
-        for entry in mmap {
-            //dbg!("{:?}", entry);
-            if entry.typ == LimineMemoryMapEntryType::KernelAndModules {
-                kernel_mmap = entry.base;
-            }
-        }
-
-        let file_base = (*module.base.get().unwrap() as u64 + kernel_mmap + *HIGHER_HALF_OFFSET);
+        let file_base = (*module.base.get().unwrap() as u64 + *HIGHER_HALF_OFFSET);
 
         dbg!("{:x}", file_base);
 
