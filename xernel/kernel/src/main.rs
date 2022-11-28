@@ -59,11 +59,12 @@ fn panic(info: &PanicInfo) -> ! {
 // define the kernel's entry point function
 #[no_mangle]
 extern "C" fn kernel_main() -> ! {
+    //framebuffer::show_start_image();
+
     gdt::init();
     info!("GDT loaded");
     idt::init();
     info!("IDT loaded");
-
     idt::disable_pic();
 
     pmm::init();
@@ -105,9 +106,9 @@ extern "C" fn kernel_main() -> ! {
 
     let main_task = Task::new_kernel_task(VirtAddr::new(0));
 
-    let kernel_task = Task::new_kernel_task(VirtAddr::new(task1 as *const () as u64));
+    let kernel_task = Task::kernel_task_from_fn(task1);
 
-    let kernel_task2 = Task::new_kernel_task(VirtAddr::new(task2 as *const () as u64));
+    let kernel_task2 = Task::kernel_task_from_fn(task2);
 
     SCHEDULER.lock().add_task(main_task);
     SCHEDULER.lock().add_task(kernel_task);

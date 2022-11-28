@@ -1,10 +1,20 @@
 mod font;
 
-use core::ptr::copy;
+use core::{
+    ops::Add,
+    ptr::{copy, read_volatile},
+};
 
-use crate::framebuffer::font::FONT;
+use crate::{
+    dbg, debug,
+    framebuffer::font::FONT,
+    info,
+    mem::{pmm::MMAP_REQUEST, HIGHER_HALF_OFFSET},
+};
 use libxernel::ticket::TicketMutex;
-use limine::{LimineFramebuffer, LimineFramebufferRequest};
+use limine::{
+    LimineFramebuffer, LimineFramebufferRequest, LimineMemoryMapEntryType, LimineModuleRequest,
+};
 
 pub struct Framebuffer {
     cursor: u64,
@@ -12,13 +22,15 @@ pub struct Framebuffer {
     color: Color,
 }
 
-struct Color {
+pub struct Color {
     r: u8,
     g: u8,
     b: u8,
 }
 
 static FRAMEBUFFER_REQUEST: LimineFramebufferRequest = LimineFramebufferRequest::new(0);
+static MODULE_REQUEST: LimineModuleRequest = LimineModuleRequest::new(0);
+static MMAP_REQUEST: LimineMemmapRequest = LimineMemmapRequest::new(0);
 
 pub static FRAMEBUFFER: TicketMutex<Framebuffer> = TicketMutex::new(Framebuffer {
     cursor: 0,
@@ -137,5 +149,41 @@ impl Framebuffer {
         self.color.r = r;
         self.color.g = g;
         self.color.b = b;
+    }
+}
+
+pub fn show_start_image() {
+    unsafe {
+        let response = MODULE_REQUEST.get_response().get().unwrap();
+
+        let modules = response.modules();
+        let module = modules.get(0).unwrap();
+
+        dbg!("{:?}", module);
+
+        let mut kernel_mmap: u64 = 0;
+
+        let mmap = MMAP_REQUEST
+            .get_response()
+            .get()
+            .expect("barebones: recieved no mmap")
+            .memmap();
+
+        for entry in mmap {
+            //dbg!("{:?}", entry);
+            if entry.typ == LimineMemoryMapEntryType::KernelAndModules {
+                kernel_mmap = entry.base;
+            }
+        }
+
+        let file_base = (*module.base.get().unwrap() as u64 + kernel_mmap + *HIGHER_HALF_OFFSET);
+
+        dbg!("{:x}", file_base);
+
+        let img_base = ((file_base as *const u8).offset(1)).read_volatile();
+
+        dbg!("{}", img_base);
+
+        let len = module.length;
     }
 }

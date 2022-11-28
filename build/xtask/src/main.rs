@@ -137,6 +137,8 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
         "mcopy -i {diskname} xernel/kernel/limine.cfg ::/limine.cfg"
     )
     .run()?;
+
+    cmd!(sh, "mcopy -i {diskname} ./logo.bmp ::/logo.bmp").run()?;
     cmd!(sh, "mmd -i {diskname} ::/EFI").run()?;
     cmd!(sh, "mmd -i {diskname} ::/EFI/BOOT").run()?;
     cmd!(
