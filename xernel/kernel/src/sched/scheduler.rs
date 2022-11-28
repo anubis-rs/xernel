@@ -1,6 +1,6 @@
 use crate::dbg;
 use crate::sched::context::restore_context;
-use crate::{arch::x64::apic::APIC, println, Task};
+use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
 use libxernel::spin::Spinlock;
 use libxernel::ticket::TicketMutex;

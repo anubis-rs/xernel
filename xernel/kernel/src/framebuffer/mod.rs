@@ -1,16 +1,10 @@
 mod font;
 
-use core::{
-    ops::Add,
-    ptr::{copy, read_volatile},
-};
+use core::ptr::copy;
 
-use crate::{dbg, debug, framebuffer::font::FONT, info, mem::HIGHER_HALF_OFFSET};
+use crate::{dbg, framebuffer::font::FONT, mem::HIGHER_HALF_OFFSET};
 use libxernel::ticket::TicketMutex;
-use limine::{
-    LimineFramebuffer, LimineFramebufferRequest, LimineMemmapRequest, LimineMemoryMapEntryType,
-    LimineModuleRequest,
-};
+use limine::{LimineFramebuffer, LimineFramebufferRequest, LimineModuleRequest};
 
 pub struct Framebuffer {
     cursor: u64,
@@ -160,10 +154,8 @@ pub fn show_start_image() {
 
         dbg!("{:x}", file_base);
 
-        let img_base = ((file_base as *const u8).offset(1)).read_volatile();
+        let img_base = ((file_base as *const u8).offset(0)).read_volatile();
 
         dbg!("{}", img_base);
-
-        let len = module.length;
     }
 }
