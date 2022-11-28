@@ -8,7 +8,7 @@ repository = "https://github.com/anubis-rs/xernel"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-limine = "0.1.8"
+limine = { path = "/Users/lockna/repos/limine-rs" }
 x86_64 = "0.14.10"
 volatile = "0.4.5"
 acpi_parsing = { package = "acpi", version = "4.1.1" }
