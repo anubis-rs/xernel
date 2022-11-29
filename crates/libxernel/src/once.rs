@@ -38,6 +38,10 @@ impl<T> Deref for Once<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { &*(*self.data.get()).as_ptr() }
+        if self.is_set.load(Ordering::Acquire) {
+            unsafe { &*(*self.data.get()).as_ptr() }
+        } else {
+            panic!("Value not set");
+        }
     }
 }
