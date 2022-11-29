@@ -64,13 +64,13 @@ impl AllocStats {
 impl fmt::Display for AllocStats {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{}", self.name)?;
-        self.name.chars().try_for_each(|_| write!(f, "~"))?;
+        self.name.chars().try_for_each(|_| write!(f, "-"))?;
 
         writeln!(f, "\n{:<11} {}", "Allocated:", unit::bytes(self.allocated))?;
         writeln!(f, "{:<11} {}", "Free:", unit::bytes(self.free))?;
         writeln!(f, "{:<11} {}", "Total:", unit::bytes(self.total))?;
 
-        self.name.chars().try_for_each(|_| write!(f, "~"))?;
+        self.name.chars().try_for_each(|_| write!(f, "-"))?;
         Ok(())
     }
 }
