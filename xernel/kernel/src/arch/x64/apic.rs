@@ -20,9 +20,6 @@ static APIC_FREQUENCY: Once<u64> = Once::new();
 
 pub fn init() {
     let apic_info = acpi::get_apic();
-    println!("{:?}", apic_info);
-
-    debug!("{:x}", apic_info.local_apic_address);
 
     let apic_base = apic_info.local_apic_address + *HIGHER_HALF_OFFSET;
 
