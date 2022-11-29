@@ -5,6 +5,7 @@
 #![feature(alloc_error_handler)]
 #![feature(pointer_byte_offsets)]
 #![feature(naked_functions)]
+#![feature(exclusive_range_pattern)]
 #![allow(dead_code)]
 
 extern crate alloc;
@@ -49,7 +50,7 @@ static SMP_REQUEST: LimineSmpRequest = LimineSmpRequest::new(0);
 fn panic(info: &PanicInfo) -> ! {
     // print the panic info
     // NOTE: this might panic again, but it is better than printing nothing
-    error!("\nKernel PANIC !!!");
+    error!("Kernel PANIC !!!");
     error!("panic info: {:#?}", info);
     loop {}
 }
