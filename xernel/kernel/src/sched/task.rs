@@ -27,8 +27,6 @@ pub enum TaskPriority {
     High,
 }
 
-// TODO: Remove is_kernel_task member, since it can be checked by segment registers (cs and ds)
-
 #[derive(Debug, Clone)]
 pub struct Task {
     pub id: u64,
