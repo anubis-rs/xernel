@@ -2,9 +2,11 @@ mod font;
 
 use core::ptr::copy;
 
-use crate::{dbg, framebuffer::font::FONT, mem::HIGHER_HALF_OFFSET};
+use crate::{dbg, framebuffer::font::FONT};
 use libxernel::ticket::TicketMutex;
-use limine::{LimineFramebuffer, LimineFramebufferRequest, LimineModuleRequest};
+use limine::{
+    LimineFile, LimineFramebuffer, LimineFramebufferRequest, LimineModuleRequest, NonNullPtr,
+};
 
 pub struct Framebuffer {
     cursor: u64,
@@ -139,23 +141,66 @@ impl Framebuffer {
         self.color.g = g;
         self.color.b = b;
     }
+
+    // FIXME: Image weird rotated, emtpy space after image
+    pub unsafe fn show_bitmap_image(&mut self, image_data: &NonNullPtr<LimineFile>) {
+        let address = FRAMEBUFFER_DATA.address.as_ptr().unwrap().cast::<u8>();
+
+        let file_base = image_data.base.as_ptr().unwrap();
+
+        let bpp = file_base.offset(0x1c).read() as u8;
+
+        let img_data_offset = file_base.offset(0xA).read() as usize;
+
+        let img_base = file_base.add(img_data_offset);
+
+        let mut image_addr = img_base;
+
+        let width = file_base.offset(0x12).read() as u64;
+        let height = file_base.offset(0x16).read() as u64;
+
+        dbg!("width: {}", width);
+        dbg!("height: {}", height);
+        dbg!("bpp: {}", bpp);
+
+        for i in 0..(width * height * (bpp as u64 / 8)) {
+            address
+                .add(self.cursor as usize)
+                .write_volatile(image_addr.offset(0).read());
+            address
+                .add((self.cursor + 1) as usize)
+                .write_volatile(image_addr.offset(1).read());
+            address
+                .add((self.cursor + 2) as usize)
+                .write_volatile(image_addr.offset(2).read());
+
+            image_addr = image_addr.add((bpp / 8).into());
+            self.cursor += bpp as u64 / 8;
+
+            if i % width == 0 && i != 0 {
+                self.cursor += FRAMEBUFFER_DATA.pitch;
+                self.cursor -= width * (bpp as u64 / 8) as u64;
+            }
+        }
+
+        self.cursor -= width * (bpp as u64 / 8) as u64;
+        self.cursor += FRAMEBUFFER_DATA.pitch;
+    }
 }
 
 pub fn show_start_image() {
+    let module = MODULE_REQUEST
+        .get_response()
+        .get()
+        .unwrap()
+        .modules()
+        .get(0)
+        .unwrap();
+    dbg!("module base: {:p}", module.base.as_ptr().unwrap());
+
     unsafe {
-        let response = MODULE_REQUEST.get_response().get().unwrap();
+        let mut framebuffer = FRAMEBUFFER.lock();
 
-        let modules = response.modules();
-        let module = modules.get(0).unwrap();
-
-        dbg!("{:?}", module);
-
-        let file_base = (*module.base.get().unwrap() as u64 + *HIGHER_HALF_OFFSET);
-
-        dbg!("{:x}", file_base);
-
-        let img_base = ((file_base as *const u8).offset(0)).read_volatile();
-
-        dbg!("{}", img_base);
+        framebuffer.show_bitmap_image(module);
     }
 }
