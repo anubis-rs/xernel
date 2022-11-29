@@ -151,7 +151,7 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
 }
 
 fn run(sh: &Shell, gdb: bool) -> Result<()> {
-    let gdb_debug = if gdb { &["-s"] } else { &[][..] };
+    let gdb_debug = if gdb { &["-S"] } else { &[][..] };
 
     let mut file_extension = "";
 
