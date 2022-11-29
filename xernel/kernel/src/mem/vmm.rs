@@ -1,10 +1,7 @@
 use super::{pmm::FRAME_ALLOCATOR, HIGHER_HALF_OFFSET};
 use crate::{
     debug,
-    mem::{
-        pmm::{FRAME_SIZE, MEMORY_MAP},
-        KERNEL_OFFSET,
-    },
+    mem::{pmm::MEMORY_MAP, FRAME_SIZE, KERNEL_OFFSET},
 };
 use libxernel::boot::InitAtBoot;
 use libxernel::spin::Spinlock;
@@ -155,8 +152,10 @@ pub fn init() {
         debug!("{:x}", kernel_base_address);
         debug!("{:x}", kernel_virt_address);
 
-        let mut frame_allocator = super::pmm::FRAME_ALLOCATOR.lock();
+        let mut frame_allocator = FRAME_ALLOCATOR.lock();
+
         let lvl4_table = frame_allocator.allocate_frame().unwrap();
+
         Spinlock::unlock(frame_allocator);
 
         let mut mapper = PageMapper::new(lvl4_table, true);

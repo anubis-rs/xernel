@@ -12,3 +12,4 @@ lazy_static! {
 
 pub const KERNEL_OFFSET: u64 = 0xffff_ffff_8000_0000;
 pub const STACK_SIZE: u64 = 0x80000;
+pub const FRAME_SIZE: u64 = 4096;
