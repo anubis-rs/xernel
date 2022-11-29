@@ -24,12 +24,13 @@ lazy_static! {
     };
 }
 
-// TODO: Check why index 4 is skipped
 lazy_static! {
     static ref GDT_BSP: (GlobalDescriptorTable, Selectors) = {
         let mut gdt = GlobalDescriptorTable::new();
         let code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
         let data_selector = gdt.add_entry(Descriptor::kernel_data_segment());
+        // System segment descriptors (which the TSS descriptor is) are 16-bytes and take up 2 slots in the GDT
+        // This results in user code having index 5, user data index 6
         let tss_selector = gdt.add_entry(Descriptor::tss_segment(&TSS));
         gdt.add_entry(Descriptor::user_code_segment());
         gdt.add_entry(Descriptor::user_data_segment());
