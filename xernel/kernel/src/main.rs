@@ -13,6 +13,7 @@ extern crate alloc;
 extern crate lazy_static;
 
 mod acpi;
+mod allocator;
 mod arch;
 mod framebuffer;
 mod sched;
@@ -26,7 +27,6 @@ mod writer;
 
 use core::arch::asm;
 use core::panic::PanicInfo;
-use libxernel::spin::Spinlock;
 use limine::*;
 use x86_64::instructions::interrupts;
 
@@ -34,8 +34,6 @@ use arch::x64::gdt;
 use arch::x64::idt;
 
 use mem::{heap, pmm, vmm};
-use x86_64::structures::paging::FrameAllocator;
-use x86_64::structures::paging::FrameDeallocator;
 use x86_64::VirtAddr;
 
 use crate::acpi::hpet;
@@ -69,16 +67,6 @@ extern "C" fn kernel_main() -> ! {
 
     pmm::init();
     info!("pm initialized");
-
-    // test allocate a page
-    let mut frame_allocator = pmm::FRAME_ALLOCATOR.lock();
-
-    unsafe {
-        let frame = frame_allocator.allocate_frame().unwrap();
-        frame_allocator.deallocate_frame(frame);
-    }
-
-    Spinlock::unlock(frame_allocator);
 
     vmm::init();
     info!("vm initialized");
