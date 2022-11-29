@@ -18,10 +18,12 @@ Feel free to reach out to `Lockna#5599` or `mp#2453` on Discord
 
 ## TODO
 Things which are still to do:
+- [ ] Implement TODOs and fix FIXME's
+- [ ] Add doc comments
 - [ ] Rewrite mem module
-    - Rewrite page frame allocator so it uses a buddy allocator
-    - Rewrite the virtual memory manager, just make it better
-    - Switch from linked_list_allocator to a buddy allocator for heap too
+    - [x] Rewrite page frame allocator so it uses a buddy allocator
+    - [ ] Rewrite the virtual memory manager, just make it better
+    - [ ] Switch from linked_list_allocator to a buddy allocator for heap too
 - [ ] Implement a virtual file system
 - [ ] Implement a driver system
 - [ ] Implement a proper syscall interface
