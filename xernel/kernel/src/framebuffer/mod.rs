@@ -8,12 +8,14 @@ use limine::{
     LimineFile, LimineFramebuffer, LimineFramebufferRequest, LimineModuleRequest, NonNullPtr,
 };
 
+/// A struct provoding information about the framebuffer
 pub struct Framebuffer {
     cursor: u64,
     char_current_line: u8,
     color: Color,
 }
 
+/// Type to represent a RGB color value
 pub struct Color {
     r: u8,
     g: u8,
@@ -23,6 +25,7 @@ pub struct Color {
 static FRAMEBUFFER_REQUEST: LimineFramebufferRequest = LimineFramebufferRequest::new(0);
 static MODULE_REQUEST: LimineModuleRequest = LimineModuleRequest::new(0);
 
+/// Framebuffer wrapped in a Mutex for static usage
 pub static FRAMEBUFFER: TicketMutex<Framebuffer> = TicketMutex::new(Framebuffer {
     cursor: 0,
     char_current_line: 0,
@@ -46,6 +49,10 @@ lazy_static! {
 }
 
 impl Framebuffer {
+    /// Prints a single character to the framebuffer
+    ///
+    /// Writes a single given character (from the included FONT) to the framebuffer
+    /// Also implements the support for downscrolling the framebuffer
     unsafe fn putc(&mut self, character: char) {
         debug_assert!(character.is_ascii());
 
@@ -124,6 +131,9 @@ impl Framebuffer {
         self.cursor -= FRAMEBUFFER_DATA.pitch * 16;
     }
 
+    /// Prints a string to the framebuffer
+    ///
+    /// Iterates over a string and calls [`putc`] for every character.
     pub fn puts(&mut self, string: &str) {
         unsafe {
             for c in string.chars() {
@@ -132,10 +142,14 @@ impl Framebuffer {
         }
     }
 
+    /// Returns the framebuffer size in bytes
     pub fn length(&self) -> u64 {
         (FRAMEBUFFER_DATA.height * FRAMEBUFFER_DATA.pitch) as u64
     }
 
+    /// Sets the color which the framebuffer uses for writing
+    ///
+    /// Accepts three [`u8`] arguments which represent the values of the rgb color model
     pub fn set_color(&mut self, r: u8, g: u8, b: u8) {
         self.color.r = r;
         self.color.g = g;
@@ -143,6 +157,7 @@ impl Framebuffer {
     }
 
     // FIXME: Image weird rotated, emtpy space after image
+    /// Displays a given bitmap image on the framebuffer
     pub unsafe fn show_bitmap_image(&mut self, image_data: &NonNullPtr<LimineFile>) {
         let address = FRAMEBUFFER_DATA.address.as_ptr().unwrap().cast::<u8>();
 
@@ -187,7 +202,9 @@ impl Framebuffer {
         self.cursor += FRAMEBUFFER_DATA.pitch;
     }
 }
-
+/// Shows a given image included in the source code at the top of the framebuffer at the beginning
+///
+/// Intended as a nice gimmick so we show our logo when starting the kernel
 pub fn show_start_image() {
     let module = MODULE_REQUEST
         .get_response()
