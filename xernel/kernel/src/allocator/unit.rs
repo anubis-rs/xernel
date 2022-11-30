@@ -7,7 +7,7 @@ use core::fmt;
 /// `1 KiB`
 pub const KIB: usize = 1 << 10;
 /// `1 MiB`
-pub const MIB: usize = 1000000;
+pub const MIB: usize = 1 << 20;
 /// `1 GiB`
 pub const GIB: usize = 1 << 30;
 /// `1 TiB`
