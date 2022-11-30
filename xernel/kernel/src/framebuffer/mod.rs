@@ -8,7 +8,7 @@ use limine::{
     LimineFile, LimineFramebuffer, LimineFramebufferRequest, LimineModuleRequest, NonNullPtr,
 };
 
-/// A struct provoding information about the framebuffer
+/// A struct providing information about the framebuffer
 pub struct Framebuffer {
     cursor: u64,
     char_current_line: u8,
@@ -25,7 +25,7 @@ pub struct Color {
 static FRAMEBUFFER_REQUEST: LimineFramebufferRequest = LimineFramebufferRequest::new(0);
 static MODULE_REQUEST: LimineModuleRequest = LimineModuleRequest::new(0);
 
-/// Framebuffer wrapped in a Mutex for static usage
+/// [`Framebuffer`] wrapped in a [`TicketMutex`] for static usage
 pub static FRAMEBUFFER: TicketMutex<Framebuffer> = TicketMutex::new(Framebuffer {
     cursor: 0,
     char_current_line: 0,
