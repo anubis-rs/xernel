@@ -133,7 +133,7 @@ impl Framebuffer {
 
     /// Prints a string to the framebuffer
     ///
-    /// Iterates over a string and calls [`putc`] for every character.
+    /// Iterates over a string and calls [`Framebuffer::putc`] for every character.
     pub fn puts(&mut self, string: &str) {
         unsafe {
             for c in string.chars() {

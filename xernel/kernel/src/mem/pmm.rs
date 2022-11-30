@@ -9,8 +9,6 @@ use x86_64::{
     PhysAddr,
 };
 
-use super::{FRAME_SIZE, HIGHER_HALF_OFFSET};
-
 static MMAP_REQUEST: LimineMemmapRequest = LimineMemmapRequest::new(0);
 
 pub static MEMORY_MAP: Once<&'static [NonNullPtr<LimineMemmapEntry>]> = Once::new();
@@ -32,7 +30,8 @@ impl x86_64::structures::paging::FrameDeallocator<Size4KiB> for BuddyAllocator {
         self.deallocate(
             NonNull::new(frame.start_address().as_u64() as *mut u8).unwrap(),
             0,
-        );
+        )
+        .unwrap();
     }
 }
 
@@ -51,10 +50,12 @@ pub fn init() {
         if entry.typ == LimineMemoryMapEntryType::Usable {
             unsafe {
                 // FIXME: Check result of add_region function
-                buddy.add_region(
-                    NonNull::new(entry.base as *mut u8).unwrap(),
-                    NonNull::new((entry.base + entry.len) as *mut u8).unwrap(),
-                );
+                buddy
+                    .add_region(
+                        NonNull::new(entry.base as *mut u8).unwrap(),
+                        NonNull::new((entry.base + entry.len) as *mut u8).unwrap(),
+                    )
+                    .unwrap();
             }
         }
     }

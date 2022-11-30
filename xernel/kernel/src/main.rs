@@ -7,7 +7,7 @@
 #![feature(naked_functions)]
 #![feature(exclusive_range_pattern)]
 #![allow(dead_code)]
-
+#![allow(clippy::fn_to_numeric_cast)]
 extern crate alloc;
 
 #[macro_use]

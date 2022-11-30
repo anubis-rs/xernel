@@ -122,10 +122,6 @@ impl Task {
     }
 
     pub fn is_kernel_task(&self) -> bool {
-        if self.context.cs == 0x8 && self.context.ss == 0x10 {
-            true
-        } else {
-            false
-        }
+        self.context.cs == 0x8 && self.context.ss == 0x10
     }
 }
