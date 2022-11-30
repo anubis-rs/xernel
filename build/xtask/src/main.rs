@@ -11,6 +11,8 @@ FLAGS:
     --release       Build the kernel with optimizations.
     --gdb           Start QEMU with GDB server enabled and waiting for a connection.
     --check         Only checks if the format is correct, without making changes (Can only be used with the fmt or lint subcommand)
+    --cpus          Set the number CPU cores (default: 1).
+    --ram           Set the amount of RAM in given size (M for Megabyte and G for Gigabyte) (default: 128M).
 SUBCOMMANDS:
     build           Build the kernel without running it.
     run             Build and run the kernel using QEMU.
@@ -44,10 +46,10 @@ fn main() -> Result<()> {
         }
         Some("run") => {
             // first build the kernel
-            build(&sh, release, args)?;
+            build(&sh, release, args.clone())?;
 
             // then run the produced binray in QEMU
-            run(&sh, gdb)?;
+            run(&sh, gdb, args)?;
         }
         Some("lint") => {
             fmt(&sh, check)?;
@@ -150,8 +152,16 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
     Ok(())
 }
 
-fn run(sh: &Shell, gdb: bool) -> Result<()> {
+fn run(sh: &Shell, gdb: bool, mut args: Arguments) -> Result<()> {
     let gdb_debug = if gdb { &["-S"] } else { &[][..] };
+
+    let ram = args
+        .opt_value_from_str::<_, String>("--ram")?
+        .unwrap_or_else(|| "128M".to_string());
+    let cpus = args
+        .opt_value_from_str::<_, u32>("--cpus")?
+        .unwrap_or(1)
+        .to_string();
 
     let mut file_extension = "";
 
@@ -163,6 +173,8 @@ fn run(sh: &Shell, gdb: bool) -> Result<()> {
         sh,
         "qemu-system-x86_64{file_extension}  
                 -bios ./xernel/kernel/uefi-edk2/OVMF.fd 
+                -m {ram}
+                -smp {cpus}
                 -cdrom xernel.hdd 
                 --no-reboot 
                 --no-shutdown
