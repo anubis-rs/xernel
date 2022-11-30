@@ -117,14 +117,9 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
     let diskname = "xernel.hdd";
     let disksize = 64.to_string();
 
-    let bs_unit = match std::env::consts::OS {
-        "macos" => "m",
-        _ => "M",
-    };
-
     cmd!(
         sh,
-        "dd if=/dev/zero of={diskname} bs=1{bs_unit} count=0 seek={disksize}"
+        "dd if=/dev/zero of={diskname} bs=1M count=0 seek={disksize}"
     )
     .run()?;
 
