@@ -3,6 +3,9 @@ use core::{
     panic,
 };
 
+/// Type for values that are only available at runtime
+///
+/// Can be set multiple times and mostly used in a [`static`] context
 pub enum InitAtBoot<T> {
     Initialized(T),
     Uninitialized,
