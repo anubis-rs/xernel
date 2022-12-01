@@ -50,12 +50,11 @@ pub fn init() {
         if entry.typ == LimineMemoryMapEntryType::Usable {
             unsafe {
                 // FIXME: Check result of add_region function
-                buddy
-                    .add_region(
-                        NonNull::new(entry.base as *mut u8).unwrap(),
-                        NonNull::new((entry.base + entry.len) as *mut u8).unwrap(),
-                    )
-                    .unwrap();
+                // FIXME: Last add_region returns NullPointer in buddy_of function
+                buddy.add_region(
+                    NonNull::new(entry.base as *mut u8).unwrap(),
+                    NonNull::new((entry.base + entry.len) as *mut u8).unwrap(),
+                );
             }
         }
     }

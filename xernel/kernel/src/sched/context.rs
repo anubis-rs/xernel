@@ -26,7 +26,7 @@ pub struct TaskContext {
 }
 
 impl TaskContext {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             rbp: 0,
             rax: 0,

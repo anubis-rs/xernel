@@ -52,6 +52,7 @@ impl Scheduler {
     }
 }
 
+// FIXME: Doesn't work when multiple cores are started
 #[no_mangle]
 pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     // TODO: Switch page table if user task

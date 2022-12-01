@@ -25,6 +25,7 @@ pub fn order_for_size(size: usize) -> usize {
 
 fn buddy_of(block: NonNull<usize>, order: usize) -> Result<NonNull<usize>> {
     let buddy = block.as_ptr() as usize ^ size_for_order(order);
+    dbg!("{:x}", buddy);
     NonNull::new(buddy as *mut _).ok_or(Error::NullPointer)
 }
 

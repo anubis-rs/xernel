@@ -23,7 +23,7 @@ Things which are still to do:
 - [ ] Rewrite mem module
     - [x] Rewrite page frame allocator so it uses a buddy allocator
     - [ ] Rewrite the virtual memory manager, just make it better
-    - [ ] Switch from linked_list_allocator to a buddy allocator for heap too
+    - [ ] Switch from linked_list_allocator to a slap allocator for heap
 - [ ] Implement a virtual file system
 - [ ] Implement a driver system
 - [ ] Implement a proper syscall interface
