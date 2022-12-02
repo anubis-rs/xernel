@@ -7,7 +7,7 @@ use core::{
 /// Simple data locking structure using a spin loop.
 ///
 /// This spinlock will block threads waiting for the lock to become available.
-/// Accessing the data is only possible through the RAII guards returned from `[ Spinlock::lock ]` and `[ Spinlock::try_lock ]`, since they guarantee you are the owner of the lock.
+/// Accessing the data is only possible through the RAII guards returned from [`Spinlock::lock`] and [`Spinlock::try_lock`], since they guarantee you are the owner of the lock.
 pub struct Spinlock<T> {
     /// Atomic variable which is used to determine if the Spinlock is locked or not
     is_locked: AtomicBool,
@@ -17,7 +17,7 @@ pub struct Spinlock<T> {
 
 /// Spinlock RAII wrapper type for safe release of lock
 ///
-/// When acquiring a lock through `[ Spinlock::lock ]` or `[ Spinlock::try_lock ]`, a MutexGuard gets returned which is a wrapper over the mutex itself.
+/// When acquiring a lock through [`Spinlock::lock`] or [`Spinlock::try_lock`], a MutexGuard gets returned which is a wrapper over the mutex itself.
 /// This type is used for releasing the spinlock when the value goes out of scope, so you don't have to think of unlocking yourself.
 pub struct MutexGuard<'a, T: 'a> {
     mutex: &'a Spinlock<T>,
@@ -68,7 +68,7 @@ impl<T> Spinlock<T> {
     ///
     /// With the drop approach the lock only gets released when the [`MutexGuard`] value goes out of scope.
     /// It is possible to earlier drop the value with `drop(guard);` but it looks like unclean programming.
-    /// This associated function is no different to `drop()` but when reading the code it is much clearer what is happening.
+    /// This associated function is no different to [`drop`] but when reading the code it is much clearer what is happening.
     pub fn unlock(_guard: MutexGuard<'_, T>) {}
 }
 

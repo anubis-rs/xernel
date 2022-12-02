@@ -20,7 +20,7 @@ pub struct TicketMutex<T> {
 
 /// RAII wrapper type for safe release of lock
 ///
-/// When acquiring a lock through `[ TicketMutex::lock ]` or `[ TicketMutex::try_lock ]`, a `TicketMutexGuard` gets returned which is a wrapper over the mutex itself.
+/// When acquiring a lock through  [`TicketMutex::lock`] or [`TicketMutex::try_lock`], a [`TicketMutexGuard`] gets returned which is a wrapper over the mutex itself.
 /// This type is used for releasing the ticket mutex when the value goes out of scope, so you don't have to think of unlocking yourself.
 pub struct TicketMutexGuard<'a, T: 'a> {
     ticket: usize,
@@ -81,7 +81,7 @@ impl<T> TicketMutex<T> {
     ///
     /// With the drop approach the lock only gets released when the [`TicketMutexGuard`] value goes out of scope.
     /// It is possible to earlier drop the value with `drop(guard);` but it looks like unclean programming.
-    /// This associated function is no different to `drop()` but when reading the code it is much clearer what is happening.
+    /// This associated function is no different to [`drop`] but when reading the code it is much clearer what is happening.
     pub fn unlock(_guard: TicketMutexGuard<'_, T>) {}
 }
 
