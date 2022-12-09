@@ -13,6 +13,7 @@ pub struct Framebuffer {
     cursor: u64,
     char_current_line: u8,
     color: Color,
+    address: *mut u8,
 }
 
 /// Type to represent a RGB color value
@@ -34,6 +35,7 @@ pub static FRAMEBUFFER: TicketMutex<Framebuffer> = TicketMutex::new(Framebuffer 
         g: 0xff,
         b: 0xff,
     },
+    address: core::ptr::null_mut(),
 });
 
 lazy_static! {
@@ -58,7 +60,9 @@ impl Framebuffer {
 
         let c = character as u8;
 
-        let address = FRAMEBUFFER_DATA.address.as_ptr().unwrap().cast::<u8>();
+        if self.address.is_null() {
+            self.address = FRAMEBUFFER_DATA.address.as_ptr().unwrap().cast::<u8>();
+        }
 
         let mut index: u16 = 0;
 
@@ -73,13 +77,15 @@ impl Framebuffer {
             self.cursor -= FRAMEBUFFER_DATA.pitch * 17;
 
             copy(
-                address.add((FRAMEBUFFER_DATA.pitch * 17) as usize),
-                address,
+                self.address.add((FRAMEBUFFER_DATA.pitch * 17) as usize),
+                self.address,
                 (self.length() - FRAMEBUFFER_DATA.pitch * 17) as usize,
             );
 
             for i in 0..FRAMEBUFFER_DATA.pitch * 17 {
-                address.add((self.cursor + i) as usize).write_volatile(0x00);
+                self.address
+                    .add((self.cursor + i) as usize)
+                    .write_volatile(0x00);
             }
         }
 
@@ -109,13 +115,13 @@ impl Framebuffer {
 
             for j in 0..8 {
                 if (bitmap & (1 << (7 - j))) >= 1 {
-                    address
+                    self.address
                         .add(self.cursor as usize)
                         .write_volatile(self.color.b);
-                    address
+                    self.address
                         .add((self.cursor + 1) as usize)
                         .write_volatile(self.color.g);
-                    address
+                    self.address
                         .add((self.cursor + 2) as usize)
                         .write_volatile(self.color.r);
                 }
