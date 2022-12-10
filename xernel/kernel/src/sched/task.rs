@@ -10,9 +10,11 @@ use x86_64::VirtAddr;
 use crate::mem::STACK_SIZE;
 use crate::sched::context::TaskContext;
 
+/// Ongoing counter for the TaskID
 static TASK_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 #[derive(Debug, Clone)]
+/// Current status of the task
 pub enum TaskStatus {
     Running,
     Waiting,
@@ -21,6 +23,7 @@ pub enum TaskStatus {
 }
 
 #[derive(Debug, Clone)]
+/// Priority level of the task
 pub enum TaskPriority {
     Low,
     Normal,
