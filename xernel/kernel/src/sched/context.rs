@@ -2,6 +2,7 @@ use core::arch::asm;
 
 #[derive(Debug, Clone)]
 #[repr(C)]
+/// Represents a Task Context which gets saved on a context switch
 pub struct TaskContext {
     pub rbp: u64,
     pub rax: u64,
@@ -26,6 +27,7 @@ pub struct TaskContext {
 }
 
 impl TaskContext {
+    /// Creates a new, zero-initialized context
     pub const fn new() -> Self {
         Self {
             rbp: 0,
@@ -53,6 +55,7 @@ impl TaskContext {
 }
 
 #[naked]
+/// Restores the gives context and jumps to new RIP via iretq
 pub extern "C" fn restore_context(ctx: &TaskContext) -> ! {
     unsafe {
         asm!(
