@@ -10,9 +10,13 @@ use limine::{
 
 /// A struct providing information about the framebuffer
 pub struct Framebuffer {
+    /// Current position (in byte) in the pixel framebuffer
     cursor: u64,
+    /// How many characters were printed on the line already
     char_current_line: u8,
+    /// Current selected color
     color: Color,
+    /// Address where the framebuffer should print
     address: *mut u8,
 }
 
