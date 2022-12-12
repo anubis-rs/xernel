@@ -4,7 +4,8 @@ use libxernel::ticket::TicketMutex;
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
 
-use crate::acpi::hpet;
+use crate::acpi::{hpet, ACPI};
+use crate::debug;
 use crate::{
     acpi,
     mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET},
@@ -18,7 +19,7 @@ pub static APIC: TicketMutex<LocalAPIC> = TicketMutex::new(LocalAPIC { address: 
 static APIC_FREQUENCY: Once<u64> = Once::new();
 
 pub fn init() {
-    let apic_info = acpi::get_apic();
+    let apic_info = ACPI.get_apic();
 
     let apic_base = apic_info.local_apic_address + *HIGHER_HALF_OFFSET;
 
@@ -38,6 +39,8 @@ pub fn init() {
     }
 
     let mut apic = APIC.lock();
+
+    debug!("apic base: {:x}", apic_base);
 
     apic.address = apic_base;
 

@@ -45,7 +45,7 @@ pub struct Acpi {
 }
 
 impl Acpi {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let address = RSDP_REQUEST.get_response().get().unwrap().address.as_ptr();
 
         let acpi_tables = unsafe {
@@ -60,12 +60,12 @@ impl Acpi {
             tables: acpi_tables,
         }
     }
-}
 
-pub fn get_apic() -> Apic {
-    match ACPI.tables.platform_info().unwrap().interrupt_model {
-        InterruptModel::Apic(apic) => apic,
-        InterruptModel::Unknown => panic!("No apic found"),
-        _ => unreachable!(),
+    pub fn get_apic(&self) -> Apic {
+        match ACPI.tables.platform_info().unwrap().interrupt_model {
+            InterruptModel::Apic(apic) => apic,
+            InterruptModel::Unknown => panic!("No apic found"),
+            _ => unreachable!(),
+        }
     }
 }
