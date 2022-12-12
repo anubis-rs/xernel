@@ -45,4 +45,9 @@ SECTIONS
         *(COMMON)
         *(.bss .bss.*)
     } :data
+
+    . += CONSTANT(MAXPAGESIZE);
+
+    _kernel_end = .;
+
 }

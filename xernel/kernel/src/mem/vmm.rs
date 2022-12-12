@@ -30,6 +30,10 @@ pub struct PageMapper<'a> {
     offset_pt: OffsetPageTable<'a>,
 }
 
+extern "C" {
+    static _kernel_end: u64;
+}
+
 impl PageMapper<'_> {
     pub fn new(lvl4_table: PhysFrame, zero_out_frame: bool) -> Self {
         let page_table = unsafe {
@@ -148,9 +152,14 @@ pub fn init() {
             .get()
             .unwrap()
             .virtual_base;
+        let kernel_size = ((&_kernel_end as *const u64) as u64) - kernel_virt_address;
 
-        debug!("{:x}", kernel_base_address);
-        debug!("{:x}", kernel_virt_address);
+        debug!("Kernel Base Address: {:x}", kernel_base_address);
+        debug!("Kernel Virt Address: {:x}", kernel_virt_address);
+        debug!(
+            "Kernel Size: {:x}",
+            ((&_kernel_end as *const u64) as u64) - kernel_virt_address
+        );
 
         let mut frame_allocator = FRAME_ALLOCATOR.lock();
 
@@ -160,12 +169,11 @@ pub fn init() {
 
         let mut mapper = PageMapper::new(lvl4_table, true);
 
-        // TODO: calculate amount and not hardcode
         mapper
             .map_range(
                 PhysAddr::new(kernel_base_address),
                 VirtAddr::new(KERNEL_OFFSET),
-                0x800000,
+                kernel_size as usize,
                 PageTableFlags::PRESENT
                     | PageTableFlags::USER_ACCESSIBLE
                     | PageTableFlags::WRITABLE,
