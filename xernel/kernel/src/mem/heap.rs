@@ -1,7 +1,7 @@
 use core::alloc::GlobalAlloc;
 use core::ptr::NonNull;
 
-use libxernel::spin::Spinlock;
+use libxernel::sync::Spinlock;
 use linked_list_allocator::Heap;
 use x86_64::structures::paging::{FrameAllocator, PageTableFlags};
 use x86_64::VirtAddr;

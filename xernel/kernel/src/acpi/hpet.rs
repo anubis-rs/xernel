@@ -1,4 +1,4 @@
-use libxernel::once::Once;
+use libxernel::sync::Once;
 use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
 
 use crate::mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};

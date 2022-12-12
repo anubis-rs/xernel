@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-use libxernel::ticket::TicketMutex;
+use libxernel::sync::TicketMutex;
 use x86_64::instructions::segmentation::{Segment, CS, DS, ES, FS, GS, SS};
 use x86_64::instructions::tables::load_tss;
 use x86_64::structures::gdt::SegmentSelector;

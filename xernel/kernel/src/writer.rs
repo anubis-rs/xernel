@@ -1,7 +1,7 @@
 use core::fmt;
 use core::fmt::Write;
 
-use libxernel::ticket::TicketMutex;
+use libxernel::sync::TicketMutex;
 
 use crate::framebuffer::FRAMEBUFFER;
 

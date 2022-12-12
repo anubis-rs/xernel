@@ -1,8 +1,7 @@
 use core::ptr::NonNull;
 
 use crate::allocator::buddy::BuddyAllocator;
-use libxernel::once::Once;
-use libxernel::spin::Spinlock;
+use libxernel::sync::{Once, Spinlock};
 use limine::{LimineMemmapEntry, LimineMemmapRequest, LimineMemoryMapEntryType, NonNullPtr};
 use x86_64::{
     structures::paging::{PhysFrame, Size4KiB},

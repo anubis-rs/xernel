@@ -1,4 +1,4 @@
 pub mod x64;
 
-pub use x64::gdt::*;
-pub use x64::idt::*;
+pub use self::x64::gdt::*;
+pub use self::x64::idt::*;

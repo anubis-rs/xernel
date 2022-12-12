@@ -3,7 +3,7 @@ mod font;
 use core::ptr::copy;
 
 use crate::{dbg, framebuffer::font::FONT};
-use libxernel::ticket::TicketMutex;
+use libxernel::sync::TicketMutex;
 use limine::{
     LimineFile, LimineFramebuffer, LimineFramebufferRequest, LimineModuleRequest, NonNullPtr,
 };

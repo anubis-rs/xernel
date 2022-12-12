@@ -4,7 +4,7 @@ use crate::{
     mem::{pmm::MEMORY_MAP, FRAME_SIZE, KERNEL_OFFSET},
 };
 use libxernel::boot::InitAtBoot;
-use libxernel::spin::Spinlock;
+use libxernel::sync::Spinlock;
 use limine::LimineKernelAddressRequest;
 use x86_64::structures::paging::mapper::CleanUp;
 use x86_64::{

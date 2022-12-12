@@ -1,25 +1,43 @@
+use alloc::vec::Vec;
 use core::arch::asm;
-use libxernel::once::Once;
-use libxernel::ticket::TicketMutex;
+use libxernel::sync::{Once, TicketMutex};
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
 
 use crate::acpi::{hpet, ACPI};
 use crate::debug;
-use crate::{
-    acpi,
-    mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET},
-};
+use crate::mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};
 
 pub struct LocalAPIC {
     address: u64,
 }
+
+pub struct IOApic {
+    id: u8,
+    /// u64 since we add HIGHER_HALF_OFFSET which wouldn't fit in a u32
+    address: u64,
+    interrupt_base: u32,
+}
+
+pub static IOAPIC: TicketMutex<Vec<IOApic>> = TicketMutex::new(Vec::new());
 
 pub static APIC: TicketMutex<LocalAPIC> = TicketMutex::new(LocalAPIC { address: 0 });
 static APIC_FREQUENCY: Once<u64> = Once::new();
 
 pub fn init() {
     let apic_info = ACPI.get_apic();
+
+    debug!("{:?}", apic_info.io_apics);
+
+    let mut io_apics = IOAPIC.lock();
+
+    apic_info.io_apics.iter().map(|ioapic| {
+        io_apics.push(IOApic {
+            id: ioapic.id,
+            address: (ioapic.address as u64) + *HIGHER_HALF_OFFSET,
+            interrupt_base: ioapic.global_system_interrupt_base,
+        })
+    });
 
     let apic_base = apic_info.local_apic_address + *HIGHER_HALF_OFFSET;
 
@@ -175,4 +193,11 @@ impl LocalAPIC {
             self.write(0x380, 0);
         }
     }
+}
+
+impl IOApic {
+    // TODO: Implement methods for IOApic
+    // TODO: Initialize IOApic
+    // TODO: Get keyboard input
+    // in read/write function cast as u32, since IOApic registers are 32 Bit or 64 Bit register should be handled as two 32 Bit register
 }
