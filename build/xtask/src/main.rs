@@ -94,7 +94,6 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
                     --depth=1"
         )
         .run()?;
-        cmd!(sh, "make -C limine").run()?;
         sh.change_dir(root());
     }
 
