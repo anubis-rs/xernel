@@ -1,6 +1,7 @@
+use acpi_parsing::platform::interrupt::Apic;
 use alloc::vec::Vec;
 use core::arch::asm;
-use libxernel::sync::{Once, TicketMutex};
+use libxernel::sync::TicketMutex;
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
 
@@ -10,6 +11,7 @@ use crate::mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};
 
 pub struct LocalAPIC {
     address: u64,
+    frequency: u64,
 }
 
 pub struct IOApic {
@@ -19,79 +21,32 @@ pub struct IOApic {
     interrupt_base: u32,
 }
 
-pub static IOAPIC: TicketMutex<Vec<IOApic>> = TicketMutex::new(Vec::new());
+pub static IOAPICS: TicketMutex<Vec<IOApic>> = TicketMutex::new(Vec::new());
 
-pub static APIC: TicketMutex<LocalAPIC> = TicketMutex::new(LocalAPIC { address: 0 });
-static APIC_FREQUENCY: Once<u64> = Once::new();
+pub static APIC: TicketMutex<LocalAPIC> = TicketMutex::new(LocalAPIC {
+    address: 0,
+    frequency: 0,
+});
 
 pub fn init() {
     let apic_info = ACPI.get_apic();
 
-    debug!("{:?}", apic_info.io_apics);
+    let mut io_apics = IOAPICS.lock();
 
-    let mut io_apics = IOAPIC.lock();
-
-    apic_info.io_apics.iter().map(|ioapic| {
+    for ioapic in apic_info.io_apics.iter() {
         io_apics.push(IOApic {
             id: ioapic.id,
             address: (ioapic.address as u64) + *HIGHER_HALF_OFFSET,
             interrupt_base: ioapic.global_system_interrupt_base,
-        })
-    });
-
-    let apic_base = apic_info.local_apic_address + *HIGHER_HALF_OFFSET;
-
-    let mut mapper = KERNEL_PAGE_MAPPER.lock();
-
-    unsafe {
-        mapper
-            .map(
-                PhysAddr::new(apic_info.local_apic_address),
-                VirtAddr::new(apic_base),
-                PageTableFlags::PRESENT
-                    | PageTableFlags::USER_ACCESSIBLE
-                    | PageTableFlags::WRITABLE,
-                true,
-            )
-            .unwrap();
+        });
     }
 
-    let mut apic = APIC.lock();
+    let mut lapic = APIC.lock();
 
-    debug!("apic base: {:x}", apic_base);
+    let mut ioapic = io_apics.first_mut().unwrap();
 
-    apic.address = apic_base;
-
-    apic.enable_apic();
-
-    // calculate frequency of APIC timer
-    unsafe {
-        // set the divisor to 1
-        apic.write(0x3e0, 0b1011);
-
-        let hpet_cycles_to_wait = hpet::frequency() / 100;
-
-        let hpet_start_counter = hpet::read_main_counter();
-
-        // set the initial count to 0xffffffff
-        apic.write(0x380, 0xffffffff);
-
-        // wait for 10 ms
-        while hpet::read_main_counter() - hpet_start_counter < hpet_cycles_to_wait {}
-
-        let apic_ticks = 0xffffffff - apic.read(0x390);
-
-        let hpet_end_counter = hpet::read_main_counter();
-
-        let hpet_ticks = hpet_end_counter - hpet_start_counter;
-
-        let apic_frequency = apic_ticks as u64 * hpet::frequency() / hpet_ticks;
-
-        //APIC_FREQUENCY = InitAtBoot::Initialized(apic_frequency);
-        APIC_FREQUENCY.set_once(apic_frequency);
-    }
-
-    apic.create_periodic_timer(0x40, 1000 * 1000);
+    lapic.init(&apic_info);
+    ioapic.init(&apic_info);
 }
 
 #[naked]
@@ -119,13 +74,63 @@ pub extern "C" fn timer(_stack_frame: InterruptStackFrame) {
     }
 }
 
-pub extern "x86-interrupt" fn apic_spurious_interrupt(_stack_frame: InterruptStackFrame) {
-    let mut apic = APIC.lock();
-
-    apic.eoi();
-}
-
 impl LocalAPIC {
+    pub fn init(&mut self, apic_info: &Apic) {
+        let mut mapper = KERNEL_PAGE_MAPPER.lock();
+
+        let apic_base = apic_info.local_apic_address + *HIGHER_HALF_OFFSET;
+
+        debug!("apic base: {:x}", apic_base);
+
+        unsafe {
+            mapper
+                .map(
+                    PhysAddr::new(apic_info.local_apic_address),
+                    VirtAddr::new(apic_base),
+                    PageTableFlags::PRESENT
+                        | PageTableFlags::USER_ACCESSIBLE
+                        | PageTableFlags::WRITABLE,
+                    true,
+                )
+                .unwrap();
+        }
+
+        self.address = apic_base;
+
+        self.enable_apic();
+
+        self.init_timer_frequency();
+
+        self.create_periodic_timer(0x40, 1000 * 1000);
+    }
+
+    pub fn init_timer_frequency(&mut self) {
+        unsafe {
+            // set the divisor to 1
+            self.write(0x3e0, 0b1011);
+
+            let hpet_cycles_to_wait = hpet::frequency() / 100;
+
+            let hpet_start_counter = hpet::read_main_counter();
+
+            // set the initial count to 0xffffffff
+            self.write(0x380, 0xffffffff);
+
+            // wait for 10 ms
+            while hpet::read_main_counter() - hpet_start_counter < hpet_cycles_to_wait {}
+
+            let apic_ticks = 0xffffffff - self.read(0x390);
+
+            let hpet_end_counter = hpet::read_main_counter();
+
+            let hpet_ticks = hpet_end_counter - hpet_start_counter;
+
+            let apic_frequency = apic_ticks as u64 * hpet::frequency() / hpet_ticks;
+
+            self.frequency = apic_frequency;
+        }
+    }
+
     pub unsafe fn read(&self, reg: u64) -> u32 {
         ((self.address + reg) as *const u32).read_volatile()
     }
@@ -157,7 +162,7 @@ impl LocalAPIC {
     }
 
     pub fn create_periodic_timer(&mut self, int_no: u8, micro_seconds_period: u64) {
-        let mut apic_ticks = *APIC_FREQUENCY * micro_seconds_period / (1000 * 1000);
+        let mut apic_ticks = self.frequency * micro_seconds_period / (1000 * 1000);
         apic_ticks /= 16;
 
         unsafe {
@@ -173,7 +178,7 @@ impl LocalAPIC {
     }
 
     pub fn create_oneshot_timer(&mut self, int_no: u8, micro_seconds_period: u64) {
-        let mut apic_ticks = *APIC_FREQUENCY * micro_seconds_period / (1000 * 1000);
+        let mut apic_ticks = self.frequency * micro_seconds_period / (1000 * 1000);
         apic_ticks /= 16;
 
         unsafe {
@@ -200,4 +205,45 @@ impl IOApic {
     // TODO: Initialize IOApic
     // TODO: Get keyboard input
     // in read/write function cast as u32, since IOApic registers are 32 Bit or 64 Bit register should be handled as two 32 Bit register
+
+    pub unsafe fn read(&self, reg: u32) -> u32 {
+        ((self.address) as *mut u32).write_volatile(reg);
+        ((self.address + 0x10) as *const u32).read_volatile()
+    }
+
+    pub unsafe fn write(&mut self, reg: u32, val: u32) {
+        ((self.address) as *mut u32).write_volatile(reg);
+        ((self.address + 0x10) as *mut u32).write_volatile(val);
+    }
+
+    pub fn init(&mut self, apic_info: &Apic) {
+        debug!("{:?}", apic_info.io_apics);
+
+        let mut mapper = KERNEL_PAGE_MAPPER.lock();
+        unsafe {
+            mapper
+                .map_range(
+                    PhysAddr::new(self.address - *HIGHER_HALF_OFFSET),
+                    VirtAddr::new(self.address),
+                    0x2000,
+                    PageTableFlags::PRESENT
+                        | PageTableFlags::USER_ACCESSIBLE
+                        | PageTableFlags::WRITABLE,
+                    true,
+                )
+                .unwrap();
+        }
+
+        unsafe {
+            debug!("IOAPICID: {:b}", self.read(0));
+            debug!("IOAPICVER: {:b}", self.read(1));
+            debug!("IOAPICARB: {:b}", self.read(2));
+        }
+    }
+}
+
+pub extern "x86-interrupt" fn apic_spurious_interrupt(_stack_frame: InterruptStackFrame) {
+    let mut apic = APIC.lock();
+
+    apic.eoi();
 }
