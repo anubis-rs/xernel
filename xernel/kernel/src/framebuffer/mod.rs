@@ -3,7 +3,7 @@ mod font;
 use core::ptr::copy;
 
 use crate::{dbg, framebuffer::font::FONT};
-use libxernel::sync::TicketMutex;
+use libxernel::sync::Spinlock;
 use limine::{
     LimineFile, LimineFramebuffer, LimineFramebufferRequest, LimineModuleRequest, NonNullPtr,
 };
@@ -30,8 +30,8 @@ pub struct Color {
 static FRAMEBUFFER_REQUEST: LimineFramebufferRequest = LimineFramebufferRequest::new(0);
 static MODULE_REQUEST: LimineModuleRequest = LimineModuleRequest::new(0);
 
-/// [`Framebuffer`] wrapped in a [`TicketMutex`] for static usage
-pub static FRAMEBUFFER: TicketMutex<Framebuffer> = TicketMutex::new(Framebuffer {
+/// [`Framebuffer`] wrapped in a [`Spinlock`] for static usage
+pub static FRAMEBUFFER: Spinlock<Framebuffer> = Spinlock::new(Framebuffer {
     cursor: 0,
     char_current_line: 0,
     color: Color {
