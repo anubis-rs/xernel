@@ -1,7 +1,7 @@
 use acpi_parsing::platform::interrupt::Apic;
 use alloc::vec::Vec;
 use core::arch::asm;
-use libxernel::sync::TicketMutex;
+use libxernel::sync::Spinlock;
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
 
@@ -21,9 +21,9 @@ pub struct IOApic {
     interrupt_base: u32,
 }
 
-pub static IOAPICS: TicketMutex<Vec<IOApic>> = TicketMutex::new(Vec::new());
+pub static IOAPICS: Spinlock<Vec<IOApic>> = Spinlock::new(Vec::new());
 
-pub static APIC: TicketMutex<LocalAPIC> = TicketMutex::new(LocalAPIC {
+pub static APIC: Spinlock<LocalAPIC> = Spinlock::new(LocalAPIC {
     address: 0,
     frequency: 0,
 });
@@ -201,9 +201,6 @@ impl LocalAPIC {
 }
 
 impl IOApic {
-    // TODO: Implement methods for IOApic
-    // TODO: Initialize IOApic
-    // TODO: Get keyboard input
     // in read/write function cast as u32, since IOApic registers are 32 Bit or 64 Bit register should be handled as two 32 Bit register
 
     pub unsafe fn read(&self, reg: u32) -> u32 {
@@ -216,7 +213,22 @@ impl IOApic {
         ((self.address + 0x10) as *mut u32).write_volatile(val);
     }
 
+    pub unsafe fn write_irq(&mut self, irq: u8) {
+        let redirection_entry = 0x10 + irq * 2;
+
+        self.write(redirection_entry as u32, 0b0001000001000111);
+        debug!(
+            "redirection entry low: {:b}",
+            self.read((redirection_entry) as u32)
+        );
+        debug!(
+            "redirection entry high: {}",
+            self.read((redirection_entry + 1) as u32)
+        );
+    }
+
     pub fn init(&mut self, apic_info: &Apic) {
+        debug!("{:?}", apic_info.interrupt_source_overrides);
         debug!("{:?}", apic_info.io_apics);
 
         let mut mapper = KERNEL_PAGE_MAPPER.lock();
@@ -235,6 +247,8 @@ impl IOApic {
         }
 
         unsafe {
+            // FIXME: Currently hardcoded keyboard interrupt
+            self.write_irq(1);
             debug!("IOAPICID: {:b}", self.read(0));
             debug!("IOAPICVER: {:b}", self.read(1));
             debug!("IOAPICARB: {:b}", self.read(2));
