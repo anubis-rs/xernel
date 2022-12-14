@@ -1,13 +1,13 @@
 use core::fmt;
 use core::fmt::Write;
 
-use libxernel::sync::TicketMutex;
+use libxernel::sync::SpinlockIRQ;
 
 use crate::framebuffer::FRAMEBUFFER;
 
 struct Writer;
 
-static WRITER: TicketMutex<Writer> = TicketMutex::new(Writer);
+static WRITER: SpinlockIRQ<Writer> = SpinlockIRQ::new(Writer);
 
 impl core::fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
