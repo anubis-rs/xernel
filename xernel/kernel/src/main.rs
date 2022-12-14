@@ -16,6 +16,7 @@ extern crate lazy_static;
 mod acpi;
 mod allocator;
 mod arch;
+mod drivers;
 mod framebuffer;
 mod sched;
 
