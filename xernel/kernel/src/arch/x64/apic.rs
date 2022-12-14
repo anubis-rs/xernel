@@ -6,8 +6,8 @@ use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
 
 use crate::acpi::{hpet, ACPI};
-use crate::debug;
 use crate::mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};
+use crate::{dbg, debug};
 
 pub struct LocalAPIC {
     address: u64,
@@ -43,7 +43,7 @@ pub fn init() {
 
     let mut lapic = APIC.lock();
 
-    let mut ioapic = io_apics.first_mut().unwrap();
+    let ioapic = io_apics.first_mut().unwrap();
 
     lapic.init(&apic_info);
     ioapic.init(&apic_info);
@@ -213,18 +213,48 @@ impl IOApic {
         ((self.address + 0x10) as *mut u32).write_volatile(val);
     }
 
-    pub unsafe fn write_irq(&mut self, irq: u8) {
-        let redirection_entry = 0x10 + irq * 2;
+    pub unsafe fn mask_irq(&mut self) {}
 
-        self.write(redirection_entry as u32, 0b0001000001000111);
-        debug!(
-            "redirection entry low: {:b}",
-            self.read((redirection_entry) as u32)
-        );
-        debug!(
-            "redirection entry high: {}",
-            self.read((redirection_entry + 1) as u32)
-        );
+    pub unsafe fn unmask_irq(&mut self) {}
+
+    pub unsafe fn write_irq(
+        &mut self,
+        irq_number: u8,
+        irq_vector: u8,
+        apic_id: u8,
+        level_sensitive: bool,
+        low_priority: bool,
+    ) {
+        let redirection_entry = (0x10 + irq_number * 2) as u32;
+
+        if !(0x10..=0xFE).contains(&irq_vector) {
+            dbg!("[IOAPIC] write_irq: bad irq_vector {}", irq_vector);
+        }
+
+        if apic_id > 15 {
+            dbg!("[IOAPIC] write_irq: bad apic_id {}", apic_id);
+        }
+
+        let mut val: u32 = 0;
+
+        val = irq_vector as _;
+
+        if low_priority {
+            val |= 1 << 8;
+        }
+
+        // level_senstive descripes if edge or level sensitive
+        // true stands for level sensitive therefore setting the according bit
+        if level_sensitive {
+            val |= 1 << 15;
+        }
+
+        // redirection entry has to be accessed as two 32-bit registers
+        // creating own write value for higher register, since only receiver apic id is set in the reg
+        let destination_field: u32 = (apic_id as u32) << 24;
+
+        self.write(redirection_entry, val);
+        self.write(redirection_entry + 1, destination_field);
     }
 
     pub fn init(&mut self, apic_info: &Apic) {
@@ -247,8 +277,9 @@ impl IOApic {
         }
 
         unsafe {
-            // FIXME: Currently hardcoded keyboard interrupt
-            self.write_irq(1);
+            // IRQ 1 (keyboard) gets handled by 0x47 entry in IDT by CPU with APIC_ID 0, set as low
+            // priority
+            self.write_irq(1, 0x47, 0, false, true);
             debug!("IOAPICID: {:b}", self.read(0));
             debug!("IOAPICVER: {:b}", self.read(1));
             debug!("IOAPICARB: {:b}", self.read(2));
