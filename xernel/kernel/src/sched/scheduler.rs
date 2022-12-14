@@ -28,6 +28,8 @@ impl Scheduler {
 
     pub fn schedule_task() {}
 
+    pub fn schedule_next_task() {}
+
     pub fn save_ctx(&mut self, ctx: TaskContext) {
         // FIXME: Plain unwrap, use if let
         let mut task = self.tasks.get_mut(0).unwrap();
@@ -70,9 +72,7 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
 
     let mut apic = APIC.lock();
     apic.eoi();
-    TicketMutex::unlock(apic);
-
-    dbg!("restoring context");
+    Spinlock::unlock(apic);
 
     restore_context(&new_ctx);
 }
