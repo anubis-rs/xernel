@@ -23,27 +23,27 @@ impl<T> SpinlockIRQ<T> {
 
         SpinlockIRQGuard {
             guard: inner_lock,
-            held_irq: hold_interrupts(),
+            _held_irq: hold_interrupts(),
         }
     }
 }
 
 pub struct SpinlockIRQGuard<'a, T: 'a> {
     guard: MutexGuard<'a, T>,
-    held_irq: HeldIRQ,
+    _held_irq: HeldIRQ,
 }
 
 impl<'a, T> Deref for SpinlockIRQGuard<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { &*(self.guard) }
+        &(self.guard)
     }
 }
 
 impl<'a, T> DerefMut for SpinlockIRQGuard<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *(self.guard) }
+        &mut (self.guard)
     }
 }
 

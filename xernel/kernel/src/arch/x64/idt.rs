@@ -1,4 +1,4 @@
-use crate::arch::x64::apic::{apic_spurious_interrupt, timer, APIC};
+use crate::arch::x64::apic::{apic_spurious_interrupt, timer};
 use crate::arch::x64::gdt::DOUBLE_FAULT_IST_INDEX;
 use crate::arch::x64::ports::outb;
 use crate::drivers::ps2::keyboard::keyboard;
@@ -8,7 +8,7 @@ use x86_64::structures::idt::PageFaultErrorCode;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 use x86_64::{set_general_handler, VirtAddr};
 
-use crate::{dbg, debug, println};
+use crate::{dbg, println};
 
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {

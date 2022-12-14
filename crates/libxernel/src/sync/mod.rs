@@ -3,6 +3,7 @@ pub use self::spin::{MutexGuard, Spinlock};
 pub use self::ticket::{TicketMutex, TicketMutexGuard};
 
 mod once;
+mod rwlock;
 mod spin;
 mod ticket;
 
