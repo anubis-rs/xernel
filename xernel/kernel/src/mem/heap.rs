@@ -59,16 +59,12 @@ pub fn init() {
             allocator.allocate_frame().unwrap()
         };
 
-        unsafe {
-            page_mapper
-                .map(
-                    page.start_address(),
-                    VirtAddr::new(start_address as u64),
-                    PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE | PageTableFlags::PRESENT,
-                    true,
-                )
-                .unwrap();
-        }
+        page_mapper.map(
+            page.start_address(),
+            VirtAddr::new(start_address as u64),
+            PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE | PageTableFlags::PRESENT,
+            true,
+        );
     }
 
     unsafe {

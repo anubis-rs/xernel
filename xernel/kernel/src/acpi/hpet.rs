@@ -22,29 +22,23 @@ pub fn init() {
 
     let mut mapper = KERNEL_PAGE_MAPPER.lock();
 
-    unsafe {
-        mapper
-            .map(
-                PhysAddr::new(hpet_info.base_address as u64),
-                VirtAddr::new(hpet_info.base_address as u64 + *HIGHER_HALF_OFFSET),
-                PageTableFlags::PRESENT
-                    | PageTableFlags::USER_ACCESSIBLE
-                    | PageTableFlags::WRITABLE,
-                true,
-            )
-            .unwrap();
+    mapper.map(
+        PhysAddr::new(hpet_info.base_address as u64),
+        VirtAddr::new(hpet_info.base_address as u64 + *HIGHER_HALF_OFFSET),
+        PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::WRITABLE,
+        true,
+    );
 
-        let period = (read(0) >> 32) & u64::MAX;
-        let f = (u64::pow(10, 15) as f64 / period as f64) as u64;
+    let period = (read(0) >> 32) & u64::MAX;
+    let f = (u64::pow(10, 15) as f64 / period as f64) as u64;
 
-        HPET_FREQUENCY.set_once(f);
+    HPET_FREQUENCY.set_once(f);
 
-        // set ENABLE_CNF bit
-        write(
-            HPET_CONFIGURATION_REGISTER_OFFSET,
-            read(HPET_CONFIGURATION_REGISTER_OFFSET) | 1,
-        );
-    }
+    // set ENABLE_CNF bit
+    write(
+        HPET_CONFIGURATION_REGISTER_OFFSET,
+        read(HPET_CONFIGURATION_REGISTER_OFFSET) | 1,
+    );
 }
 
 pub fn read_main_counter() -> u64 {

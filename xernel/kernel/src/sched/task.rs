@@ -4,9 +4,9 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use alloc::alloc::alloc_zeroed;
 use alloc::rc::Weak;
 use alloc::vec::Vec;
-use x86_64::structures::paging::PageTable;
 use x86_64::VirtAddr;
 
+use crate::mem::vmm::Pagemap;
 use crate::mem::STACK_SIZE;
 use crate::sched::context::TaskContext;
 
@@ -30,10 +30,10 @@ pub enum TaskPriority {
     High,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Task {
     pub id: u64,
-    pub page_table: Option<PageTable>,
+    pub page_table: Option<Pagemap>,
     pub parent: Weak<Task>,
     pub children: Vec<Task>,
     pub status: TaskStatus,
@@ -107,11 +107,11 @@ impl Task {
         ctx.cs = 0x2b; // user code segment
         ctx.rip = entry_point.as_u64();
         ctx.rsp = task_stack as u64;
-        ctx.rflags = 0x200;
+        ctx.rflags = 0x202;
 
         Self {
             id: TASK_ID_COUNTER.fetch_add(1, Ordering::AcqRel) as u64,
-            page_table: Some(PageTable::new()),
+            page_table: Some(Pagemap::new(None)),
             parent: Weak::new(),
             children: Vec::new(),
             status: TaskStatus::Waiting,

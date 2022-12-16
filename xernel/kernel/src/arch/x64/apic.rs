@@ -82,18 +82,12 @@ impl LocalAPIC {
 
         debug!("apic base: {:x}", apic_base);
 
-        unsafe {
-            mapper
-                .map(
-                    PhysAddr::new(apic_info.local_apic_address),
-                    VirtAddr::new(apic_base),
-                    PageTableFlags::PRESENT
-                        | PageTableFlags::USER_ACCESSIBLE
-                        | PageTableFlags::WRITABLE,
-                    true,
-                )
-                .unwrap();
-        }
+        mapper.map(
+            PhysAddr::new(apic_info.local_apic_address),
+            VirtAddr::new(apic_base),
+            PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::WRITABLE,
+            true,
+        );
 
         self.address = apic_base;
 
@@ -262,19 +256,13 @@ impl IOApic {
         debug!("{:?}", apic_info.io_apics);
 
         let mut mapper = KERNEL_PAGE_MAPPER.lock();
-        unsafe {
-            mapper
-                .map_range(
-                    PhysAddr::new(self.address - *HIGHER_HALF_OFFSET),
-                    VirtAddr::new(self.address),
-                    0x2000,
-                    PageTableFlags::PRESENT
-                        | PageTableFlags::USER_ACCESSIBLE
-                        | PageTableFlags::WRITABLE,
-                    true,
-                )
-                .unwrap();
-        }
+        mapper.map_range(
+            PhysAddr::new(self.address - *HIGHER_HALF_OFFSET),
+            VirtAddr::new(self.address),
+            0x2000,
+            PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::WRITABLE,
+            true,
+        );
 
         unsafe {
             // IRQ 1 (keyboard) gets handled by 0x47 entry in IDT by CPU with APIC_ID 0, set as low
