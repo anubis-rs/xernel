@@ -25,7 +25,6 @@ pub fn order_for_size(size: usize) -> usize {
 
 fn buddy_of(block: NonNull<usize>, order: usize) -> Result<NonNull<usize>> {
     let buddy = block.as_ptr() as usize ^ size_for_order(order);
-    dbg!("{:x}", buddy);
     NonNull::new(buddy as *mut _).ok_or(Error::NullPointer)
 }
 
@@ -188,7 +187,6 @@ impl BuddyAllocator {
         };
 
         while let Some(ptr) = unsafe { *cur } {
-            dbg!("{:?}", ptr);
             let vptr =
                 VirtAddr::new(ptr.as_ptr() as u64 + *HIGHER_HALF_OFFSET).as_mut_ptr::<ListNode>();
 
