@@ -66,7 +66,6 @@ impl Pagemap {
                 *p_table = PageTable::new();
 
                 pml4_entry.set_addr(PhysAddr::new(address), flags);
-                //(*pml4)[virt.p4_index()] = pml4_entry;
             }
 
             let pml3 = (pml4_entry.addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
@@ -82,7 +81,6 @@ impl Pagemap {
                 *p_table = PageTable::new();
 
                 pml3_entry.set_addr(PhysAddr::new(address), flags);
-                //(*pml3)[virt.p3_index()] = pml3_entry;
             }
 
             let pml2 = (pml3_entry.addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
@@ -98,7 +96,6 @@ impl Pagemap {
                 *p_table = PageTable::new();
 
                 pml2_entry.set_addr(PhysAddr::new(address), flags);
-                //(*pml2)[virt.p1_index()] = pml2_entry;
             }
 
             let pml1 = (pml2_entry.addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
