@@ -55,13 +55,16 @@ impl Drop for HeldIRQ {
     }
 }
 
-// TODO: Differ in target platform, so this function can be used across multiple architectures
 #[inline(always)]
 pub fn interrupts_enabled() -> bool {
-    unsafe {
-        let flags: usize;
-        asm!("pushfq; pop {}", out(reg) flags, options(nomem, preserves_flags));
-        (flags & 0x0200) != 0
+    if cfg!(target_arch = "x86_64") {
+        unsafe {
+            let flags: usize;
+            asm!("pushfq; pop {}", out(reg) flags, options(nomem, preserves_flags));
+            (flags & 0x0200) != 0
+        }
+    } else {
+        todo!("Interrupts enabled not implemented for this architecture");
     }
 }
 
@@ -75,7 +78,11 @@ pub fn hold_interrupts() -> HeldIRQ {
 #[inline(always)]
 pub fn disable_interrupts() {
     unsafe {
-        asm!("cli", options(nomem, nostack));
+        if cfg!(target_arch = "x86_64") {
+            asm!("cli", options(nomem, nostack));
+        } else {
+            todo!("Disable interrupts not implemented for this architecture");
+        }
     }
     compiler_fence(Ordering::SeqCst);
 }
@@ -84,6 +91,10 @@ pub fn disable_interrupts() {
 pub fn enable_interrupts() {
     compiler_fence(Ordering::SeqCst);
     unsafe {
-        asm!("sti", options(nomem, nostack));
+        if cfg!(target_arch = "x86_64") {
+            asm!("sti", options(nomem, nostack));
+        } else {
+            todo!("Enable interrupts not implemented for this architecture");
+        }
     }
 }
