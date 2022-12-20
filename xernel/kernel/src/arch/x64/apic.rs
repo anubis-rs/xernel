@@ -252,7 +252,6 @@ impl IOApic {
     }
 
     pub fn init(&mut self, apic_info: &Apic) {
-        debug!("{:?}", apic_info.interrupt_source_overrides);
         debug!("{:?}", apic_info.io_apics);
 
         let mut mapper = KERNEL_PAGE_MAPPER.lock();
