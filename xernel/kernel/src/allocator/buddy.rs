@@ -2,10 +2,7 @@
 // https://github.com/Stupremee/novos/blob/main/crates/kernel/src/allocator/buddy.rs
 
 use super::{align_up, AllocStats, Error, Result};
-use crate::{
-    dbg,
-    mem::{FRAME_SIZE, HIGHER_HALF_OFFSET},
-};
+use crate::mem::{FRAME_SIZE, HIGHER_HALF_OFFSET};
 use core::{cmp, ptr::NonNull};
 use x86_64::VirtAddr;
 

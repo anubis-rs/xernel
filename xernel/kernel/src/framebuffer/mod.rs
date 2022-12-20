@@ -2,7 +2,7 @@ mod font;
 
 use core::ptr::copy;
 
-use crate::{dbg, framebuffer::font::FONT};
+use crate::framebuffer::font::FONT;
 use libxernel::sync::Spinlock;
 use limine::{
     LimineFile, LimineFramebuffer, LimineFramebufferRequest, LimineModuleRequest, NonNullPtr,
@@ -211,6 +211,7 @@ impl Framebuffer {
             }
         }
 
+        self.new_line();
         self.new_line();
     }
 }
