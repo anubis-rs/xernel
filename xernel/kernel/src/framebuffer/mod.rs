@@ -166,7 +166,7 @@ impl Framebuffer {
         self.color.b = b;
     }
 
-    /// Sets the cursor to the start of the next line
+    /// Sets the cursor to the start of the next pixel line
     pub fn new_line(&mut self) {
         self.cursor -= self.cursor % FRAMEBUFFER_DATA.pitch;
         self.cursor += FRAMEBUFFER_DATA.pitch;
