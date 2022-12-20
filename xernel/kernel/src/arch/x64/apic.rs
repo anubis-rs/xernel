@@ -229,9 +229,7 @@ impl IOApic {
             dbg!("[IOAPIC] write_irq: bad apic_id {}", apic_id);
         }
 
-        let mut val: u32 = 0;
-
-        val = irq_vector as _;
+        let mut val = irq_vector as _;
 
         if low_priority {
             val |= 1 << 8;
