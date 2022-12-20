@@ -192,7 +192,6 @@ impl Framebuffer {
 
         self.new_line();
 
-        // step by (bpp as u64 / 8)
         for i in 0..(width * height) {
             address
                 .add(self.cursor as usize)
@@ -226,7 +225,6 @@ pub fn show_start_image() {
         .modules()
         .get(0)
         .unwrap();
-    dbg!("module base: {:p}", module.base.as_ptr().unwrap());
 
     unsafe {
         let mut framebuffer = FRAMEBUFFER.lock();
