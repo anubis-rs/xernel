@@ -166,7 +166,13 @@ impl Framebuffer {
         self.color.b = b;
     }
 
-    // FIXME: Image weird rotated, emtpy space after image
+    /// Sets the cursor to the start of the next line
+    pub fn new_line(&mut self) {
+        self.cursor -= self.cursor % FRAMEBUFFER_DATA.pitch;
+        self.cursor += FRAMEBUFFER_DATA.pitch;
+    }
+
+    // FIXME: Image weird rotated
     /// Displays a given bitmap image on the framebuffer
     pub unsafe fn show_bitmap_image(&mut self, image_data: &NonNullPtr<LimineFile>) {
         let address = FRAMEBUFFER_DATA.address.as_ptr().unwrap().cast::<u8>();
@@ -175,20 +181,19 @@ impl Framebuffer {
 
         let bpp = file_base.offset(0x1c).read() as u8;
 
-        let img_data_offset = file_base.offset(0xA).read() as usize;
+        let img_data_offset = file_base.offset(0xa).read() as u32;
 
-        let img_base = file_base.add(img_data_offset);
+        let img_base = file_base.add(img_data_offset as usize);
 
         let mut image_addr = img_base;
 
-        let width = file_base.offset(0x12).read() as u64;
-        let height = file_base.offset(0x16).read() as u64;
+        let width = file_base.offset(0x12).read() as u16;
+        let height = file_base.offset(0x16).read() as u16;
 
-        dbg!("width: {}", width);
-        dbg!("height: {}", height);
-        dbg!("bpp: {}", bpp);
+        self.new_line();
 
-        for i in 0..(width * height * (bpp as u64 / 8)) {
+        // step by (bpp as u64 / 8)
+        for i in 0..(width * height) {
             address
                 .add(self.cursor as usize)
                 .write_volatile(image_addr.offset(0).read());
@@ -200,16 +205,14 @@ impl Framebuffer {
                 .write_volatile(image_addr.offset(2).read());
 
             image_addr = image_addr.add((bpp / 8).into());
-            self.cursor += bpp as u64 / 8;
+            self.cursor += FRAMEBUFFER_DATA.bpp as u64 / 8;
 
             if i % width == 0 && i != 0 {
-                self.cursor += FRAMEBUFFER_DATA.pitch;
-                self.cursor -= width * (bpp as u64 / 8) as u64;
+                self.new_line();
             }
         }
 
-        self.cursor -= width * (bpp as u64 / 8) as u64;
-        self.cursor += FRAMEBUFFER_DATA.pitch;
+        self.new_line();
     }
 }
 /// Shows a given image included in the source code at the top of the framebuffer at the beginning
