@@ -172,7 +172,6 @@ impl Framebuffer {
         self.cursor += FRAMEBUFFER_DATA.pitch;
     }
 
-    // FIXME: Image weird rotated
     /// Displays a given bitmap image on the framebuffer
     pub unsafe fn show_bitmap_image(&mut self, image_data: &NonNullPtr<LimineFile>) {
         let address = FRAMEBUFFER_DATA.address.as_ptr().unwrap().cast::<u8>();
