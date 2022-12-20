@@ -30,23 +30,19 @@ impl Scheduler {
     pub fn schedule_next_task() {}
 
     pub fn save_ctx(&mut self, ctx: TaskContext) {
-        // FIXME: Plain unwrap, use if let
         let mut task = self.tasks.get_mut(0).unwrap();
         task.context = ctx;
     }
 
     pub fn get_next_task(&mut self) -> &Task {
-        // FIXME: Plain unwrap, use if let
         let old_task = self.tasks.pop_front().unwrap();
 
         self.tasks.push_back(old_task);
 
-        // FIXME: Plain unwrap, use if let
         self.tasks.front_mut().unwrap()
     }
 
     pub fn set_current_task_status(&mut self, status: TaskStatus) {
-        // FIXME: Plain unwrap, use if let
         let mut task = self.tasks.front_mut().unwrap();
         task.status = status;
     }
