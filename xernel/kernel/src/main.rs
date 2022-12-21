@@ -6,6 +6,7 @@
 #![feature(pointer_byte_offsets)]
 #![feature(naked_functions)]
 #![feature(exclusive_range_pattern)]
+#![feature(const_btree_new)]
 #![allow(dead_code)]
 #![allow(clippy::fn_to_numeric_cast)]
 extern crate alloc;
@@ -18,7 +19,9 @@ mod allocator;
 mod arch;
 mod drivers;
 mod framebuffer;
+mod fs;
 mod sched;
+mod syscall;
 
 #[macro_use]
 mod logger;
@@ -40,9 +43,12 @@ use x86_64::VirtAddr;
 
 use crate::acpi::hpet;
 use crate::arch::x64::apic;
+use crate::fs::vfs;
+use crate::fs::VFS;
 use crate::mem::vmm::KERNEL_PAGE_MAPPER;
 use crate::sched::scheduler::SCHEDULER;
 use crate::sched::task::Task;
+use crate::syscall::syscall::sys_open;
 
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 static SMP_REQUEST: LimineSmpRequest = LimineSmpRequest::new(0);
@@ -83,6 +89,8 @@ extern "C" fn kernel_main() -> ! {
 
     apic::init();
 
+    vfs::init();
+
     let bootloader_info = BOOTLOADER_INFO
         .get_response()
         .get()
@@ -103,6 +111,8 @@ extern "C" fn kernel_main() -> ! {
     SCHEDULER.lock().add_task(main_task);
     SCHEDULER.lock().add_task(kernel_task);
     SCHEDULER.lock().add_task(kernel_task2);
+
+    sys_open("/", 12, 12);
 
     interrupts::enable();
 

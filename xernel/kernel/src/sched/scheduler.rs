@@ -2,6 +2,7 @@ use crate::sched::context::restore_context;
 use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
 use libxernel::sync::Spinlock;
+use x86_64::VirtAddr;
 
 use super::context::TaskContext;
 use super::task::TaskStatus;
@@ -46,6 +47,10 @@ impl Scheduler {
         let mut task = self.tasks.front_mut().unwrap();
         task.status = status;
     }
+
+    pub fn current_task(&mut self) -> &mut Task {
+        self.tasks.front_mut().unwrap()
+    }
 }
 
 // FIXME: Doesn't work when multiple cores are started
@@ -53,7 +58,6 @@ impl Scheduler {
 pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     // TODO: Switch page table if user task
     // TODO: Take priority in account
-    // TODO: Change TaskStatus accordingly
 
     let mut sched = SCHEDULER.lock();
     sched.save_ctx(ctx);
@@ -63,6 +67,8 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     x86_64::instructions::interrupts::enable();
 
     let new_ctx = sched.get_next_task().context.clone();
+
+    sched.set_current_task_status(TaskStatus::Running);
     Spinlock::unlock(sched);
 
     let mut apic = APIC.lock();

@@ -29,6 +29,9 @@ extern "C" {
     static _kernel_end: u64;
 }
 
+// TODO: Use results for return values for methods
+// Create Error enum for mem module
+
 impl Pagemap {
     pub fn new(pt_frame: Option<PhysFrame>) -> Self {
         let pt_frame = pt_frame.unwrap_or_else(|| {

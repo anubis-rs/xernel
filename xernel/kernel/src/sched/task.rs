@@ -2,10 +2,12 @@ use core::alloc::Layout;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 use alloc::alloc::alloc_zeroed;
-use alloc::rc::Weak;
+use alloc::collections::BTreeMap;
+use alloc::rc::{Rc, Weak};
 use alloc::vec::Vec;
 use x86_64::VirtAddr;
 
+use crate::fs::FsNode;
 use crate::mem::vmm::Pagemap;
 use crate::mem::STACK_SIZE;
 use crate::sched::context::TaskContext;
@@ -13,7 +15,7 @@ use crate::sched::context::TaskContext;
 /// Ongoing counter for the TaskID
 static TASK_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 /// Current status of the task
 pub enum TaskStatus {
     Running,
@@ -30,7 +32,6 @@ pub enum TaskPriority {
     High,
 }
 
-#[derive(Debug)]
 pub struct Task {
     pub id: u64,
     pub page_table: Option<Pagemap>,
@@ -39,6 +40,7 @@ pub struct Task {
     pub status: TaskStatus,
     pub priority: TaskPriority,
     pub context: TaskContext,
+    pub fds: BTreeMap<usize, Rc<FsNode>>,
 }
 
 impl Task {
@@ -64,6 +66,7 @@ impl Task {
             status: TaskStatus::Waiting,
             priority: TaskPriority::Normal,
             context: ctx,
+            fds: BTreeMap::new(),
         }
     }
 
@@ -89,6 +92,7 @@ impl Task {
             status: TaskStatus::Waiting,
             priority: TaskPriority::Normal,
             context: ctx,
+            fds: BTreeMap::new(),
         }
     }
 
@@ -117,6 +121,7 @@ impl Task {
             status: TaskStatus::Waiting,
             priority: TaskPriority::Normal,
             context: ctx,
+            fds: BTreeMap::new(),
         }
     }
 
@@ -126,5 +131,20 @@ impl Task {
 
     pub fn is_kernel_task(&self) -> bool {
         self.context.cs == 0x8 && self.context.ss == 0x10
+    }
+
+    pub fn append_fd(&mut self, node: Rc<FsNode>) -> u32 {
+        let mut counter = 0;
+
+        let fd = loop {
+            if !self.fds.contains_key(&counter) {
+                self.fds.insert(counter, node);
+                break counter;
+            }
+
+            counter += 1;
+        };
+
+        fd as u32
     }
 }
