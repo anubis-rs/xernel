@@ -1,7 +1,4 @@
-use core::{
-    ops::{Deref, DerefMut},
-    panic,
-};
+use core::ops::{Deref, DerefMut};
 
 /// Type for values that are only available at runtime
 ///
@@ -19,7 +16,7 @@ impl<T> Deref for InitAtBoot<T> {
             InitAtBoot::Initialized(x) => x,
             InitAtBoot::Uninitialized => {
                 #[cfg(debug_assertions)]
-                panic!("tried to access boot resource that is not initialized");
+                core::panic!("tried to access boot resource that is not initialized");
                 #[cfg(not(debug_assertions))]
                 unsafe {
                     core::hint::unreachable_unchecked()
