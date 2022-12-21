@@ -1,6 +1,6 @@
 use core::ptr::NonNull;
 
-use crate::{allocator::buddy::BuddyAllocator, mem::HIGHER_HALF_OFFSET};
+use crate::allocator::buddy::BuddyAllocator;
 use libxernel::sync::{Once, Spinlock};
 use limine::{LimineMemmapEntry, LimineMemmapRequest, LimineMemoryMapEntryType, NonNullPtr};
 use x86_64::{
@@ -17,7 +17,7 @@ pub static FRAME_ALLOCATOR: Spinlock<BuddyAllocator> = Spinlock::new(BuddyAlloca
 unsafe impl x86_64::structures::paging::FrameAllocator<Size4KiB> for BuddyAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
         let frame = self.allocate(0);
-        let start_addr = frame.unwrap().as_ptr() as u64 - *HIGHER_HALF_OFFSET;
+        let start_addr = frame.unwrap().as_ptr() as u64;
         let pframe = PhysFrame::from_start_address(PhysAddr::new(start_addr));
         pframe.ok()
     }
