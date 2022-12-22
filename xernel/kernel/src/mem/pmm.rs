@@ -1,10 +1,10 @@
 use core::ptr::NonNull;
 
-use crate::allocator::buddy::BuddyAllocator;
+use crate::allocator::{buddy::BuddyAllocator, order_for_size};
 use libxernel::sync::{Once, Spinlock};
 use limine::{LimineMemmapEntry, LimineMemmapRequest, LimineMemoryMapEntryType, NonNullPtr};
 use x86_64::{
-    structures::paging::{PhysFrame, Size4KiB},
+    structures::paging::{PageSize, PhysFrame},
     PhysAddr,
 };
 
@@ -12,22 +12,26 @@ static MMAP_REQUEST: LimineMemmapRequest = LimineMemmapRequest::new(0);
 
 pub static MEMORY_MAP: Once<&'static [NonNullPtr<LimineMemmapEntry>]> = Once::new();
 
-pub static FRAME_ALLOCATOR: Spinlock<BuddyAllocator> = Spinlock::new(BuddyAllocator::new());
+pub struct PhysFrameAllocator(BuddyAllocator);
 
-unsafe impl x86_64::structures::paging::FrameAllocator<Size4KiB> for BuddyAllocator {
-    fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
-        let frame = self.allocate(0);
+pub static FRAME_ALLOCATOR: Spinlock<PhysFrameAllocator> = Spinlock::new(PhysFrameAllocator(BuddyAllocator::new()));
+
+impl PhysFrameAllocator {
+    pub fn allocate_frame<P: PageSize>(&mut self) -> Option<PhysFrame<P>> {
+        let order = order_for_size(P::SIZE as usize);
+
+        let frame = self.0.allocate(order);
         let start_addr = frame.unwrap().as_ptr() as u64;
         let pframe = PhysFrame::from_start_address(PhysAddr::new(start_addr));
         pframe.ok()
     }
-}
 
-impl x86_64::structures::paging::FrameDeallocator<Size4KiB> for BuddyAllocator {
-    unsafe fn deallocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {
-        self.deallocate(
+    pub unsafe fn deallocate_frame<P: PageSize>(&mut self, frame: PhysFrame<P>) {
+        let order = order_for_size(P::SIZE as usize);
+
+        self.0.deallocate(
             NonNull::new(frame.start_address().as_u64() as *mut u8).unwrap(),
-            0,
+            order,
         )
         .unwrap();
     }
@@ -49,7 +53,7 @@ pub fn init() {
             unsafe {
                 // FIXME: Check result of add_region function
                 // FIXME: Last add_region returns NullPointer in buddy_of function
-                buddy.add_region(
+                buddy.0.add_region(
                     NonNull::new(entry.base as *mut u8).unwrap(),
                     NonNull::new((entry.base + entry.len) as *mut u8).unwrap(),
                 );
@@ -57,5 +61,5 @@ pub fn init() {
         }
     }
 
-    dbg!("{}", buddy.stats);
+    dbg!("{}", buddy.0.stats);
 }

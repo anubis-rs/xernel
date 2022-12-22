@@ -3,7 +3,7 @@ use core::ptr::NonNull;
 
 use libxernel::sync::Spinlock;
 use linked_list_allocator::Heap;
-use x86_64::structures::paging::{FrameAllocator, PageTableFlags};
+use x86_64::structures::paging::{PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
 
 use super::{pmm::FRAME_ALLOCATOR, vmm::KERNEL_PAGE_MAPPER, FRAME_SIZE};
@@ -56,7 +56,7 @@ pub fn init() {
     {
         let page = {
             let mut allocator = FRAME_ALLOCATOR.lock();
-            allocator.allocate_frame().unwrap()
+            allocator.allocate_frame::<Size4KiB>().unwrap()
         };
 
         page_mapper.map(

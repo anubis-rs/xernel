@@ -8,7 +8,7 @@ use libxernel::sync::Spinlock;
 use limine::LimineKernelAddressRequest;
 use x86_64::{
     registers::control::{Cr3, Cr3Flags},
-    structures::paging::FrameAllocator,
+    structures::paging::Size4KiB,
 };
 use x86_64::{
     structures::paging::{PageTable, PageTableFlags, PhysFrame},
@@ -61,7 +61,7 @@ impl Pagemap {
             let pml4_entry = &mut (*pml4)[virt.p4_index()];
 
             if !pml4_entry.flags().contains(PageTableFlags::PRESENT) {
-                let frame = frame_allocator.allocate_frame().unwrap();
+                let frame = frame_allocator.allocate_frame::<Size4KiB>().unwrap();
 
                 let address = frame.start_address().as_u64();
 
@@ -76,7 +76,7 @@ impl Pagemap {
             let pml3_entry = &mut (*pml3)[virt.p3_index()];
 
             if !pml3_entry.flags().contains(PageTableFlags::PRESENT) {
-                let frame = frame_allocator.allocate_frame().unwrap();
+                let frame = frame_allocator.allocate_frame::<Size4KiB>().unwrap();
 
                 let address = frame.start_address().as_u64();
 
@@ -91,7 +91,7 @@ impl Pagemap {
             let pml2_entry = &mut (*pml2)[virt.p2_index()];
 
             if !pml2_entry.flags().contains(PageTableFlags::PRESENT) {
-                let frame = frame_allocator.allocate_frame().unwrap();
+                let frame = frame_allocator.allocate_frame::<Size4KiB>().unwrap();
 
                 let address = frame.start_address().as_u64();
 
