@@ -165,13 +165,7 @@ fn run(sh: &Shell, gdb: bool, mut args: Arguments) -> Result<()> {
 
     let qemu_in_wsl_arg = args.contains("--wsl-qemu");
 
-    let mut qemu_in_wsl_env = false;
-
-    for (key, value) in env::vars() {
-        if key == "qemu_in_wsl" {
-            qemu_in_wsl_env = value.parse().unwrap()
-        }
-    }
+    let qemu_in_wsl_env = env::var("qemu_in_wsl").unwrap_or("false".to_string()).parse().unwrap();
 
     let qemu_in_wsl = qemu_in_wsl_arg || qemu_in_wsl_env;
 
