@@ -14,3 +14,5 @@ limine
 *.log
 *.iso
 *.hdd
+
+.env

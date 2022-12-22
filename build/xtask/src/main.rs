@@ -2,6 +2,8 @@ use anyhow::{bail, Result};
 use pico_args::Arguments;
 use std::path::{Path, PathBuf};
 use xshell::{cmd, Shell};
+use dotenv::dotenv;
+use std::env;
 
 const HELP: &str = "\
 xtask
@@ -13,6 +15,7 @@ FLAGS:
     --check         Only checks if the format is correct, without making changes (Can only be used with the fmt or lint subcommand)
     --cpus          Set the number CPU cores (default: 1).
     --ram           Set the amount of RAM in given size (M for Megabyte and G for Gigabyte) (default: 128M).
+    --wsl-qemu      If you use wsl but got a X server installed like GWSL you can use this flag to say you want to use the qemu you've got installed with your wsl distro and not on windows (also possible to use a env variable called qemu_in_wsl and setting it to true)
 SUBCOMMANDS:
     build           Build the kernel without running it.
     run             Build and run the kernel using QEMU.
@@ -22,6 +25,7 @@ SUBCOMMANDS:
 ";
 
 fn main() -> Result<()> {
+    dotenv().ok();
     let mut args = Arguments::from_env();
 
     // print help message if requested
@@ -159,7 +163,19 @@ fn run(sh: &Shell, gdb: bool, mut args: Arguments) -> Result<()> {
 
     let mut file_extension = "";
 
-    if wsl::is_wsl() {
+    let qemu_in_wsl_arg = args.contains("--wsl-qemu");
+
+    let mut qemu_in_wsl_env = false;
+
+    for (key, value) in env::vars() {
+        if key == "qemu_in_wsl" {
+            qemu_in_wsl_env = value.parse().unwrap()
+        }
+    }
+
+    let qemu_in_wsl = qemu_in_wsl_arg || qemu_in_wsl_env;
+
+    if wsl::is_wsl() && !qemu_in_wsl {
         file_extension = ".exe";
     }
 
