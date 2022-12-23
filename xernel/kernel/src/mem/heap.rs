@@ -3,7 +3,7 @@ use core::ptr::NonNull;
 
 use libxernel::sync::Spinlock;
 use linked_list_allocator::Heap;
-use x86_64::structures::paging::{PageTableFlags, Size4KiB};
+use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size4KiB};
 use x86_64::VirtAddr;
 
 use super::{pmm::FRAME_ALLOCATOR, vmm::KERNEL_PAGE_MAPPER, FRAME_SIZE};
@@ -50,6 +50,7 @@ pub fn init() {
     let mut heap = HEAP.lock();
     let mut page_mapper = KERNEL_PAGE_MAPPER.lock();
 
+    // TODO: don't use 4kib pages
     for start_address in (HEAP_START_ADDR
         ..HEAP_START_ADDR + (HEAP_INITIAL_PAGE_COUNT * FRAME_SIZE) as usize)
         .step_by(FRAME_SIZE as usize)
@@ -59,9 +60,9 @@ pub fn init() {
             allocator.allocate_frame::<Size4KiB>().unwrap()
         };
 
-        page_mapper.map(
-            page.start_address(),
-            VirtAddr::new(start_address as u64),
+        page_mapper.map::<Size4KiB>(
+            PhysFrame::containing_address(page.start_address()),
+            Page::containing_address(VirtAddr::new(start_address as u64)),
             PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE | PageTableFlags::PRESENT,
             true,
         );

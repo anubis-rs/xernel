@@ -14,7 +14,8 @@ pub static MEMORY_MAP: Once<&'static [NonNullPtr<LimineMemmapEntry>]> = Once::ne
 
 pub struct PhysFrameAllocator(BuddyAllocator);
 
-pub static FRAME_ALLOCATOR: Spinlock<PhysFrameAllocator> = Spinlock::new(PhysFrameAllocator(BuddyAllocator::new()));
+pub static FRAME_ALLOCATOR: Spinlock<PhysFrameAllocator> =
+    Spinlock::new(PhysFrameAllocator(BuddyAllocator::new()));
 
 impl PhysFrameAllocator {
     pub fn allocate_frame<P: PageSize>(&mut self) -> Option<PhysFrame<P>> {
@@ -29,11 +30,12 @@ impl PhysFrameAllocator {
     pub unsafe fn deallocate_frame<P: PageSize>(&mut self, frame: PhysFrame<P>) {
         let order = order_for_size(P::SIZE as usize);
 
-        self.0.deallocate(
-            NonNull::new(frame.start_address().as_u64() as *mut u8).unwrap(),
-            order,
-        )
-        .unwrap();
+        self.0
+            .deallocate(
+                NonNull::new(frame.start_address().as_u64() as *mut u8).unwrap(),
+                order,
+            )
+            .unwrap();
     }
 }
 

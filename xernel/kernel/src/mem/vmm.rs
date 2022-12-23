@@ -1,14 +1,16 @@
 use super::{pmm::FRAME_ALLOCATOR, HIGHER_HALF_OFFSET};
 use crate::{
+    allocator::align_up,
     debug,
-    mem::{pmm::MEMORY_MAP, FRAME_SIZE, KERNEL_OFFSET},
+    mem::{pmm::MEMORY_MAP, KERNEL_OFFSET},
 };
 use libxernel::boot::InitAtBoot;
 use libxernel::sync::Spinlock;
 use limine::LimineKernelAddressRequest;
 use x86_64::{
+    align_down,
     registers::control::{Cr3, Cr3Flags},
-    structures::paging::Size4KiB,
+    structures::paging::{Page, PageSize, Size1GiB, Size2MiB, Size4KiB},
 };
 use x86_64::{
     structures::paging::{PageTable, PageTableFlags, PhysFrame},
@@ -52,13 +54,21 @@ impl Pagemap {
         }
     }
 
-    pub fn map(&mut self, phys: PhysAddr, virt: VirtAddr, flags: PageTableFlags, _flush_tlb: bool) {
+    // TODO: implement flush tlb
+    // TODO: check if existing flags should be overwritten
+    pub fn map<P: PageSize>(
+        &mut self,
+        phys: PhysFrame<P>,
+        virt: Page<P>,
+        flags: PageTableFlags,
+        _flush_tlb: bool,
+    ) {
         let pml4 = self.page_table;
 
         let mut frame_allocator = FRAME_ALLOCATOR.lock();
 
         unsafe {
-            let pml4_entry = &mut (*pml4)[virt.p4_index()];
+            let pml4_entry = &mut (*pml4)[virt.start_address().p4_index()];
 
             if !pml4_entry.flags().contains(PageTableFlags::PRESENT) {
                 let frame = frame_allocator.allocate_frame::<Size4KiB>().unwrap();
@@ -73,7 +83,18 @@ impl Pagemap {
 
             let pml3 = (pml4_entry.addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
 
-            let pml3_entry = &mut (*pml3)[virt.p3_index()];
+            let pml3_entry = &mut (*pml3)[virt.start_address().p3_index()];
+
+            if P::SIZE == Size1GiB::SIZE {
+                assert!(
+                    u16::from(virt.start_address().p2_index()) == 0
+                        && u16::from(virt.start_address().p1_index()) == 0
+                        && u16::from(virt.start_address().page_offset()) == 0
+                );
+
+                pml3_entry.set_addr(phys.start_address(), flags | PageTableFlags::HUGE_PAGE);
+                return;
+            }
 
             if !pml3_entry.flags().contains(PageTableFlags::PRESENT) {
                 let frame = frame_allocator.allocate_frame::<Size4KiB>().unwrap();
@@ -88,7 +109,17 @@ impl Pagemap {
 
             let pml2 = (pml3_entry.addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
 
-            let pml2_entry = &mut (*pml2)[virt.p2_index()];
+            let pml2_entry = &mut (*pml2)[virt.start_address().p2_index()];
+
+            if P::SIZE == Size2MiB::SIZE {
+                assert!(
+                    u16::from(virt.start_address().p1_index()) == 0
+                        && u16::from(virt.start_address().page_offset()) == 0
+                );
+
+                pml2_entry.set_addr(phys.start_address(), flags | PageTableFlags::HUGE_PAGE);
+                return;
+            }
 
             if !pml2_entry.flags().contains(PageTableFlags::PRESENT) {
                 let frame = frame_allocator.allocate_frame::<Size4KiB>().unwrap();
@@ -103,9 +134,9 @@ impl Pagemap {
 
             let pml1 = (pml2_entry.addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
 
-            let pml1_entry = &mut (*pml1)[virt.p1_index()];
+            let pml1_entry = &mut (*pml1)[virt.start_address().p1_index()];
 
-            pml1_entry.set_addr(phys, flags);
+            pml1_entry.set_addr(phys.start_address(), flags);
         }
     }
 
@@ -117,17 +148,58 @@ impl Pagemap {
         flags: PageTableFlags,
         flush_tlb: bool,
     ) {
-        let mut pages_to_map = amount as u64 / FRAME_SIZE;
+        assert!(u16::from(virt.page_offset()) == 0);
+        assert!(phys.is_aligned(Size4KiB::SIZE));
 
-        if amount as u64 % FRAME_SIZE != 0 {
-            pages_to_map += 1;
+        let aligned_amount = align_up(amount, Size4KiB::SIZE as usize);
+
+        let mut offset: u64 = 0;
+
+        // map all 4kib pages till 2mib aligned
+        let pages_4kb = (virt.align_up(Size2MiB::SIZE).as_u64() - virt.as_u64()) / Size4KiB::SIZE;
+
+        for _ in 0..pages_4kb {
+            if offset >= aligned_amount as u64 {
+                break;
+            }
+
+            self.map::<Size4KiB>(
+                PhysFrame::from_start_address(phys + offset).unwrap(),
+                Page::from_start_address(virt + offset).unwrap(),
+                flags,
+                flush_tlb,
+            );
+
+            offset += Size4KiB::SIZE;
         }
 
-        for i in 0..pages_to_map {
-            let phys_addr = PhysAddr::new(phys.as_u64() + i as u64 * FRAME_SIZE);
-            let virt_addr = VirtAddr::new(virt.as_u64() + i as u64 * FRAME_SIZE);
+        // map all 2mib pages
+        let pages_2mb = align_down(aligned_amount as u64 - offset, Size2MiB::SIZE) / Size2MiB::SIZE;
 
-            self.map(phys_addr, virt_addr, flags, flush_tlb);
+        for _ in 0..pages_2mb {
+            self.map::<Size2MiB>(
+                PhysFrame::from_start_address(phys + offset).unwrap(),
+                Page::from_start_address(virt + offset).unwrap(),
+                flags,
+                flush_tlb,
+            );
+
+            offset += Size2MiB::SIZE;
+        }
+
+        // map 4kib pages till the end
+        let pages_4kb = align_up(aligned_amount - offset as usize, Size4KiB::SIZE as usize)
+            / Size4KiB::SIZE as usize;
+
+        for _ in 0..pages_4kb {
+            self.map::<Size4KiB>(
+                PhysFrame::from_start_address(phys + offset).unwrap(),
+                Page::from_start_address(virt + offset).unwrap(),
+                flags,
+                flush_tlb,
+            );
+
+            offset += Size4KiB::SIZE;
         }
     }
 

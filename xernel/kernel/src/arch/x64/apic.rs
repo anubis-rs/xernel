@@ -3,7 +3,10 @@ use alloc::vec::Vec;
 use core::arch::asm;
 use libxernel::sync::Spinlock;
 use x86_64::structures::idt::InterruptStackFrame;
-use x86_64::{structures::paging::PageTableFlags, PhysAddr, VirtAddr};
+use x86_64::{
+    structures::paging::{Page, PageTableFlags, PhysFrame, Size4KiB},
+    PhysAddr, VirtAddr,
+};
 
 use crate::acpi::{hpet, ACPI};
 use crate::mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};
@@ -82,9 +85,9 @@ impl LocalAPIC {
 
         debug!("apic base: {:x}", apic_base);
 
-        mapper.map(
-            PhysAddr::new(apic_info.local_apic_address),
-            VirtAddr::new(apic_base),
+        mapper.map::<Size4KiB>(
+            PhysFrame::containing_address(PhysAddr::new(apic_info.local_apic_address)),
+            Page::containing_address(VirtAddr::new(apic_base)),
             PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::WRITABLE,
             true,
         );
