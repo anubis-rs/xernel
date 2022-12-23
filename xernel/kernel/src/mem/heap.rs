@@ -3,17 +3,17 @@ use core::ptr::NonNull;
 
 use libxernel::sync::Spinlock;
 use linked_list_allocator::Heap;
-use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size4KiB};
+use x86_64::structures::paging::{Page, PageSize, PageTableFlags, PhysFrame, Size2MiB};
 use x86_64::VirtAddr;
 
-use super::{pmm::FRAME_ALLOCATOR, vmm::KERNEL_PAGE_MAPPER, FRAME_SIZE};
+use super::{pmm::FRAME_ALLOCATOR, vmm::KERNEL_PAGE_MAPPER};
 
 // TODO: Replace heap by Buddy Allocator
 static HEAP: Spinlock<Heap> = Spinlock::new(Heap::empty());
 
 const HEAP_START_ADDR: usize = 0x0000_1000_0000_0000;
 
-const HEAP_INITIAL_PAGE_COUNT: u64 = 1024; // 4 MiB
+const HEAP_INITIAL_PAGE_COUNT: u64 = 2; // 4 MiB
 
 struct Allocator;
 
@@ -50,17 +50,16 @@ pub fn init() {
     let mut heap = HEAP.lock();
     let mut page_mapper = KERNEL_PAGE_MAPPER.lock();
 
-    // TODO: don't use 4kib pages
     for start_address in (HEAP_START_ADDR
-        ..HEAP_START_ADDR + (HEAP_INITIAL_PAGE_COUNT * FRAME_SIZE) as usize)
-        .step_by(FRAME_SIZE as usize)
+        ..HEAP_START_ADDR + (HEAP_INITIAL_PAGE_COUNT * Size2MiB::SIZE) as usize)
+        .step_by(Size2MiB::SIZE as usize)
     {
         let page = {
             let mut allocator = FRAME_ALLOCATOR.lock();
-            allocator.allocate_frame::<Size4KiB>().unwrap()
+            allocator.allocate_frame::<Size2MiB>().unwrap()
         };
 
-        page_mapper.map::<Size4KiB>(
+        page_mapper.map::<Size2MiB>(
             PhysFrame::containing_address(page.start_address()),
             Page::containing_address(VirtAddr::new(start_address as u64)),
             PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE | PageTableFlags::PRESENT,
@@ -71,7 +70,7 @@ pub fn init() {
     unsafe {
         heap.init(
             HEAP_START_ADDR as *mut u8,
-            (HEAP_INITIAL_PAGE_COUNT * FRAME_SIZE) as usize,
+            (HEAP_INITIAL_PAGE_COUNT * Size2MiB::SIZE) as usize,
         );
     }
 }
