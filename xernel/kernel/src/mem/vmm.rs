@@ -61,7 +61,7 @@ impl Pagemap {
         phys: PhysFrame<P>,
         virt: Page<P>,
         flags: PageTableFlags,
-        _flush_tlb: bool,
+        flush_tlb: bool,
     ) {
         let pml4 = self.page_table;
 
@@ -93,6 +93,11 @@ impl Pagemap {
                 );
 
                 pml3_entry.set_addr(phys.start_address(), flags | PageTableFlags::HUGE_PAGE);
+
+                if flush_tlb {
+                    self.flush(virt.start_address());
+                }
+
                 return;
             }
 
@@ -118,6 +123,11 @@ impl Pagemap {
                 );
 
                 pml2_entry.set_addr(phys.start_address(), flags | PageTableFlags::HUGE_PAGE);
+
+                if flush_tlb {
+                    self.flush(virt.start_address());
+                }
+
                 return;
             }
 
@@ -137,6 +147,16 @@ impl Pagemap {
             let pml1_entry = &mut (*pml1)[virt.start_address().p1_index()];
 
             pml1_entry.set_addr(phys.start_address(), flags);
+
+            if flush_tlb {
+                self.flush(virt.start_address());
+            }
+        }
+    }
+
+    pub fn flush(&self, addr: VirtAddr) {
+        unsafe {
+            core::arch::asm!("invlpg [{}]", in(reg) addr.as_u64(), options(nostack, preserves_flags));
         }
     }
 
