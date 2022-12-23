@@ -54,8 +54,6 @@ impl Pagemap {
         }
     }
 
-    // TODO: implement flush tlb
-    // TODO: check if existing flags should be overwritten
     pub fn map<P: PageSize>(
         &mut self,
         phys: PhysFrame<P>,
@@ -80,6 +78,8 @@ impl Pagemap {
 
                 pml4_entry.set_addr(PhysAddr::new(address), flags);
             }
+
+            pml4_entry.set_flags(pml4_entry.flags() | flags);
 
             let pml3 = (pml4_entry.addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
 
@@ -112,6 +112,8 @@ impl Pagemap {
                 pml3_entry.set_addr(PhysAddr::new(address), flags);
             }
 
+            pml3_entry.set_flags(pml4_entry.flags() | flags);
+
             let pml2 = (pml3_entry.addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
 
             let pml2_entry = &mut (*pml2)[virt.start_address().p2_index()];
@@ -141,6 +143,8 @@ impl Pagemap {
 
                 pml2_entry.set_addr(PhysAddr::new(address), flags);
             }
+
+            pml2_entry.set_flags(pml4_entry.flags() | flags);
 
             let pml1 = (pml2_entry.addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
 
