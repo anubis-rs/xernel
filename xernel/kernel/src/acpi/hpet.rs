@@ -52,6 +52,16 @@ pub fn frequency() -> u64 {
     *HPET_FREQUENCY
 }
 
+/// returns the number of microseconds since start of the hpet
+pub fn microseconds() -> u64 {
+    read_main_counter() / (frequency() / 1_000_000)
+}
+
+/// returns the number of milliseconds since start of the hpet
+pub fn milliseconds() -> u64 {
+    read_main_counter() / (frequency() / 1_000)
+}
+
 fn write(offset: u64, val: u64) {
     let hpet_ptr = *HPET_BASE_ADDRESS as *mut u64;
 
