@@ -3,7 +3,7 @@
 
 pub mod buddy;
 pub mod unit;
-pub use buddy::{order_for_size, size_for_order, BuddyAllocator};
+pub use buddy::BuddyAllocator;
 
 use core::fmt;
 

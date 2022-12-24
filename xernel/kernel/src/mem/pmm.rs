@@ -1,6 +1,6 @@
 use core::ptr::NonNull;
 
-use crate::allocator::{buddy::BuddyAllocator, order_for_size};
+use crate::allocator::buddy::BuddyAllocator;
 use libxernel::sync::{Once, Spinlock};
 use limine::{LimineMemmapEntry, LimineMemmapRequest, LimineMemoryMapEntryType, NonNullPtr};
 use x86_64::{
@@ -12,14 +12,14 @@ static MMAP_REQUEST: LimineMemmapRequest = LimineMemmapRequest::new(0);
 
 pub static MEMORY_MAP: Once<&'static [NonNullPtr<LimineMemmapEntry>]> = Once::new();
 
-pub struct PhysFrameAllocator(BuddyAllocator);
+pub struct PhysFrameAllocator(BuddyAllocator<{ super::FRAME_SIZE as usize }, 12>); // maximum allocation size is 16mb
 
 pub static FRAME_ALLOCATOR: Spinlock<PhysFrameAllocator> =
     Spinlock::new(PhysFrameAllocator(BuddyAllocator::new()));
 
 impl PhysFrameAllocator {
     pub fn allocate_frame<P: PageSize>(&mut self) -> Option<PhysFrame<P>> {
-        let order = order_for_size(P::SIZE as usize);
+        let order = self.0.order_for_size(P::SIZE as usize);
 
         let frame = self.0.allocate(order);
         let start_addr = frame.unwrap().as_ptr() as u64;
@@ -28,7 +28,7 @@ impl PhysFrameAllocator {
     }
 
     pub unsafe fn deallocate_frame<P: PageSize>(&mut self, frame: PhysFrame<P>) {
-        let order = order_for_size(P::SIZE as usize);
+        let order = self.0.order_for_size(P::SIZE as usize);
 
         self.0
             .deallocate(

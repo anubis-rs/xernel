@@ -2,45 +2,43 @@
 // https://github.com/Stupremee/novos/blob/main/crates/kernel/src/allocator/buddy.rs
 
 use super::{align_up, AllocStats, Error, Result};
-use crate::mem::{FRAME_SIZE, HIGHER_HALF_OFFSET};
+use crate::mem::HIGHER_HALF_OFFSET;
 use core::{cmp, ptr::NonNull};
 use x86_64::VirtAddr;
-
-pub const MAX_ORDER: usize = 12;
-
-pub const MIN_ORDER_SIZE: usize = FRAME_SIZE as usize;
-
-pub fn size_for_order(order: usize) -> usize {
-    (1 << order) * MIN_ORDER_SIZE
-}
-
-pub fn order_for_size(size: usize) -> usize {
-    let size = cmp::max(size, MIN_ORDER_SIZE);
-    let size = size.next_power_of_two() / MIN_ORDER_SIZE;
-    size.trailing_zeros() as usize
-}
-
-fn buddy_of(block: NonNull<usize>, order: usize) -> Result<NonNull<usize>> {
-    let buddy = block.as_ptr() as usize ^ size_for_order(order);
-    NonNull::new(buddy as *mut _).ok_or(Error::NullPointer)
-}
 
 struct ListNode {
     next: Option<NonNull<ListNode>>,
 }
 
-pub struct BuddyAllocator {
+pub struct BuddyAllocator<const MIN_ORDER_SIZE: usize, const MAX_ORDER: usize> {
     orders: [Option<NonNull<ListNode>>; MAX_ORDER],
     pub stats: AllocStats,
 }
 
-impl BuddyAllocator {
+impl<const MIN_ORDER_SIZE: usize, const MAX_ORDER: usize>
+    BuddyAllocator<MIN_ORDER_SIZE, MAX_ORDER>
+{
     /// Create a empty and uninitialized buddy allocator.
     pub const fn new() -> Self {
         Self {
             orders: [None; MAX_ORDER],
             stats: AllocStats::with_name("Physical Memory"),
         }
+    }
+
+    pub fn size_for_order(&self, order: usize) -> usize {
+        (1 << order) * MIN_ORDER_SIZE
+    }
+
+    pub fn order_for_size(&self, size: usize) -> usize {
+        let size = cmp::max(size, MIN_ORDER_SIZE);
+        let size = size.next_power_of_two() / MIN_ORDER_SIZE;
+        size.trailing_zeros() as usize
+    }
+
+    fn buddy_of(&self, block: NonNull<usize>, order: usize) -> Result<NonNull<usize>> {
+        let buddy = block.as_ptr() as usize ^ self.size_for_order(order);
+        NonNull::new(buddy as *mut _).ok_or(Error::NullPointer)
     }
 
     pub unsafe fn add_region(&mut self, start: NonNull<u8>, end: NonNull<u8>) -> Result<usize> {
@@ -59,7 +57,7 @@ impl BuddyAllocator {
         let mut total = 0;
         while (end as usize).saturating_sub(start as usize) >= MIN_ORDER_SIZE {
             let order = self.add_single_region(start, end)?;
-            let size = size_for_order(order);
+            let size = self.size_for_order(order);
 
             start = start.add(size);
             total += size;
@@ -74,14 +72,16 @@ impl BuddyAllocator {
 
         let mut order = 0;
         while order < (MAX_ORDER - 1) {
-            let size = size_for_order(order + 1);
+            let size = self.size_for_order(order + 1);
 
             let new_end = match start_addr.checked_add(size) {
                 Some(num) if num <= end as usize => num,
                 _ => break,
             };
 
-            let buddy = buddy_of(NonNull::new(start as *mut _).unwrap(), order + 1)?.as_ptr();
+            let buddy = self
+                .buddy_of(NonNull::new(start as *mut _).unwrap(), order + 1)?
+                .as_ptr();
             if new_end <= end as usize && (start.cast() <= buddy && buddy <= end.cast()) {
                 order += 1;
             } else {
@@ -93,7 +93,7 @@ impl BuddyAllocator {
         self.order_push(order, NonNull::new(start).unwrap().cast());
 
         // update statistics
-        let size = size_for_order(order);
+        let size = self.size_for_order(order);
         self.stats.total += size;
         self.stats.free += size;
 
@@ -107,7 +107,7 @@ impl BuddyAllocator {
         }
 
         if let Some(block) = self.order_pop(order) {
-            let size = size_for_order(order);
+            let size = self.size_for_order(order);
             self.alloc_stats(size);
 
             return NonNull::new(block.as_ptr().cast()).ok_or(Error::NullPointer);
@@ -117,21 +117,21 @@ impl BuddyAllocator {
             .allocate(order + 1)
             .map_err(|_| Error::NoMemoryAvailable)?;
 
-        let buddy = buddy_of(block.cast(), order)?;
+        let buddy = self.buddy_of(block.cast(), order)?;
 
         self.order_push(order, buddy.cast());
 
-        let size = size_for_order(order);
+        let size = self.size_for_order(order);
         self.alloc_stats(size);
 
         Ok(block)
     }
 
     pub unsafe fn deallocate(&mut self, block: NonNull<u8>, order: usize) -> Result<()> {
-        let buddy_addr = buddy_of(block.cast(), order)?;
+        let buddy_addr = self.buddy_of(block.cast(), order)?;
 
         if self.order_remove(order, buddy_addr.cast()) {
-            let size = size_for_order(order);
+            let size = self.size_for_order(order);
             self.alloc_stats(size);
 
             let new_block = cmp::min(buddy_addr.cast(), block);
@@ -148,7 +148,7 @@ impl BuddyAllocator {
         } else {
             self.order_push(order, block.cast());
 
-            let size = size_for_order(order);
+            let size = self.size_for_order(order);
             self.dealloc_stats(size);
         }
 
