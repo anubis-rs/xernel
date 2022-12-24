@@ -15,8 +15,6 @@ static HPET_FREQUENCY: Once<u64> = Once::new();
 static HPET_CLOCK_TICK_UNIT: Once<u16> = Once::new();
 static HPET_BASE_ADDRESS: Once<u64> = Once::new();
 
-// TODO: Create hpet struct and move functions into it
-
 pub fn init() {
     let hpet_info = acpi_parsing::HpetInfo::new(&ACPI.tables).unwrap();
 
