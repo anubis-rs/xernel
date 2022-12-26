@@ -24,12 +24,23 @@ pub enum TaskStatus {
     Zombie,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 /// Priority level of the task
 pub enum TaskPriority {
     Low,
     Normal,
     High,
+}
+
+impl TaskPriority {
+    /// Get the number of ms the task can run from the priority
+    pub fn ms(&self) -> u64 {
+        match *self {
+            Self::Low => 20,
+            Self::Normal => 35,
+            Self::High => 50,
+        }
+    }
 }
 
 pub struct Task {

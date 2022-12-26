@@ -1,7 +1,7 @@
 use acpi_parsing::platform::interrupt::Apic;
 use alloc::vec::Vec;
 use core::arch::asm;
-use libxernel::sync::Spinlock;
+use libxernel::sync::{Spinlock, SpinlockIRQ};
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{
     structures::paging::{Page, PageTableFlags, PhysFrame, Size4KiB},
@@ -26,7 +26,7 @@ pub struct IOApic {
 
 pub static IOAPICS: Spinlock<Vec<IOApic>> = Spinlock::new(Vec::new());
 
-pub static APIC: Spinlock<LocalAPIC> = Spinlock::new(LocalAPIC {
+pub static APIC: SpinlockIRQ<LocalAPIC> = SpinlockIRQ::new(LocalAPIC {
     address: 0,
     frequency: 0,
 });
@@ -98,7 +98,7 @@ impl LocalAPIC {
 
         self.init_timer_frequency();
 
-        self.create_periodic_timer(0x40, 1000 * 1000);
+        self.create_oneshot_timer(0x40, 10_000);
     }
 
     pub fn init_timer_frequency(&mut self) {

@@ -1,18 +1,17 @@
 use crate::sched::context::restore_context;
 use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
-use libxernel::sync::Spinlock;
-use x86_64::VirtAddr;
+use libxernel::sync::SpinlockIRQ;
 
 use super::context::TaskContext;
-use super::task::TaskStatus;
+use super::task::{TaskPriority, TaskStatus};
 
 pub struct Scheduler {
     pub tasks: VecDeque<Task>,
 }
 
 lazy_static! {
-    pub static ref SCHEDULER: Spinlock<Scheduler> = Spinlock::new(Scheduler::new());
+    pub static ref SCHEDULER: SpinlockIRQ<Scheduler> = SpinlockIRQ::new(Scheduler::new());
 }
 
 impl Scheduler {
@@ -35,12 +34,14 @@ impl Scheduler {
         task.context = ctx;
     }
 
-    pub fn get_next_task(&mut self) -> &Task {
+    pub fn get_next_task(&mut self) -> (TaskPriority, TaskContext) {
         let old_task = self.tasks.pop_front().unwrap();
 
         self.tasks.push_back(old_task);
 
-        self.tasks.front_mut().unwrap()
+        let t = self.tasks.front_mut().unwrap();
+
+        (t.priority, t.context.clone())
     }
 
     pub fn set_current_task_status(&mut self, status: TaskStatus) {
@@ -64,16 +65,16 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
 
     sched.set_current_task_status(TaskStatus::Waiting);
 
-    x86_64::instructions::interrupts::enable();
-
-    let new_ctx = sched.get_next_task().context.clone();
+    let (new_priority, new_ctx) = sched.get_next_task();
 
     sched.set_current_task_status(TaskStatus::Running);
-    Spinlock::unlock(sched);
+
+    SpinlockIRQ::unlock(sched);
 
     let mut apic = APIC.lock();
     apic.eoi();
-    Spinlock::unlock(apic);
+    apic.create_oneshot_timer(0x40, new_priority.ms() * 1000);
+    SpinlockIRQ::unlock(apic);
 
     restore_context(&new_ctx);
 }

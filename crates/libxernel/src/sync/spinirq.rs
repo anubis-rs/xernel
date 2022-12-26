@@ -26,6 +26,8 @@ impl<T> SpinlockIRQ<T> {
             _held_irq: hold_interrupts(),
         }
     }
+
+    pub fn unlock(_guard: SpinlockIRQGuard<'_, T>) {}
 }
 
 pub struct SpinlockIRQGuard<'a, T: 'a> {
