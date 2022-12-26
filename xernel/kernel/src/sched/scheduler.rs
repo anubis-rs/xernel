@@ -58,7 +58,6 @@ impl Scheduler {
 #[no_mangle]
 pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     // TODO: Switch page table if user task
-    // TODO: Take priority in account
 
     let mut sched = SCHEDULER.lock();
     sched.save_ctx(ctx);
