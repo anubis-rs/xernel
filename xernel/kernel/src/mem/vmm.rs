@@ -243,7 +243,7 @@ impl Pagemap {
         }
     }
 
-    pub unsafe fn load_pt(&mut self) {
+    pub unsafe fn load_pt(&self) {
         let pt = self.page_table;
         let phys = pt as *const _ as u64 - *HIGHER_HALF_OFFSET;
 

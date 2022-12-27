@@ -14,7 +14,7 @@ pub extern "C" fn x86_64_ap_main(boot_info: *const LimineSmpInfo) -> ! {
     let ap_id = boot_info.processor_id as usize;
 
     {
-        let mut kernel_page_mapper = KERNEL_PAGE_MAPPER.lock();
+        let kernel_page_mapper = KERNEL_PAGE_MAPPER.lock();
         unsafe {
             kernel_page_mapper.load_pt();
         }
