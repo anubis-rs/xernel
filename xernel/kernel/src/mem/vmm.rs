@@ -54,6 +54,17 @@ impl Pagemap {
         }
     }
 
+    pub fn fill_with_kernel_entries(&mut self) {
+        let kernel_mapper = KERNEL_PAGE_MAPPER.lock();
+        let pt = unsafe { & *kernel_mapper.page_table };
+
+        for i in 256..512 {
+            unsafe{
+                (*self.page_table)[i] = pt[i].clone();
+            }
+        }
+    }
+
     pub fn map<P: PageSize>(
         &mut self,
         phys: PhysFrame<P>,

@@ -6,6 +6,7 @@ use alloc::collections::BTreeMap;
 use alloc::rc::{Rc, Weak};
 use alloc::vec::Vec;
 use x86_64::VirtAddr;
+use x86_64::structures::paging::page;
 
 use crate::fs::FsNode;
 use crate::mem::vmm::Pagemap;
@@ -115,6 +116,9 @@ impl Task {
             alloc_zeroed(layout).add(layout.size())
         };
 
+        let mut page_map = Pagemap::new(None);
+        page_map.fill_with_kernel_entries();
+
         let mut ctx = TaskContext::new();
 
         // TODO: Check if data segment has to be set too, currently setting stack segment to data
@@ -126,7 +130,7 @@ impl Task {
 
         Self {
             id: TASK_ID_COUNTER.fetch_add(1, Ordering::AcqRel) as u64,
-            page_table: Some(Pagemap::new(None)),
+            page_table: Some(page_map),
             parent: Weak::new(),
             children: Vec::new(),
             status: TaskStatus::Waiting,
