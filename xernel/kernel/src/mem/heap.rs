@@ -11,7 +11,7 @@ use super::{pmm::FRAME_ALLOCATOR, vmm::KERNEL_PAGE_MAPPER};
 // TODO: Replace heap by Buddy Allocator
 static HEAP: Spinlock<Heap> = Spinlock::new(Heap::empty());
 
-const HEAP_START_ADDR: usize = 0x0000_1000_0000_0000;
+const HEAP_START_ADDR: usize = 0xffff_9000_0000_0000;
 
 const HEAP_INITIAL_PAGE_COUNT: u64 = 2; // 4 MiB
 
