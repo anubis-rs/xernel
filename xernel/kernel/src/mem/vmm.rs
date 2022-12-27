@@ -36,16 +36,21 @@ extern "C" {
 
 impl Pagemap {
     pub fn new(pt_frame: Option<PhysFrame>) -> Self {
-        let pt_frame = pt_frame.unwrap_or_else(|| {
+        let frame = pt_frame.unwrap_or_else(|| {
             let mut frame_allocator = FRAME_ALLOCATOR.lock();
 
             frame_allocator.allocate_frame().unwrap()
         });
 
         let pt_address = unsafe {
-            let ptr = (pt_frame.start_address().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
+            let ptr = (frame.start_address().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
             *ptr = PageTable::new();
-            (*ptr).zero();
+
+            // only zero if the page table was not provided
+            if pt_frame.is_none() {
+                (*ptr).zero();
+            }
+
             ptr
         };
 
