@@ -1,10 +1,13 @@
+use crate::arch::x64::gdt::GDT_BSP;
 use crate::sched::context::restore_context;
 use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
 use libxernel::sync::SpinlockIRQ;
+use x86_64::registers::segmentation::{Segment, DS};
+use x86_64::PrivilegeLevel;
 
 use super::context::TaskContext;
-use super::task::{TaskPriority, TaskStatus};
+use super::task::TaskStatus;
 
 pub struct Scheduler {
     pub tasks: VecDeque<Task>,
@@ -34,14 +37,14 @@ impl Scheduler {
         task.context = ctx;
     }
 
-    pub fn get_next_task(&mut self) -> (TaskPriority, TaskContext) {
+    pub fn get_next_task(&mut self) -> &mut Task {
         let old_task = self.tasks.pop_front().unwrap();
 
         self.tasks.push_back(old_task);
 
         let t = self.tasks.front_mut().unwrap();
 
-        (t.priority, t.context.clone())
+        t
     }
 
     pub fn set_current_task_status(&mut self, status: TaskStatus) {
@@ -64,16 +67,37 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
 
     sched.set_current_task_status(TaskStatus::Waiting);
 
-    let (new_priority, new_ctx) = sched.get_next_task();
+    let task = sched.get_next_task();
 
-    sched.set_current_task_status(TaskStatus::Running);
+    task.status = TaskStatus::Running;
 
-    SpinlockIRQ::unlock(sched);
+    if !task.is_kernel_task() {
+        unsafe {
+            // SAFETY: a user task always has a page table
+            // FIXME: a child task must use the page table of the parent task
+            task.page_table.as_ref().unwrap().load_pt();
+
+            let mut cs = GDT_BSP.1.user_code_selector;
+            let mut ds = GDT_BSP.1.user_data_selector;
+
+            cs.0 |= PrivilegeLevel::Ring3 as u16;
+            ds.0 |= PrivilegeLevel::Ring3 as u16;
+
+            DS::set_reg(ds);
+
+            task.context.cs = cs.0 as u64;
+            task.context.ss = ds.0 as u64;
+        }
+    }
+
+    let context = task.context.clone();
 
     let mut apic = APIC.lock();
     apic.eoi();
-    apic.create_oneshot_timer(0x40, new_priority.ms() * 1000);
+    apic.create_oneshot_timer(0x40, task.priority.ms() * 1000);
     SpinlockIRQ::unlock(apic);
 
-    restore_context(&new_ctx);
+    SpinlockIRQ::unlock(sched);
+
+    restore_context(&context);
 }

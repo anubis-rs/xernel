@@ -25,21 +25,28 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref GDT_BSP: (GlobalDescriptorTable, Selectors) = {
+    pub static ref GDT_BSP: (GlobalDescriptorTable, Selectors) = {
         let mut gdt = GlobalDescriptorTable::new();
+
         let code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
         let data_selector = gdt.add_entry(Descriptor::kernel_data_segment());
+
+        // let kernel_data_flags = DescriptorFlags::USER_SEGMENT | DescriptorFlags::PRESENT | DescriptorFlags::WRITABLE;
+        // let data_selector = gdt.add_entry(Descriptor::UserSegment(kernel_data_flags.bits()));
+
         // System segment descriptors (which the TSS descriptor is) are 16-bytes and take up 2 slots in the GDT
         // This results in user code having index 5, user data index 6
         let tss_selector = gdt.add_entry(Descriptor::tss_segment(&TSS));
-        gdt.add_entry(Descriptor::user_code_segment());
-        gdt.add_entry(Descriptor::user_data_segment());
+        let user_data_selector = gdt.add_entry(Descriptor::user_data_segment());
+        let user_code_selector = gdt.add_entry(Descriptor::user_code_segment());
         (
             gdt,
             Selectors {
                 code_selector,
                 data_selector,
                 tss_selector,
+                user_code_selector,
+                user_data_selector,
             },
         )
     };
@@ -56,10 +63,12 @@ struct Gdt {
 }
 
 #[derive(Debug)]
-struct Selectors {
-    code_selector: SegmentSelector,
-    data_selector: SegmentSelector,
-    tss_selector: SegmentSelector,
+pub struct Selectors {
+    pub code_selector: SegmentSelector,
+    pub data_selector: SegmentSelector,
+    pub tss_selector: SegmentSelector,
+    pub user_code_selector: SegmentSelector,
+    pub user_data_selector: SegmentSelector,
 }
 
 pub fn init() {
@@ -95,6 +104,8 @@ pub fn init_ap(ap_id: usize) {
             code_selector,
             data_selector,
             tss_selector,
+            user_code_selector: code_selector,
+            user_data_selector: data_selector,
         },
         tss,
         ap_id,

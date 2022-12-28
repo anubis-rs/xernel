@@ -110,9 +110,10 @@ impl Task {
     pub fn new_user_task(entry_point: VirtAddr) -> Self {
         // TODO: Alloc user stack via vmm, don't use kernel heap
 
-        let task_stack = unsafe {
-            let layout = Layout::from_size_align_unchecked(4096, 0x1000);
-            alloc_zeroed(layout).add(layout.size())
+        let task_stack = {
+            //let layout = Layout::from_size_align_unchecked(4096, 0x1000);
+            //alloc_zeroed(layout).add(layout.size());
+            (entry_point.as_u64() + 2 * 1024 * 1024) as *mut u8 // FIXME: hardcoded stack size somewhere after start address!!!!!!
         };
 
         let mut page_map = Pagemap::new(None);
@@ -121,6 +122,7 @@ impl Task {
         let mut ctx = TaskContext::new();
 
         // TODO: Check if data segment has to be set too, currently setting stack segment to data
+        // TODO: don't manually set segments, use the GDT
         ctx.ss = 0x33; // user stack segment
         ctx.cs = 0x2b; // user code segment
         ctx.rip = entry_point.as_u64();

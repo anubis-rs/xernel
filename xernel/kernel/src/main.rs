@@ -39,10 +39,14 @@ use arch::x64::gdt;
 use arch::x64::idt;
 
 use mem::{heap, pmm, vmm};
+use x86_64::structures::paging::Page;
+use x86_64::structures::paging::PageTableFlags;
+use x86_64::structures::paging::Size2MiB;
 use x86_64::VirtAddr;
 
 use crate::acpi::hpet;
 use crate::arch::x64::apic;
+use crate::mem::pmm::FRAME_ALLOCATOR;
 use crate::mem::vmm::KERNEL_PAGE_MAPPER;
 use crate::sched::scheduler::SCHEDULER;
 use crate::sched::task::Task;
@@ -86,6 +90,8 @@ extern "C" fn kernel_main() -> ! {
 
     apic::init();
 
+    syscall::init();
+
     let bootloader_info = BOOTLOADER_INFO
         .get_response()
         .get()
@@ -97,6 +103,32 @@ extern "C" fn kernel_main() -> ! {
         bootloader_info.version.to_str().unwrap()
     );
 
+    let mut user_task = Task::new_user_task(VirtAddr::new(0x200000));
+
+    let page = FRAME_ALLOCATOR.lock().allocate_frame::<Size2MiB>().unwrap();
+    KERNEL_PAGE_MAPPER.lock().map(
+        page,
+        Page::from_start_address(VirtAddr::new(0x200000)).unwrap(),
+        PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::PRESENT,
+        true,
+    );
+    user_task.page_table.as_mut().unwrap().map(
+        page,
+        Page::from_start_address(VirtAddr::new(0x200000)).unwrap(),
+        PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::PRESENT,
+        true,
+    );
+
+    unsafe {
+        let start_address_fn = test_userspace_fn as usize;
+
+        for i in 0..512 * 512 {
+            let ptr = (0x200000 + i) as *mut u8;
+            let val = (start_address_fn + i) as *mut u8;
+            ptr.write(val.read());
+        }
+    }
+
     let main_task = Task::new_kernel_task(VirtAddr::new(0));
 
     let kernel_task = Task::kernel_task_from_fn(task1);
@@ -104,6 +136,7 @@ extern "C" fn kernel_main() -> ! {
     let kernel_task2 = Task::kernel_task_from_fn(task2);
 
     SCHEDULER.lock().add_task(main_task);
+    SCHEDULER.lock().add_task(user_task);
     SCHEDULER.lock().add_task(kernel_task);
     SCHEDULER.lock().add_task(kernel_task2);
 
@@ -130,6 +163,20 @@ extern "C" fn kernel_main() -> ! {
 
         dbg!("hello from main {}", var);
         var += 1;
+    }
+}
+
+#[naked]
+pub extern "C" fn test_userspace_fn() {
+    unsafe {
+        asm!(
+            "\
+            mov rax, 1
+            mov rdi, 2
+            syscall
+        ",
+            options(noreturn)
+        );
     }
 }
 
