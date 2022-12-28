@@ -1,14 +1,13 @@
 use core::alloc::Layout;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
+use crate::fs::vnode::VNode;
 use alloc::alloc::alloc_zeroed;
 use alloc::collections::BTreeMap;
 use alloc::rc::{Rc, Weak};
 use alloc::vec::Vec;
 use x86_64::VirtAddr;
-use x86_64::structures::paging::page;
 
-use crate::fs::FsNode;
 use crate::mem::vmm::Pagemap;
 use crate::mem::STACK_SIZE;
 use crate::sched::context::TaskContext;
@@ -16,7 +15,7 @@ use crate::sched::context::TaskContext;
 /// Ongoing counter for the TaskID
 static TASK_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// Current status of the task
 pub enum TaskStatus {
     Running,
@@ -52,7 +51,7 @@ pub struct Task {
     pub status: TaskStatus,
     pub priority: TaskPriority,
     pub context: TaskContext,
-    pub fds: BTreeMap<usize, Rc<FsNode>>,
+    pub fds: BTreeMap<usize, Rc<VNode>>,
 }
 
 impl Task {
@@ -148,12 +147,12 @@ impl Task {
         self.context.cs == 0x8 && self.context.ss == 0x10
     }
 
-    pub fn append_fd(&mut self, node: Rc<FsNode>) -> u32 {
+    pub fn append_fd(&mut self, node: Rc<VNode>) -> u32 {
         let mut counter = 0;
 
         let fd = loop {
-            if !self.fds.contains_key(&counter) {
-                self.fds.insert(counter, node);
+            if let alloc::collections::btree_map::Entry::Vacant(e) = self.fds.entry(counter) {
+                e.insert(node);
                 break counter;
             }
 
