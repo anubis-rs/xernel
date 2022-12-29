@@ -2,7 +2,6 @@
 // https://github.com/Stupremee/novos/blob/main/crates/kernel/src/allocator/buddy.rs
 
 use super::{align_up, AllocStats, Error, Result};
-use crate::mem::HIGHER_HALF_OFFSET;
 use core::{cmp, ptr::NonNull};
 use x86_64::VirtAddr;
 
@@ -159,7 +158,7 @@ impl<const MIN_ORDER_SIZE: usize, const MAX_ORDER: usize>
         let head = self.orders[order];
 
         unsafe {
-            let vptr = VirtAddr::new(ptr.as_ptr() as u64 + *HIGHER_HALF_OFFSET);
+            let vptr = VirtAddr::new(ptr.as_ptr() as u64);
             vptr.as_mut_ptr::<ListNode>().write(ListNode { next: head });
         }
 
@@ -168,7 +167,7 @@ impl<const MIN_ORDER_SIZE: usize, const MAX_ORDER: usize>
 
     fn order_pop(&mut self, order: usize) -> Option<NonNull<ListNode>> {
         let head = self.orders[order]?;
-        let vhead = VirtAddr::new(head.as_ptr() as u64 + *HIGHER_HALF_OFFSET);
+        let vhead = VirtAddr::new(head.as_ptr() as u64);
 
         unsafe {
             self.orders[order] = (*vhead.as_ptr::<ListNode>()).next;
@@ -184,8 +183,7 @@ impl<const MIN_ORDER_SIZE: usize, const MAX_ORDER: usize>
         };
 
         while let Some(ptr) = unsafe { *cur } {
-            let vptr =
-                VirtAddr::new(ptr.as_ptr() as u64 + *HIGHER_HALF_OFFSET).as_mut_ptr::<ListNode>();
+            let vptr = VirtAddr::new(ptr.as_ptr() as u64).as_mut_ptr::<ListNode>();
 
             if ptr == to_remove {
                 unsafe {

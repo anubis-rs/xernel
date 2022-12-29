@@ -1,6 +1,6 @@
 use core::ptr::NonNull;
 
-use crate::allocator::buddy::BuddyAllocator;
+use crate::{allocator::buddy::BuddyAllocator, mem::HIGHER_HALF_OFFSET};
 use libxernel::sync::{Once, Spinlock};
 use limine::{LimineMemmapEntry, LimineMemmapRequest, LimineMemoryMapEntryType, NonNullPtr};
 use x86_64::{
@@ -22,7 +22,7 @@ impl PhysFrameAllocator {
         let order = self.0.order_for_size(P::SIZE as usize);
 
         let frame = self.0.allocate(order);
-        let start_addr = frame.unwrap().as_ptr() as u64;
+        let start_addr = frame.unwrap().as_ptr() as u64 - *HIGHER_HALF_OFFSET;
         let pframe = PhysFrame::from_start_address(PhysAddr::new(start_addr));
         pframe.ok()
     }
@@ -32,7 +32,8 @@ impl PhysFrameAllocator {
 
         self.0
             .deallocate(
-                NonNull::new(frame.start_address().as_u64() as *mut u8).unwrap(),
+                NonNull::new((frame.start_address().as_u64() + *HIGHER_HALF_OFFSET) as *mut u8)
+                    .unwrap(),
                 order,
             )
             .unwrap();
@@ -53,12 +54,14 @@ pub fn init() {
     for entry in *MEMORY_MAP {
         if entry.typ == LimineMemoryMapEntryType::Usable {
             unsafe {
-                // FIXME: Check result of add_region function
-                // FIXME: Last add_region returns NullPointer in buddy_of function
-                buddy.0.add_region(
-                    NonNull::new(entry.base as *mut u8).unwrap(),
-                    NonNull::new((entry.base + entry.len) as *mut u8).unwrap(),
-                );
+                buddy
+                    .0
+                    .add_region(
+                        NonNull::new((entry.base + *HIGHER_HALF_OFFSET) as *mut u8).unwrap(),
+                        NonNull::new((entry.base + *HIGHER_HALF_OFFSET + entry.len) as *mut u8)
+                            .unwrap(),
+                    )
+                    .unwrap();
             }
         }
     }
