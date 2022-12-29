@@ -78,8 +78,6 @@ pub fn init() {
         SS::set_reg(GDT_BSP.1.data_selector);
         DS::set_reg(GDT_BSP.1.data_selector);
         ES::set_reg(GDT_BSP.1.data_selector);
-        FS::set_reg(GDT_BSP.1.data_selector);
-        GS::set_reg(GDT_BSP.1.data_selector);
 
         load_tss(GDT_BSP.1.tss_selector);
     }

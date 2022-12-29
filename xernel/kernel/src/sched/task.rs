@@ -1,8 +1,10 @@
 use core::alloc::Layout;
+use core::pin::Pin;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::fs::vnode::VNode;
 use alloc::alloc::alloc_zeroed;
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::rc::{Rc, Weak};
 use alloc::vec::Vec;
@@ -43,6 +45,15 @@ impl TaskPriority {
     }
 }
 
+// TODO: implement drop to free the kernel stack
+#[derive(Debug, Copy, Clone)]
+#[repr(packed)]
+pub struct KernelStack {
+    pub user_space_stack: u64,
+    pub start: u64,
+    pub end: u64,
+}
+
 pub struct Task {
     pub id: u64,
     pub page_table: Option<Pagemap>,
@@ -52,6 +63,7 @@ pub struct Task {
     pub priority: TaskPriority,
     pub context: TaskContext,
     pub fds: BTreeMap<usize, Rc<VNode>>,
+    pub kernel_stack: Option<Pin<Box<KernelStack>>>,
 }
 
 impl Task {
@@ -78,6 +90,7 @@ impl Task {
             priority: TaskPriority::Normal,
             context: ctx,
             fds: BTreeMap::new(),
+            kernel_stack: None,
         }
     }
 
@@ -104,6 +117,7 @@ impl Task {
             priority: TaskPriority::Normal,
             context: ctx,
             fds: BTreeMap::new(),
+            kernel_stack: None,
         }
     }
 
@@ -114,6 +128,14 @@ impl Task {
             //let layout = Layout::from_size_align_unchecked(4096, 0x1000);
             //alloc_zeroed(layout).add(layout.size());
             (entry_point.as_u64() + 2 * 1024 * 1024) as *mut u8 // FIXME: hardcoded stack size somewhere after start address!!!!!!
+        };
+
+        // TODO: don't allocate kernel stack on the heap as their is no protection against overflows
+        let (kernel_stack_start, kernel_stack_end) = unsafe {
+            const STACK_SIZE: u64 = 128 * 1024; // TODO: figure out which stack size is needed
+            let layout = Layout::from_size_align_unchecked(STACK_SIZE as usize, 0x1000);
+            let ptr = alloc_zeroed(layout).add(layout.size());
+            (ptr as u64, ptr as u64 + STACK_SIZE)
         };
 
         let mut page_map = Pagemap::new(None);
@@ -138,6 +160,11 @@ impl Task {
             priority: TaskPriority::Normal,
             context: ctx,
             fds: BTreeMap::new(),
+            kernel_stack: Some(Box::pin(KernelStack {
+                user_space_stack: 0,
+                start: kernel_stack_start,
+                end: kernel_stack_end,
+            })),
         }
     }
 

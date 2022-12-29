@@ -1,3 +1,4 @@
+use core::arch::asm;
 use x86_64::{
     registers::{
         model_specific::{Efer, EferFlags, LStar, Star},
@@ -6,7 +7,7 @@ use x86_64::{
     VirtAddr,
 };
 
-use crate::{arch::x64::gdt::GDT_BSP, println};
+use crate::arch::x64::gdt::GDT_BSP;
 
 pub fn init() {
     // set IA32_STAR
@@ -23,13 +24,29 @@ pub fn init() {
         Efer::write(Efer::read() | EferFlags::SYSTEM_CALL_EXTENSIONS);
     }
 
-    LStar::write(VirtAddr::new(handler as u64));
+    LStar::write(VirtAddr::new(syscall_handler as u64));
 
     // disable interrupts when syscall handler is called
     x86_64::registers::model_specific::SFMask::write(RFlags::INTERRUPT_FLAG);
 }
 
-fn handler() {
-    // TODO: add stack for syscalls
-    println!("lul hiiit");
+#[naked]
+unsafe extern "C" fn syscall_handler() {
+    asm!(
+        "
+    swapgs # gs contains the stackpointer for this thread now
+
+    mov gs:0, rsp # save the stackpointer for this task
+    mov rsp, gs:16 # load the kernel stackpointer for this task
+
+    nop
+    nop
+
+    mov rsp, gs:0 # load the stackpointer for this task
+
+    swapgs
+    sysret
+    ",
+        options(noreturn)
+    );
 }

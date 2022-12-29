@@ -3,8 +3,9 @@ use crate::sched::context::restore_context;
 use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
 use libxernel::sync::SpinlockIRQ;
+use x86_64::registers::model_specific::KernelGsBase;
 use x86_64::registers::segmentation::{Segment, DS};
-use x86_64::PrivilegeLevel;
+use x86_64::{PrivilegeLevel, VirtAddr};
 
 use super::context::TaskContext;
 use super::task::TaskStatus;
@@ -87,6 +88,9 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
 
             task.context.cs = cs.0 as u64;
             task.context.ss = ds.0 as u64;
+
+            let base = &**task.kernel_stack.as_ref().unwrap() as *const _ as u64;
+            KernelGsBase::write(VirtAddr::new(base));
         }
     }
 
