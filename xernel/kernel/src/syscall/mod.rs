@@ -41,7 +41,7 @@ struct SyscallData {
     arg4: u64,
     arg5: u64,
     eflags: u64,
-    rcx: u64,
+    return_address: u64,
 }
 
 /*
@@ -50,7 +50,7 @@ struct SyscallData {
  * rdi  arg0
  * rsi  arg1
  * rdx  arg2
- * r10  arg3 	(--> moved to rcx for C)
+ * r10  arg3
  * r8   arg4
  * r9   arg5
  * r11  eflags for syscall/sysret
@@ -87,9 +87,13 @@ unsafe extern "C" fn asm_syscall_handler() {
     push rdi
     push rax
 
-    mov rdi, rsp # pass the SyscallData struct to the syscall handler    
+    mov rdi, rsp # pass the SyscallData struct to the syscall handler
+
+    sti # enable interrupts
 
     call general_syscall_handler
+
+    cli # disable interrupts, interrupts are automatically re-enabled when the syscall handler returns
 
     # restore the syscall data
     pop rdi # we don't restore rax as it's the return value of the syscall
@@ -114,7 +118,7 @@ unsafe extern "C" fn asm_syscall_handler() {
     mov rsp, gs:0 # load the stackpointer for this task
 
     swapgs
-    sysret
+    sysretq
     ",
         options(noreturn)
     );
@@ -122,7 +126,7 @@ unsafe extern "C" fn asm_syscall_handler() {
 
 #[no_mangle]
 extern "sysv64" fn general_syscall_handler(data: SyscallData) -> u64 {
-    println!("general_syscall_handler: {:#?}", data);
+    println!("general_syscall_handler: {:#x?}", data);
 
     1
 }
