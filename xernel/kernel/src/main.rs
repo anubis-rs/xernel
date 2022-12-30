@@ -166,17 +166,17 @@ extern "C" fn kernel_main() -> ! {
     }
 }
 
-#[naked]
 pub extern "C" fn test_userspace_fn() {
-    unsafe {
-        asm!(
-            "\
-            mov rax, 1
-            mov rdi, 2
-            syscall
-        ",
-            options(noreturn)
-        );
+    loop {
+        unsafe {
+            asm!(
+                "\
+                mov rax, 1
+                mov rdi, 2
+                syscall
+            "
+            );
+        }
     }
 }
 
