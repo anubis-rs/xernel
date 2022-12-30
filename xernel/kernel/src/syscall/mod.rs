@@ -1,4 +1,5 @@
 use core::arch::asm;
+use libxernel::syscall::{SYS_READ, SYS_WRITE};
 use x86_64::{
     registers::{
         model_specific::{Efer, EferFlags, LStar, Star},
@@ -128,5 +129,13 @@ unsafe extern "C" fn asm_syscall_handler() {
 extern "sysv64" fn general_syscall_handler(data: SyscallData) -> u64 {
     println!("general_syscall_handler: {:#x?}", data);
 
-    1
+    match data.syscall_number as usize {
+        SYS_READ => todo!("read"),
+        SYS_WRITE => todo!("write"),
+        _ => {
+            println!("unknown syscall: {:x?}", data);
+
+            unimplemented!("unknown syscall: {}", data.syscall_number);
+        }
+    }
 }
