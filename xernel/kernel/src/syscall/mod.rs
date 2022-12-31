@@ -1,5 +1,5 @@
 use core::arch::asm;
-use libxernel::syscall::{SYS_READ, SYS_WRITE};
+use libxernel::syscall::{SyscallError, SYS_READ, SYS_WRITE};
 use x86_64::{
     registers::{
         model_specific::{Efer, EferFlags, LStar, Star},
@@ -34,15 +34,15 @@ pub fn init() {
 #[derive(Debug)]
 #[repr(C)]
 struct SyscallData {
-    syscall_number: u64,
-    arg0: u64,
-    arg1: u64,
-    arg2: u64,
-    arg3: u64,
-    arg4: u64,
-    arg5: u64,
-    eflags: u64,
-    return_address: u64,
+    syscall_number: usize,
+    arg0: usize,
+    arg1: usize,
+    arg2: usize,
+    arg3: usize,
+    arg4: usize,
+    arg5: usize,
+    eflags: usize,
+    return_address: usize,
 }
 
 /*
@@ -125,17 +125,32 @@ unsafe extern "C" fn asm_syscall_handler() {
     );
 }
 
+fn sys_read(fd: usize, buf: &mut [u8]) -> Result<isize, SyscallError> {
+    Ok((fd * buf.len()) as isize)
+}
+
+fn syscall_arg_to_slice<'a, T>(ptr: usize, len: usize) -> &'a mut [T] {
+    unsafe { core::slice::from_raw_parts_mut(ptr as *mut T, len) }
+}
+
+fn syscall_arg_to_reference<'a, T>(ptr: usize) -> &'a mut T {
+    unsafe { &mut *(ptr as *mut T) }
+}
+
 #[no_mangle]
-extern "sysv64" fn general_syscall_handler(data: SyscallData) -> u64 {
+extern "sysv64" fn general_syscall_handler(data: SyscallData) -> i64 {
     println!("general_syscall_handler: {:#x?}", data);
 
-    match data.syscall_number as usize {
-        SYS_READ => todo!("read"),
+    let result = match data.syscall_number as usize {
+        SYS_READ => sys_read(data.arg0, syscall_arg_to_slice(data.arg1, data.arg2)),
         SYS_WRITE => todo!("write"),
         _ => {
-            println!("unknown syscall: {:x?}", data);
-
-            unimplemented!("unknown syscall: {}", data.syscall_number);
+            unimplemented!("unknown syscall: {:x?}", data);
         }
+    };
+
+    match result {
+        Ok(value) => value as i64,
+        Err(error) => error as i64,
     }
 }
