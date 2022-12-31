@@ -2,6 +2,6 @@
     "rust-analyzer.checkOnSave.allTargets": false,
     "rust-analyzer.checkOnSave.extraArgs": [
         "--target",
-        "./build/targets/x86_64.json"
-    ]
+        "x86_64-unknown-none"
+    ],
 }
