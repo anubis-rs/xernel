@@ -1,26 +1,26 @@
 # xernel
-A kernel which tries to support multiple architectures/platforms using a hybrid kernel architecture.
+A kernel that tries to support multiple architectures/platforms using a hybrid kernel architecture.
 It's using the limine protocol.
-Mostly made for learning purposes, no real world application.
+Mostly made for learning purposes, no real-world application.
 
 ## Building
-For building you simply need a working Rust installation with the nightly toolchain installed and the `mtools` package which we use for the generation of the disk image.
+For building, you simply need a working Rust installation with the nightly toolchain installed and the `mtools` package which we use for the generation of the disk image.
 We use xtask as our workflow for building and running the kernel.
 Therefore the command `cargo kernel` is used.
 
 See `cargo kernel help` for a list of subcommands and available flags.
 
-You can simply use `cargo kernel build` or `cargo kernel run`, it is going to use x64 as default target.
+You can simply use `cargo kernel build` or `cargo kernel run`, it is going to use x64 as the default target.
 
 ## Contact
 Feel free to reach out to `Lockna#5599` or `mp#2453` on Discord
 
 ## TODO
-Things which are still to do:
-- [ ] Implement TODOs and fix FIXME's
+Things that are still to do:
+- [ ] Implement TODOs and fix FIXMEs
 - [ ] Add doc comments
 - [ ] Rewrite mem module
-    - [x] Rewrite page frame allocator so it uses a buddy allocator
+    - [x] Rewrite the page frame allocator so it uses a buddy allocator
     - [ ] Rewrite the virtual memory manager, just make it better
     - [ ] Switch from linked_list_allocator to a slap allocator for heap
 - [ ] Implement a virtual file system
@@ -31,7 +31,7 @@ Things which are still to do:
 
 
 ## Contributing
-Contributions to code and documentation are heavily appreciated, may it be a bug fix or a improvent of the existing code or code documentation.
+Contributions to code and documentation are heavily appreciated, may it be a bug fix or an improvement of the existing code or code documentation.
 New features would be gladly taken over by us, as the project was created for exactly this purpose.
 
 ## License

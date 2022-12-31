@@ -1,19 +1,36 @@
 use super::vnode::VNode;
-use alloc::{sync::Arc, vec::Vec};
+use alloc::{rc::Weak, sync::Arc, vec::Vec};
 
 // According to BSD each Mount object has a pointer to vfsops and to private data
 // As in vnode we combine the member which holds the vfs operations and the private data which is used by the file system
+// FIXME: Fix cyclic Arc'
 pub struct Mount {
+    /// Operations vector including private data for file system
     mnt_op_data: Arc<dyn VfsOps>,
-    vnode_covered: Arc<VNode>,
-    root_node: Arc<VNode>,
+    /// vnode we cover
+    /// the vfs_vnodecovered field is set to point to the vnode for the mount point. This field is
+    /// null in the root vfs.
+    vnode_covered: Option<Arc<VNode>>,
+    root_node: Weak<VNode>,
     vnode_list: Vec<Arc<VNode>>,
     flags: u64,
 }
 
-/// Operatiosn supported on mounted file system
+impl Mount {
+    pub fn new(driver: Arc<dyn VfsOps>, vnode_covered: Option<Arc<VNode>>) -> Self {
+        Mount {
+            mnt_op_data: driver,
+            vnode_covered: vnode_covered,
+            root_node: Weak::new(),
+            vnode_list: Vec::new(),
+            flags: 0,
+        }
+    }
+}
+
+/// Operations supported on mounted file system
 /// Has an extra method called `name` since Rust traits don't support variables, with trait objects, the `name` method returns the vfs_name
-trait VfsOps {
+pub trait VfsOps {
     /// Mounts a new instance of the file system.
     fn fs_mount(&self);
 

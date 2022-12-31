@@ -1,7 +1,7 @@
 use super::mount::Mount;
 use alloc::sync::Arc;
 
-enum VType {
+pub enum VType {
     Non,
     Reg,
     Dir,
@@ -17,17 +17,37 @@ enum VType {
 // since this struct can also be used for the file system to store file system specific data we combine the fields v_data and v_op of the mount struct from NetBSD.
 pub struct VNode {
     /// ptr to vfs we are in
-    v_mount: Arc<Mount>,
+    /// filesystem to which the vnode (we are mounted to) belongs to
+    vfsp: Arc<Mount>,
     /// Holds the vnode operations vector and the private data for fs in one member
     /// since the struct, which each fs, which implements the VNodeOperations trait can directly own the private fs data
     v_data_op: Arc<dyn VNodeOperations>,
     v_type: VType,
     flags: u64,
     // maybe like netbsd, use union https://github.com/NetBSD/src/blob/trunk/sys/sys/vnode.h#L172
+    // used if vnode is mountpoint, v_mounted_here points to the other file system
+    v_mounted_here: Arc<Mount>,
+}
+
+impl VNode {
+    pub fn new(
+        vfsp: Arc<Mount>,
+        data_op: Arc<dyn VNodeOperations>,
+        v_type: VType,
+        v_mounted_here: Arc<Mount>,
+    ) -> Self {
+        VNode {
+            vfsp: vfsp,
+            v_data_op: data_op,
+            v_type: v_type,
+            v_mounted_here: v_mounted_here,
+            flags: 0,
+        }
+    }
 }
 
 /// This trait maps logical operations to real functions. It is file system specific as the actions taken by each operation depend heavily on the file system where the file resides.
-trait VNodeOperations {
+pub trait VNodeOperations {
     /// Aborts an in-progress operation.
     fn abortop(&self);
 
