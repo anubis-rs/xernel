@@ -103,6 +103,8 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
 
     let release = if rl { &["--release"] } else { &[][..] };
 
+    sh.set_var("RUSTFLAGS", "-Cforce-frame-pointers=yes");
+
     cmd!(
         sh,
         "cargo build

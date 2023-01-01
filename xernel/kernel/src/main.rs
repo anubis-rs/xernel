@@ -17,6 +17,7 @@ extern crate lazy_static;
 mod acpi;
 mod allocator;
 mod arch;
+mod backtrace;
 mod drivers;
 mod framebuffer;
 mod fs;
@@ -85,6 +86,9 @@ extern "C" fn kernel_main() -> ! {
 
     acpi::init();
     info!("acpi initialized");
+
+    backtrace::init();
+    info!("backtrace initialized");
 
     hpet::init();
 
@@ -171,7 +175,7 @@ pub extern "C" fn test_userspace_fn() {
         unsafe {
             asm!(
                 "\
-                mov rax, 1
+                mov rax, 0
                 mov rdi, 2
                 syscall
             "

@@ -8,7 +8,7 @@ use x86_64::structures::idt::PageFaultErrorCode;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 use x86_64::{set_general_handler, VirtAddr};
 
-use crate::{dbg, println};
+use crate::{dbg, println, backtrace};
 
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
@@ -38,6 +38,14 @@ pub fn init() {
 }
 
 fn interrupt_handler(stack_frame: InterruptStackFrame, index: u8, error_code: Option<u64>) {
+    let mut rbp: usize;
+    unsafe { asm!("mov {}, rbp", out(reg) rbp); }
+
+    dbg!("EXCEPTION: {}", index);
+    dbg!("{:x?}", stack_frame);
+
+    backtrace::log_backtrace(rbp);
+
     println!("IP: {:?}", stack_frame.instruction_pointer);
     println!("index: {}", index);
     println!("error_code: {}", error_code.unwrap_or(0));
