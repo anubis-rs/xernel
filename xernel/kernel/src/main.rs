@@ -177,6 +177,8 @@ pub extern "C" fn test_userspace_fn() {
                 "\
                 mov rax, 0
                 mov rdi, 2
+                mov rsi, 3
+                mov rdx, 4
                 syscall
             "
             );
