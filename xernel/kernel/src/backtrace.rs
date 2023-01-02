@@ -1,8 +1,6 @@
 use crate::dbg;
 
-pub fn init() {
-
-}
+pub fn init() {}
 
 // TODO: print symbol names
 pub fn log_backtrace(initial_rbp: usize) {
