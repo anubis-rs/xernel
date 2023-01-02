@@ -4,7 +4,6 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::arch::x64::gdt::GDT_BSP;
 use crate::fs::vnode::VNode;
-use crate::println;
 use alloc::alloc::alloc_zeroed;
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
@@ -145,9 +144,6 @@ impl Task {
 
         let cs = GDT_BSP.1.user_code_selector;
         let ds = GDT_BSP.1.user_data_selector;
-
-        println!("cs: {:x?}", cs.0);
-        println!("ds: {:x?}", ds.0);
 
         let mut ctx = TaskContext::new();
 
