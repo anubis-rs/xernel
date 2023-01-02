@@ -6,6 +6,9 @@ use linked_list_allocator::Heap;
 use x86_64::structures::paging::{Page, PageSize, PageTableFlags, PhysFrame, Size2MiB};
 use x86_64::VirtAddr;
 
+use crate::allocator::align_up;
+use crate::info;
+
 use super::{pmm::FRAME_ALLOCATOR, vmm::KERNEL_PAGE_MAPPER};
 
 // TODO: Replace heap by Buddy Allocator
@@ -24,10 +27,39 @@ unsafe impl GlobalAlloc for Allocator {
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
         let mut heap = HEAP.lock();
 
-        // TODO: check if the allocation fails and maybe increase the heap size to make it work
-        heap.allocate_first_fit(layout)
-            .expect("out of memory")
-            .as_ptr()
+        if let Ok(ptr) = heap.allocate_first_fit(layout) {
+            ptr.as_ptr()
+        } else {
+            // expand heap
+            let expansion_size = align_up(layout.size(), Size2MiB::SIZE as usize);
+
+            info!("expanding heap by {} MiB", expansion_size / 1024 / 1024);
+
+            let current_top = align_up(heap.top() as usize, Size2MiB::SIZE as usize);
+
+            for start_address in
+                (current_top..current_top + expansion_size).step_by(Size2MiB::SIZE as usize)
+            {
+                let page = {
+                    let mut allocator = FRAME_ALLOCATOR.lock();
+                    allocator.allocate_frame::<Size2MiB>().unwrap()
+                };
+
+                KERNEL_PAGE_MAPPER.lock().map::<Size2MiB>(
+                    PhysFrame::containing_address(page.start_address()),
+                    Page::containing_address(VirtAddr::new(start_address as u64)),
+                    PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE | PageTableFlags::PRESENT,
+                    true,
+                );
+
+                heap.extend(Size2MiB::SIZE as usize);
+            }
+
+            // try to allocate again
+            heap.allocate_first_fit(layout)
+                .expect("heap allocation failed after expansion")
+                .as_ptr()
+        }
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
