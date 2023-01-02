@@ -58,7 +58,6 @@ struct SyscallData {
  * rcx  return address for syscall/sysret
  */
 
-// FIXME: currently some registers are saved twice
 #[naked]
 unsafe extern "C" fn asm_syscall_handler() {
     asm!(
@@ -68,8 +67,7 @@ unsafe extern "C" fn asm_syscall_handler() {
     mov gs:0, rsp # save the stackpointer for this task
     mov rsp, gs:16 # load the kernel stackpointer for this task
 
-    push rcx # backup registers for sysretq
-    push r11
+    # backup registers for sysretq
     push rbp
     push rbx # save callee-saved registers
     push r12
@@ -113,8 +111,6 @@ unsafe extern "C" fn asm_syscall_handler() {
     pop r12
     pop rbx
     pop rbp # restore stack and registers for sysretq
-    pop r11
-    pop rcx
 
     mov rsp, gs:0 # load the stackpointer for this task
 
