@@ -93,7 +93,6 @@ pub fn init_ap(ap_id: usize) {
     gdt.add_entry(Descriptor::user_data_segment());
 
     let tss: &'static mut TaskStateSegment = Box::leak(Box::new(TaskStateSegment::new()));
-    // TODO: set the interrupt stack to be able to handle double faults
     let tss_selector = gdt.add_entry(Descriptor::tss_segment(tss));
 
     gdt_ap.push(Gdt {
