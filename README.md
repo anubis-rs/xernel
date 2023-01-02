@@ -17,7 +17,6 @@ Feel free to reach out to `Lockna#5599` or `mp#2453` on Discord
 
 ## TODO
 Things that are still to do:
-- [ ] Implement TODOs and fix FIXMEs
 - [ ] Add doc comments
 - [ ] Rewrite mem module
     - [x] Rewrite the page frame allocator so it uses a buddy allocator
