@@ -5,7 +5,7 @@ use alloc::collections::VecDeque;
 use libxernel::sync::SpinlockIRQ;
 use x86_64::registers::model_specific::KernelGsBase;
 use x86_64::registers::segmentation::{Segment, DS};
-use x86_64::{PrivilegeLevel, VirtAddr};
+use x86_64::VirtAddr;
 
 use super::context::TaskContext;
 use super::task::TaskStatus;
@@ -61,8 +61,6 @@ impl Scheduler {
 // FIXME: Doesn't work when multiple cores are started
 #[no_mangle]
 pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
-    // TODO: Switch page table if user task
-
     let mut sched = SCHEDULER.lock();
     sched.save_ctx(ctx);
 
@@ -78,16 +76,7 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
             // FIXME: a child task must use the page table of the parent task
             task.page_table.as_ref().unwrap().load_pt();
 
-            let mut cs = GDT_BSP.1.user_code_selector;
-            let mut ds = GDT_BSP.1.user_data_selector;
-
-            cs.0 |= PrivilegeLevel::Ring3 as u16;
-            ds.0 |= PrivilegeLevel::Ring3 as u16;
-
-            DS::set_reg(ds);
-
-            task.context.cs = cs.0 as u64;
-            task.context.ss = ds.0 as u64;
+            DS::set_reg(GDT_BSP.1.user_data_selector);
 
             let base = &**task.kernel_stack.as_ref().unwrap() as *const _ as u64;
             KernelGsBase::write(VirtAddr::new(base));

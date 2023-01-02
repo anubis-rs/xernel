@@ -2,7 +2,9 @@ use core::alloc::Layout;
 use core::pin::Pin;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
+use crate::arch::x64::gdt::GDT_BSP;
 use crate::fs::vnode::VNode;
+use crate::println;
 use alloc::alloc::alloc_zeroed;
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
@@ -141,12 +143,16 @@ impl Task {
         let mut page_map = Pagemap::new(None);
         page_map.fill_with_kernel_entries();
 
+        let cs = GDT_BSP.1.user_code_selector;
+        let ds = GDT_BSP.1.user_data_selector;
+
+        println!("cs: {:x?}", cs.0);
+        println!("ds: {:x?}", ds.0);
+
         let mut ctx = TaskContext::new();
 
-        // TODO: Check if data segment has to be set too, currently setting stack segment to data
-        // TODO: don't manually set segments, use the GDT
-        ctx.ss = 0x33; // user stack segment
-        ctx.cs = 0x2b; // user code segment
+        ctx.ss = ds.0 as u64; // user stack segment
+        ctx.cs = cs.0 as u64; // user code segment
         ctx.rip = entry_point.as_u64();
         ctx.rsp = task_stack as u64;
         ctx.rflags = 0x202;
