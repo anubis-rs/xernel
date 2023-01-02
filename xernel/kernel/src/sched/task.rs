@@ -57,7 +57,7 @@ pub struct KernelStack {
 
 pub struct Task {
     pub id: u64,
-    pub page_table: Option<Pagemap>,
+    page_table: Option<Pagemap>,
     pub parent: Weak<Task>,
     pub children: Vec<Task>,
     pub status: TaskStatus,
@@ -167,6 +167,19 @@ impl Task {
                 start: kernel_stack_start,
                 end: kernel_stack_end,
             })),
+        }
+    }
+
+    pub fn get_page_table(&self) -> Option<Pagemap> {
+        if self.is_kernel_task() {
+            return None;
+        }
+
+        if let Some(page_table) = &self.page_table {
+            Some(page_table.clone())
+        } else {
+            // get pagetable of parent
+            self.parent.upgrade().unwrap().get_page_table()
         }
     }
 

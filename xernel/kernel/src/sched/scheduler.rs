@@ -73,8 +73,7 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     if !task.is_kernel_task() {
         unsafe {
             // SAFETY: a user task always has a page table
-            // FIXME: a child task must use the page table of the parent task
-            task.page_table.as_ref().unwrap().load_pt();
+            task.get_page_table().unwrap().load_pt();
 
             DS::set_reg(GDT_BSP.1.user_data_selector);
 

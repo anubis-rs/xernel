@@ -22,7 +22,7 @@ static KERNEL_ADDRESS_REQUEST: LimineKernelAddressRequest = LimineKernelAddressR
 pub static KERNEL_PAGE_MAPPER: Spinlock<InitAtBoot<Pagemap>> =
     Spinlock::new(InitAtBoot::Uninitialized);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pagemap {
     page_table: *mut PageTable,
 }

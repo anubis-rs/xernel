@@ -107,7 +107,7 @@ extern "C" fn kernel_main() -> ! {
         bootloader_info.version.to_str().unwrap()
     );
 
-    let mut user_task = Task::new_user_task(VirtAddr::new(0x200000));
+    let user_task = Task::new_user_task(VirtAddr::new(0x200000));
 
     let page = FRAME_ALLOCATOR.lock().allocate_frame::<Size2MiB>().unwrap();
     KERNEL_PAGE_MAPPER.lock().map(
@@ -116,7 +116,7 @@ extern "C" fn kernel_main() -> ! {
         PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::PRESENT,
         true,
     );
-    user_task.page_table.as_mut().unwrap().map(
+    user_task.get_page_table().unwrap().map(
         page,
         Page::from_start_address(VirtAddr::new(0x200000)).unwrap(),
         PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::PRESENT,
