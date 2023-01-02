@@ -66,7 +66,7 @@ pub fn interrupts_enabled() -> bool {
             (flags & 0x0200) != 0
         }
     } else {
-        todo!("Interrupts enabled not implemented for this architecture");
+        unimplemented!("Interrupts enabled not implemented for this architecture");
     }
 }
 
@@ -83,7 +83,7 @@ pub fn disable_interrupts() {
         if cfg!(target_arch = "x86_64") {
             asm!("cli", options(nomem, nostack));
         } else {
-            todo!("Disable interrupts not implemented for this architecture");
+            unimplemented!("Disable interrupts not implemented for this architecture");
         }
     }
     compiler_fence(Ordering::SeqCst);
@@ -96,7 +96,7 @@ pub fn enable_interrupts() {
         if cfg!(target_arch = "x86_64") {
             asm!("sti", options(nomem, nostack));
         } else {
-            todo!("Enable interrupts not implemented for this architecture");
+            unimplemented!("Enable interrupts not implemented for this architecture");
         }
     }
 }
