@@ -1,4 +1,3 @@
-
 // constants for syscall numbers
 
 pub const SYS_READ: usize = 0;

@@ -1,9 +1,9 @@
 use anyhow::{bail, Result};
+use dotenv::dotenv;
 use pico_args::Arguments;
+use std::env;
 use std::path::{Path, PathBuf};
 use xshell::{cmd, Shell};
-use dotenv::dotenv;
-use std::env;
 
 const HELP: &str = "\
 xtask
@@ -167,7 +167,10 @@ fn run(sh: &Shell, gdb: bool, mut args: Arguments) -> Result<()> {
 
     let qemu_in_wsl_arg = args.contains("--wsl-qemu");
 
-    let qemu_in_wsl_env = env::var("qemu_in_wsl").unwrap_or("false".to_string()).parse().unwrap();
+    let qemu_in_wsl_env = env::var("qemu_in_wsl")
+        .unwrap_or("false".to_string())
+        .parse()
+        .unwrap();
 
     let qemu_in_wsl = qemu_in_wsl_arg || qemu_in_wsl_env;
 
