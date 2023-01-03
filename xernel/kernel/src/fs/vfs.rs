@@ -7,6 +7,7 @@ use libxernel::sync::Spinlock;
 
 use super::{
     mount::{Mount, VfsOps},
+    tmpfs::Tmpfs,
     vnode::VNode,
 };
 
@@ -14,7 +15,7 @@ pub static VFS: Spinlock<Vfs> = Spinlock::new(Vfs::new());
 
 pub struct Vfs {
     mount_point_list: Vec<(String, Arc<Mount>)>,
-    drivers: Vec<(String, Arc<dyn VfsOps>)>,
+    drivers: Vec<(String, Arc<Spinlock<dyn VfsOps>>)>,
     free_vnodes: Vec<Arc<VNode>>,
 }
 
@@ -29,12 +30,12 @@ impl Vfs {
         }
     }
 
-    pub fn register_filesystem(&mut self, name: String, operations: Arc<dyn VfsOps>) {
+    pub fn register_filesystem(&mut self, name: String, operations: Arc<Spinlock<dyn VfsOps>>) {
         self.drivers.push((name, operations));
     }
 
     pub fn vn_mount(&mut self, name_of_fs: &str, where_to_mount: &str) {
-        // return if driver for given fs is not registered
+        // TODO: return if driver for given fs is not registered
         let idx = self
             .drivers
             .iter()
@@ -43,12 +44,14 @@ impl Vfs {
 
         let driver = self.drivers.get(idx).unwrap().1.clone();
 
-        // TODO: Give path (where fs should be mounted to) to fs_mount
-        driver.fs_mount();
+        driver.lock().vfs_mount(where_to_mount.to_string());
 
-        // TODO: check if mounted on root node, else get reference to node where it gets mounted on
-        // since when root node, node_covered is null
-        let mut node_covered = None;
+        let mut node_covered = if where_to_mount == "/" {
+            None
+        } else {
+            // get vnode to mount on
+            Some(self.lookuppn(where_to_mount.to_string()))
+        };
 
         let mount = Mount::new(driver, node_covered);
 
@@ -56,9 +59,19 @@ impl Vfs {
             .push((where_to_mount.to_string(), Arc::new(mount)));
     }
 
-    pub fn vn_lookuppn() {}
+    /// Lookup path name
+    fn lookuppn(&mut self, path: String) -> Arc<Spinlock<VNode>> {
+        // get filesystem path is mounted to
+        let mnt = self.mount_point_list.first_mut().unwrap().1.clone();
+        let node = mnt.mnt_op_data.lock().vfs_lookup(path);
+        node
+    }
 
-    pub fn vn_open() {}
+    pub fn vn_open(&mut self, path: String, mode: u64) {
+        let node = self.lookuppn(path);
+
+        node.lock().v_data_op.open();
+    }
 
     pub fn vn_close() {}
 
@@ -76,6 +89,8 @@ impl Vfs {
 pub fn init() {
     let mut vfs = VFS.lock();
 
-    //vfs.register_filesystem(String::from("tmpfs"), tmpfs);
+    let tmpfs = Arc::new(Spinlock::new(Tmpfs::new()));
+
+    vfs.register_filesystem(String::from("tmpfs"), tmpfs);
     vfs.vn_mount("tmpfs", "/");
 }

@@ -31,6 +31,7 @@ mod mem;
 #[macro_use]
 mod writer;
 
+use alloc::string::ToString;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use limine::*;
@@ -47,6 +48,8 @@ use x86_64::VirtAddr;
 
 use crate::acpi::hpet;
 use crate::arch::x64::apic;
+use crate::fs::vfs;
+use crate::fs::vfs::VFS;
 use crate::mem::pmm::FRAME_ALLOCATOR;
 use crate::mem::vmm::KERNEL_PAGE_MAPPER;
 use crate::sched::scheduler::SCHEDULER;
@@ -95,6 +98,12 @@ extern "C" fn kernel_main() -> ! {
     apic::init();
 
     syscall::init();
+
+    vfs::init();
+
+    let mut vfs = VFS.lock();
+
+    vfs.vn_open("/test.txt".to_string(), 12);
 
     let bootloader_info = BOOTLOADER_INFO
         .get_response()
