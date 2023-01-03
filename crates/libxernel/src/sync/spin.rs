@@ -8,7 +8,7 @@ use core::{
 ///
 /// This spinlock will block threads waiting for the lock to become available.
 /// Accessing the data is only possible through the RAII guards returned from [`Spinlock::lock`] and [`Spinlock::try_lock`], since they guarantee you are the owner of the lock.
-pub struct Spinlock<T> {
+pub struct Spinlock<T: ?Sized> {
     /// Atomic variable which is used to determine if the Spinlock is locked or not
     is_locked: AtomicBool,
     /// The data itself
@@ -19,12 +19,12 @@ pub struct Spinlock<T> {
 ///
 /// When acquiring a lock through [`Spinlock::lock`] or [`Spinlock::try_lock`], a MutexGuard gets returned which is a wrapper over the mutex itself.
 /// This type is used for releasing the spinlock when the value goes out of scope, so you don't have to think of unlocking yourself.
-pub struct MutexGuard<'a, T: 'a> {
+pub struct MutexGuard<'a, T: ?Sized + 'a> {
     mutex: &'a Spinlock<T>,
 }
 
-unsafe impl<T> Send for Spinlock<T> {}
-unsafe impl<T> Sync for Spinlock<T> {}
+unsafe impl<T: ?Sized> Send for Spinlock<T> {}
+unsafe impl<T: ?Sized> Sync for Spinlock<T> {}
 
 impl<T> Spinlock<T> {
     /// Creates an unlocked and initialized spinlock
@@ -34,7 +34,9 @@ impl<T> Spinlock<T> {
             data: UnsafeCell::new(data),
         }
     }
+}
 
+impl<T: ?Sized> Spinlock<T> {
     /// Acquires a lock for this spinlock and returns a RAII guard
     ///
     /// It tries to acquire the lock, if it's already locked the thread enters a so-called spin loop
@@ -72,14 +74,14 @@ impl<T> Spinlock<T> {
     pub fn unlock(_guard: MutexGuard<'_, T>) {}
 }
 
-impl<'a, T: 'a> Drop for MutexGuard<'a, T> {
+impl<'a, T: ?Sized> Drop for MutexGuard<'a, T> {
     fn drop(&mut self) {
         // Releasing the lock
         self.mutex.is_locked.store(false, Ordering::Release);
     }
 }
 
-impl<'a, T> Deref for MutexGuard<'a, T> {
+impl<'a, T: ?Sized> Deref for MutexGuard<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -87,7 +89,7 @@ impl<'a, T> Deref for MutexGuard<'a, T> {
     }
 }
 
-impl<'a, T> DerefMut for MutexGuard<'a, T> {
+impl<'a, T: ?Sized> DerefMut for MutexGuard<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.mutex.data.get() }
     }
