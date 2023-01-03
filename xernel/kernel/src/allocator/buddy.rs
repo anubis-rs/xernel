@@ -66,7 +66,6 @@ impl<const MIN_ORDER_SIZE: usize, const MAX_ORDER: usize>
     }
 
     unsafe fn add_single_region(&mut self, start: *mut u8, end: *mut u8) -> Result<usize> {
-        // TODO: Optimize so it doesn't need a loop
         let start_addr = start as usize;
 
         let mut order = 0;
