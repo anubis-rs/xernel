@@ -21,6 +21,7 @@ mod backtrace;
 mod drivers;
 mod framebuffer;
 mod fs;
+mod limine_module;
 mod sched;
 mod syscall;
 

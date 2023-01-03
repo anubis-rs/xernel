@@ -2,11 +2,9 @@ mod font;
 
 use core::ptr::copy;
 
-use crate::framebuffer::font::FONT;
+use crate::{framebuffer::font::FONT, limine_module::get_limine_module};
 use libxernel::sync::Spinlock;
-use limine::{
-    LimineFile, LimineFramebuffer, LimineFramebufferRequest, LimineModuleRequest, NonNullPtr,
-};
+use limine::{LimineFile, LimineFramebuffer, LimineFramebufferRequest};
 
 /// A struct providing information about the framebuffer
 pub struct Framebuffer {
@@ -28,7 +26,6 @@ pub struct Color {
 }
 
 static FRAMEBUFFER_REQUEST: LimineFramebufferRequest = LimineFramebufferRequest::new(0);
-static MODULE_REQUEST: LimineModuleRequest = LimineModuleRequest::new(0);
 
 /// [`Framebuffer`] wrapped in a [`Spinlock`] for static usage
 pub static FRAMEBUFFER: Spinlock<Framebuffer> = Spinlock::new(Framebuffer {
@@ -173,7 +170,7 @@ impl Framebuffer {
     }
 
     /// Displays a given bitmap image on the framebuffer
-    pub unsafe fn show_bitmap_image(&mut self, image_data: &NonNullPtr<LimineFile>) {
+    pub unsafe fn show_bitmap_image(&mut self, image_data: &LimineFile) {
         let address = FRAMEBUFFER_DATA.address.as_ptr().unwrap().cast::<u8>();
 
         let file_base = image_data.base.as_ptr().unwrap();
@@ -218,17 +215,11 @@ impl Framebuffer {
 ///
 /// Intended as a nice gimmick so we show our logo when starting the kernel
 pub fn show_start_image() {
-    let module = MODULE_REQUEST
-        .get_response()
-        .get()
-        .unwrap()
-        .modules()
-        .get(0)
-        .unwrap();
+    let img_file = get_limine_module("logo").unwrap();
 
     unsafe {
         let mut framebuffer = FRAMEBUFFER.lock();
 
-        framebuffer.show_bitmap_image(module);
+        framebuffer.show_bitmap_image(img_file);
     }
 }
