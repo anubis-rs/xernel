@@ -2,7 +2,6 @@ use core::alloc::Layout;
 use core::pin::Pin;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::arch::x64::gdt::GDT_BSP;
 use crate::fs::vnode::VNode;
 use alloc::alloc::alloc_zeroed;
 use alloc::boxed::Box;
@@ -142,13 +141,10 @@ impl Task {
         let mut page_map = Pagemap::new(None);
         page_map.fill_with_kernel_entries();
 
-        let cs = GDT_BSP.1.user_code_selector;
-        let ds = GDT_BSP.1.user_data_selector;
-
         let mut ctx = TaskContext::new();
 
-        ctx.ss = ds.0 as u64; // user stack segment
-        ctx.cs = cs.0 as u64; // user code segment
+        ctx.ss = 0x2b; // user stack segment
+        ctx.cs = 0x33; // user code segment
         ctx.rip = entry_point.as_u64();
         ctx.rsp = task_stack as u64;
         ctx.rflags = 0x202;
