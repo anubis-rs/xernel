@@ -58,7 +58,7 @@ impl Scheduler {
     }
 }
 
-// FIXME: Doesn't work when multiple cores are started
+// TODO: Schedule on multiple cores if multiple cores are started up
 #[no_mangle]
 pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     let mut sched = SCHEDULER.lock();
