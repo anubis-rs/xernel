@@ -138,10 +138,12 @@ extern "C" fn kernel_main() -> ! {
     unsafe {
         let start_address_fn = test_userspace_fn as usize;
 
-        for i in 0..512 * 512 {
+        // the `test_userspace_fn` is very small and should fit in 512 bytes
+        for i in 0..512 {
             let ptr = (0x200000 + i) as *mut u8;
             let val = (start_address_fn + i) as *mut u8;
-            ptr.write(val.read());
+
+            ptr.write_volatile(val.read_volatile());
         }
     }
 
