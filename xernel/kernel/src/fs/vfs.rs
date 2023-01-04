@@ -9,6 +9,7 @@ use super::{
     mount::{Mount, VfsOps},
     tmpfs::Tmpfs,
     vnode::VNode,
+    vnode::VNodeOperations,
 };
 
 pub static VFS: Spinlock<Vfs> = Spinlock::new(Vfs::new());
@@ -39,21 +40,26 @@ impl Vfs {
         let idx = self
             .drivers
             .iter()
-            .position(|x| x.0 == name_of_fs.to_string())
-            .unwrap();
+            .position(|x| x.0 == name_of_fs.to_string());
 
-        let driver = self.drivers.get(idx).unwrap().1.clone();
+        if idx.is_none() {
+            return;
+        }
 
-        driver.lock().vfs_mount(where_to_mount.to_string());
+        let driver = self.drivers.get(idx.unwrap()).unwrap().1.clone();
 
-        let mut node_covered = if where_to_mount == "/" {
+        let node_covered = if where_to_mount == "/" {
             None
         } else {
             // get vnode to mount on
             Some(self.lookuppn(where_to_mount.to_string()))
         };
 
-        let mount = Mount::new(driver, node_covered);
+        let mut mount = Mount::new(driver, node_covered);
+
+        mount.vfs_mount(where_to_mount.to_string());
+
+        mount.vfs_start();
 
         self.mount_point_list
             .push((where_to_mount.to_string(), Arc::new(mount)));
@@ -63,27 +69,33 @@ impl Vfs {
     fn lookuppn(&mut self, path: String) -> Arc<Spinlock<VNode>> {
         // get filesystem path is mounted to
         let mnt = self.mount_point_list.first_mut().unwrap().1.clone();
-        let node = mnt.mnt_op_data.lock().vfs_lookup(path);
+        let node = mnt.vfs_lookup(path);
         node
     }
 
     pub fn vn_open(&mut self, path: String, mode: u64) {
         let node = self.lookuppn(path);
 
-        node.lock().v_data_op.open();
+        node.lock().open();
     }
 
-    pub fn vn_close() {}
+    pub fn vn_close(&mut self) {}
 
-    pub fn vn_rdwr() {}
+    pub fn vn_read(&mut self, path: String) {
+        let node = self.lookuppn(path);
 
-    pub fn vn_create() {}
+        node.lock().read();
+    }
 
-    pub fn vn_remove() {}
+    pub fn vn_write(&mut self) {}
 
-    pub fn vn_link() {}
+    pub fn vn_create(&mut self) {}
 
-    pub fn vn_rename() {}
+    pub fn vn_remove(&mut self) {}
+
+    pub fn vn_link(&mut self) {}
+
+    pub fn vn_rename(&mut self) {}
 }
 
 pub fn init() {

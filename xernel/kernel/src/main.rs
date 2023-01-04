@@ -106,6 +106,8 @@ extern "C" fn kernel_main() -> ! {
 
     vfs.vn_open("/test.txt".to_string(), 12);
 
+    vfs.vn_read("/test.txt".to_string());
+
     let bootloader_info = BOOTLOADER_INFO
         .get_response()
         .get()
@@ -150,7 +152,7 @@ extern "C" fn kernel_main() -> ! {
     let kernel_task2 = Task::kernel_task_from_fn(task2);
 
     SCHEDULER.lock().add_task(main_task);
-    SCHEDULER.lock().add_task(user_task);
+    //SCHEDULER.lock().add_task(user_task);
     SCHEDULER.lock().add_task(kernel_task);
     SCHEDULER.lock().add_task(kernel_task2);
 

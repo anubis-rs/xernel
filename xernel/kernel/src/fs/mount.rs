@@ -7,7 +7,7 @@ use libxernel::sync::Spinlock;
 // FIXME: Fix cyclic Arc's
 pub struct Mount {
     /// Operations vector including private data for file system
-    pub mnt_op_data: Arc<Spinlock<dyn VfsOps>>,
+    mnt_op_data: Arc<Spinlock<dyn VfsOps>>,
     /// VNode we are mounted on
     /// None if root node
     vnode_covered: Option<Arc<Spinlock<VNode>>>,
@@ -29,6 +29,68 @@ impl Mount {
     }
 }
 
+impl VfsOps for Mount {
+    fn vfs_mount(&mut self, path: String) {
+        self.mnt_op_data.lock().vfs_mount(path)
+    }
+
+    fn vfs_start(&mut self) {
+        self.mnt_op_data.lock().vfs_start()
+    }
+
+    fn vfs_unmount(&self) {
+        self.mnt_op_data.lock().vfs_unmount()
+    }
+
+    fn vfs_root(&self) {
+        self.mnt_op_data.lock().vfs_root()
+    }
+
+    fn vfs_quotactl(&self) {
+        self.mnt_op_data.lock().vfs_quotactl()
+    }
+
+    fn vfs_statvfs(&self) {
+        self.mnt_op_data.lock().vfs_statvfs()
+    }
+
+    fn vfs_sync(&self) {
+        self.mnt_op_data.lock().vfs_sync()
+    }
+
+    fn vfs_vget(&self) {
+        self.mnt_op_data.lock().vfs_vget()
+    }
+
+    fn vfs_lookup(&self, path: String) -> Arc<Spinlock<VNode>> {
+        self.mnt_op_data.lock().vfs_lookup(path)
+    }
+
+    fn vfs_fhtovp(&self) {
+        self.mnt_op_data.lock().vfs_fhtovp()
+    }
+
+    fn vfs_vptofh(&self) {
+        self.mnt_op_data.lock().vfs_vptofh()
+    }
+
+    fn vfs_init(&mut self) {
+        self.mnt_op_data.lock().vfs_init()
+    }
+
+    fn vfs_done(&self) {
+        self.mnt_op_data.lock().vfs_done()
+    }
+
+    fn vfs_extattrctl(&self) {
+        self.mnt_op_data.lock().vfs_extattrctl()
+    }
+
+    fn vfs_name(&self) -> String {
+        self.mnt_op_data.lock().vfs_name().clone()
+    }
+}
+
 /// Operations supported on mounted file system
 /// Has an extra method called `name` since Rust traits don't support variables, with trait objects, the `name` method returns the vfs_name
 pub trait VfsOps {
@@ -36,7 +98,7 @@ pub trait VfsOps {
     fn vfs_mount(&mut self, path: String);
 
     /// Makes the file system operational.
-    fn vfs_start(&self);
+    fn vfs_start(&mut self);
 
     /// Unmounts an instance of the file system.
     fn vfs_unmount(&self);
@@ -86,5 +148,5 @@ pub trait VfsOps {
     fn vfs_extattrctl(&self);
 
     /// Returns the name of the file system
-    fn vfs_name(&self) -> &str;
+    fn vfs_name(&self) -> String;
 }

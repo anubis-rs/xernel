@@ -1,4 +1,9 @@
-use alloc::{string::String, sync::Arc, vec::Vec};
+use alloc::{
+    rc::Weak,
+    string::{String, ToString},
+    sync::Arc,
+    vec::Vec,
+};
 use libxernel::sync::Spinlock;
 
 use crate::println;
@@ -9,7 +14,6 @@ use super::{
 };
 
 pub struct Tmpfs {
-    // FIXME: VNode really the correct type here? Maybe dyn VNodeOperations
     files: Vec<(String, Arc<Spinlock<VNode>>)>,
     mounted_on: Option<String>,
 }
@@ -30,8 +34,22 @@ impl VfsOps for Tmpfs {
         self.mounted_on = Some(path)
     }
 
-    fn vfs_start(&self) {
-        todo!()
+    fn vfs_start(&mut self) {
+        let mut node = TmpfsNode::new();
+
+        node.data.push(0xFF);
+        node.data.push(0xFF);
+        node.data.push(0xFF);
+
+        self.files.push((
+            "/test.txt".to_string(),
+            Arc::new(Spinlock::new(VNode::new(
+                Weak::new(),
+                Arc::new(node),
+                crate::fs::vnode::VType::Regular,
+                None,
+            ))),
+        ));
     }
 
     fn vfs_unmount(&self) {
@@ -76,10 +94,11 @@ impl VfsOps for Tmpfs {
         todo!()
     }
 
-    fn vfs_name(&self) -> &str {
-        "tmpfs"
+    fn vfs_name(&self) -> String {
+        "tmpfs".to_string()
     }
 
+    // FIXME: Write a proper lookup algorithm, which gets a directory node and calls lookup on that
     fn vfs_lookup(&self, path: String) -> Arc<Spinlock<VNode>> {
         println!("tmpfs path lookup: {}", path);
 
@@ -157,7 +176,7 @@ impl VNodeOperations for TmpfsNode {
     }
 
     fn read(&self) {
-        todo!()
+        println!("{:?}", self.data);
     }
 
     fn readdir(&self) {

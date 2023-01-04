@@ -21,7 +21,7 @@ pub struct VNode {
     vfsp: Weak<Mount>,
     /// Holds the vnode operations vector and the private data for fs in one member
     /// since the struct, which each fs, which implements the VNodeOperations trait can directly own the private fs data
-    pub v_data_op: Arc<dyn VNodeOperations>,
+    v_data_op: Arc<dyn VNodeOperations>,
     v_type: VType,
     flags: u64,
     // TODO: add attributes
@@ -44,6 +44,108 @@ impl VNode {
             v_mounted_here: v_mounted_here,
             flags: 0,
         }
+    }
+}
+
+impl VNodeOperations for VNode {
+    fn close(&self) {
+        self.v_data_op.close()
+    }
+
+    fn access(&self) {
+        self.v_data_op.access()
+    }
+
+    fn bmap(&self) {
+        self.v_data_op.bmap()
+    }
+
+    fn create(&self) {
+        self.v_data_op.create()
+    }
+
+    fn fsync(&self) {
+        self.v_data_op.fsync()
+    }
+
+    fn getattr(&self) {
+        self.v_data_op.getattr()
+    }
+
+    fn inactive(&self) {
+        self.v_data_op.inactive()
+    }
+
+    fn ioctl(&self) {
+        self.v_data_op.ioctl()
+    }
+
+    fn link(&self) {
+        self.v_data_op.link()
+    }
+
+    fn lookup(&self) {
+        self.v_data_op.lookup()
+    }
+
+    fn mknod(&self) {
+        self.v_data_op.mknod()
+    }
+
+    fn open(&self) {
+        self.v_data_op.open()
+    }
+
+    fn pathconf(&self) {
+        self.v_data_op.pathconf()
+    }
+
+    fn read(&self) {
+        self.v_data_op.read()
+    }
+
+    fn readdir(&self) {
+        self.v_data_op.readdir()
+    }
+
+    fn readlink(&self) {
+        self.v_data_op.readlink()
+    }
+
+    fn reclaim(&self) {
+        self.v_data_op.reclaim()
+    }
+
+    fn remove(&self) {
+        self.v_data_op.remove()
+    }
+
+    fn rename(&self) {
+        self.v_data_op.rename()
+    }
+
+    fn mkdir(&self) {
+        self.v_data_op.mkdir()
+    }
+
+    fn rmdir(&self) {
+        self.v_data_op.rmdir()
+    }
+
+    fn setattr(&self) {
+        self.v_data_op.setattr()
+    }
+
+    fn symlink(&self) {
+        self.v_data_op.symlink()
+    }
+
+    fn write(&self) {
+        self.v_data_op.write()
+    }
+
+    fn kqfilter(&self) {
+        self.v_data_op.kqfilter()
     }
 }
 
