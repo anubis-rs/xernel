@@ -47,104 +47,104 @@ impl VNode {
     }
 }
 
-impl VNodeOperations for VNode {
-    fn close(&self) {
+impl VNode {
+    pub fn close(&self) {
         self.v_data_op.close()
     }
 
-    fn access(&self) {
+    pub fn access(&self) {
         self.v_data_op.access()
     }
 
-    fn bmap(&self) {
+    pub fn bmap(&self) {
         self.v_data_op.bmap()
     }
 
-    fn create(&self) {
+    pub fn create(&self) {
         self.v_data_op.create()
     }
 
-    fn fsync(&self) {
+    pub fn fsync(&self) {
         self.v_data_op.fsync()
     }
 
-    fn getattr(&self) {
+    pub fn getattr(&self) {
         self.v_data_op.getattr()
     }
 
-    fn inactive(&self) {
+    pub fn inactive(&self) {
         self.v_data_op.inactive()
     }
 
-    fn ioctl(&self) {
+    pub fn ioctl(&self) {
         self.v_data_op.ioctl()
     }
 
-    fn link(&self) {
+    pub fn link(&self) {
         self.v_data_op.link()
     }
 
-    fn lookup(&self) {
+    pub fn lookup(&self) {
         self.v_data_op.lookup()
     }
 
-    fn mknod(&self) {
+    pub fn mknod(&self) {
         self.v_data_op.mknod()
     }
 
-    fn open(&self) {
+    pub fn open(&self) {
         self.v_data_op.open()
     }
 
-    fn pathconf(&self) {
+    pub fn pathconf(&self) {
         self.v_data_op.pathconf()
     }
 
-    fn read(&self) {
+    pub fn read(&self) {
         self.v_data_op.read()
     }
 
-    fn readdir(&self) {
+    pub fn readdir(&self) {
         self.v_data_op.readdir()
     }
 
-    fn readlink(&self) {
+    pub fn readlink(&self) {
         self.v_data_op.readlink()
     }
 
-    fn reclaim(&self) {
+    pub fn reclaim(&self) {
         self.v_data_op.reclaim()
     }
 
-    fn remove(&self) {
+    pub fn remove(&self) {
         self.v_data_op.remove()
     }
 
-    fn rename(&self) {
+    pub fn rename(&self) {
         self.v_data_op.rename()
     }
 
-    fn mkdir(&self) {
+    pub fn mkdir(&self) {
         self.v_data_op.mkdir()
     }
 
-    fn rmdir(&self) {
+    pub fn rmdir(&self) {
         self.v_data_op.rmdir()
     }
 
-    fn setattr(&self) {
+    pub fn setattr(&self) {
         self.v_data_op.setattr()
     }
 
-    fn symlink(&self) {
+    pub fn symlink(&self) {
         self.v_data_op.symlink()
     }
 
-    fn write(&self) {
+    pub fn write(&self) {
         self.v_data_op.write()
     }
 
-    fn kqfilter(&self) {
+    pub fn kqfilter(&self) {
         self.v_data_op.kqfilter()
     }
 }

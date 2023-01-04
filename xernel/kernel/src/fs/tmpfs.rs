@@ -6,7 +6,10 @@ use alloc::{
 };
 use libxernel::sync::Spinlock;
 
-use crate::println;
+use crate::{
+    fs::error::{Error, Result},
+    println,
+};
 
 use super::{
     mount::VfsOps,
@@ -37,7 +40,7 @@ impl VfsOps for Tmpfs {
     fn vfs_start(&mut self) {
         let mut node = TmpfsNode::new();
 
-        node.data.push(0xFF);
+        node.data.push(0xFE);
         node.data.push(0xFF);
         node.data.push(0xFF);
 
@@ -99,16 +102,16 @@ impl VfsOps for Tmpfs {
     }
 
     // FIXME: Write a proper lookup algorithm, which gets a directory node and calls lookup on that
-    fn vfs_lookup(&self, path: String) -> Arc<Spinlock<VNode>> {
+    fn vfs_lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>> {
         println!("tmpfs path lookup: {}", path);
 
         for i in &self.files {
             if i.0 == path {
-                return i.1.clone();
+                return Ok(i.1.clone());
             }
         }
 
-        return self.files.first().unwrap().1.clone();
+        return Err(Error::EntryNotFound);
     }
 }
 

@@ -1,4 +1,4 @@
-use super::vnode::VNode;
+use super::{error::Result, vnode::VNode};
 use alloc::{string::String, sync::Arc, vec::Vec};
 use libxernel::sync::Spinlock;
 
@@ -29,64 +29,64 @@ impl Mount {
     }
 }
 
-impl VfsOps for Mount {
-    fn vfs_mount(&mut self, path: String) {
+impl Mount {
+    pub fn vfs_mount(&mut self, path: String) {
         self.mnt_op_data.lock().vfs_mount(path)
     }
 
-    fn vfs_start(&mut self) {
+    pub fn vfs_start(&mut self) {
         self.mnt_op_data.lock().vfs_start()
     }
 
-    fn vfs_unmount(&self) {
+    pub fn vfs_unmount(&self) {
         self.mnt_op_data.lock().vfs_unmount()
     }
 
-    fn vfs_root(&self) {
+    pub fn vfs_root(&self) {
         self.mnt_op_data.lock().vfs_root()
     }
 
-    fn vfs_quotactl(&self) {
+    pub fn vfs_quotactl(&self) {
         self.mnt_op_data.lock().vfs_quotactl()
     }
 
-    fn vfs_statvfs(&self) {
+    pub fn vfs_statvfs(&self) {
         self.mnt_op_data.lock().vfs_statvfs()
     }
 
-    fn vfs_sync(&self) {
+    pub fn vfs_sync(&self) {
         self.mnt_op_data.lock().vfs_sync()
     }
 
-    fn vfs_vget(&self) {
+    pub fn vfs_vget(&self) {
         self.mnt_op_data.lock().vfs_vget()
     }
 
-    fn vfs_lookup(&self, path: String) -> Arc<Spinlock<VNode>> {
+    pub fn vfs_lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>> {
         self.mnt_op_data.lock().vfs_lookup(path)
     }
 
-    fn vfs_fhtovp(&self) {
+    pub fn vfs_fhtovp(&self) {
         self.mnt_op_data.lock().vfs_fhtovp()
     }
 
-    fn vfs_vptofh(&self) {
+    pub fn vfs_vptofh(&self) {
         self.mnt_op_data.lock().vfs_vptofh()
     }
 
-    fn vfs_init(&mut self) {
+    pub fn vfs_init(&mut self) {
         self.mnt_op_data.lock().vfs_init()
     }
 
-    fn vfs_done(&self) {
+    pub fn vfs_done(&self) {
         self.mnt_op_data.lock().vfs_done()
     }
 
-    fn vfs_extattrctl(&self) {
+    pub fn vfs_extattrctl(&self) {
         self.mnt_op_data.lock().vfs_extattrctl()
     }
 
-    fn vfs_name(&self) -> String {
+    pub fn vfs_name(&self) -> String {
         self.mnt_op_data.lock().vfs_name().clone()
     }
 }
@@ -118,7 +118,7 @@ pub trait VfsOps {
     /// Gets a vnode from a file identifier.
     fn vfs_vget(&self);
 
-    fn vfs_lookup(&self, path: String) -> Arc<Spinlock<VNode>>;
+    fn vfs_lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>>;
 
     /// Converts a NFS file handle to a vnode.
     fn vfs_fhtovp(&self);

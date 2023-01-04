@@ -6,10 +6,10 @@ use alloc::{
 use libxernel::sync::Spinlock;
 
 use super::{
+    error::{Error, Result},
     mount::{Mount, VfsOps},
     tmpfs::Tmpfs,
     vnode::VNode,
-    vnode::VNodeOperations,
 };
 
 pub static VFS: Spinlock<Vfs> = Spinlock::new(Vfs::new());
@@ -43,7 +43,7 @@ impl Vfs {
             .position(|x| x.0 == name_of_fs.to_string());
 
         if idx.is_none() {
-            return;
+            return; // TODO: return error here
         }
 
         let driver = self.drivers.get(idx.unwrap()).unwrap().1.clone();
@@ -52,7 +52,12 @@ impl Vfs {
             None
         } else {
             // get vnode to mount on
-            Some(self.lookuppn(where_to_mount.to_string()))
+
+            if let Ok(node) = self.lookuppn(where_to_mount.to_string()) {
+                Some(node)
+            } else {
+                return;
+            }
         };
 
         let mut mount = Mount::new(driver, node_covered);
@@ -66,25 +71,30 @@ impl Vfs {
     }
 
     /// Lookup path name
-    fn lookuppn(&mut self, path: String) -> Arc<Spinlock<VNode>> {
+    fn lookuppn(&mut self, path: String) -> Result<Arc<Spinlock<VNode>>> {
         // get filesystem path is mounted to
         let mnt = self.mount_point_list.first_mut().unwrap().1.clone();
         let node = mnt.vfs_lookup(path);
+
         node
     }
 
-    pub fn vn_open(&mut self, path: String, mode: u64) {
+    pub fn vn_open(&mut self, path: String, mode: u64) -> Result<()> {
         let node = self.lookuppn(path);
 
-        node.lock().open();
+        node?.lock().open();
+
+        Ok(())
     }
 
     pub fn vn_close(&mut self) {}
 
-    pub fn vn_read(&mut self, path: String) {
+    pub fn vn_read(&mut self, path: String) -> Result<()> {
         let node = self.lookuppn(path);
 
-        node.lock().read();
+        node?.lock().read();
+
+        Ok(())
     }
 
     pub fn vn_write(&mut self) {}
