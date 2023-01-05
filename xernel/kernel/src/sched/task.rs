@@ -3,7 +3,7 @@ use core::pin::Pin;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::fs::vnode::VNode;
-use alloc::alloc::alloc_zeroed;
+use alloc::alloc::{alloc_zeroed, dealloc};
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::rc::{Rc, Weak};
@@ -45,7 +45,7 @@ impl TaskPriority {
     }
 }
 
-// TODO: implement drop to free the kernel stack
+/// The kernel stack should only use 4 kib pages as the Drop implementation depends on it
 #[derive(Debug, Copy, Clone)]
 #[repr(packed)]
 pub struct KernelStack {
@@ -64,6 +64,19 @@ pub struct Task {
     pub context: TaskContext,
     pub fds: BTreeMap<usize, Rc<VNode>>,
     pub kernel_stack: Option<Pin<Box<KernelStack>>>,
+}
+
+impl Drop for Task {
+    fn drop(&mut self) {
+        if let Some(stack) = &self.kernel_stack {
+            unsafe {
+                dealloc(
+                    stack.start as *mut u8,
+                    Layout::from_size_align(stack.end as usize - stack.start as usize, 1).unwrap(),
+                );
+            }
+        }
+    }
 }
 
 impl Task {
