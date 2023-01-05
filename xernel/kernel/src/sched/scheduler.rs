@@ -34,7 +34,7 @@ impl Scheduler {
     pub fn schedule_next_task() {}
 
     pub fn save_ctx(&mut self, ctx: TaskContext) {
-        let mut task = self.tasks.get_mut(0).unwrap();
+        let task = self.tasks.get_mut(0).unwrap();
         task.context = ctx;
     }
 
@@ -49,7 +49,7 @@ impl Scheduler {
     }
 
     pub fn set_current_task_status(&mut self, status: TaskStatus) {
-        let mut task = self.tasks.front_mut().unwrap();
+        let task = self.tasks.front_mut().unwrap();
         task.status = status;
     }
 
