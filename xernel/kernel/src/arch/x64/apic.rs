@@ -88,7 +88,7 @@ impl LocalAPIC {
         mapper.map::<Size4KiB>(
             PhysFrame::containing_address(PhysAddr::new(apic_info.local_apic_address)),
             Page::containing_address(VirtAddr::new(apic_base)),
-            PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::WRITABLE,
+            PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
             true,
         );
 
@@ -134,6 +134,10 @@ impl LocalAPIC {
 
     pub unsafe fn write(&mut self, reg: u64, val: u32) {
         ((self.address + reg) as *mut u32).write_volatile(val);
+    }
+
+    pub fn lapic_id(&self) -> u32 {
+        unsafe { self.read(0x20) }
     }
 
     pub fn eoi(&mut self) {
