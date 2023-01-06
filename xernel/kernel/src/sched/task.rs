@@ -6,8 +6,10 @@ use crate::fs::vnode::VNode;
 use alloc::alloc::{alloc_zeroed, dealloc};
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::rc::{Rc, Weak};
+use alloc::rc::Weak;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
+use libxernel::sync::Spinlock;
 use x86_64::VirtAddr;
 
 use crate::mem::vmm::Pagemap;
@@ -62,7 +64,7 @@ pub struct Task {
     pub status: TaskStatus,
     pub priority: TaskPriority,
     pub context: TaskContext,
-    pub fds: BTreeMap<usize, Rc<VNode>>,
+    pub fds: BTreeMap<usize, Arc<Spinlock<VNode>>>,
     pub kernel_stack: Option<Pin<Box<KernelStack>>>,
 }
 
@@ -200,7 +202,7 @@ impl Task {
         self.context.cs == 0x8 && self.context.ss == 0x10
     }
 
-    pub fn append_fd(&mut self, node: Rc<VNode>) -> u32 {
+    pub fn append_fd(&mut self, node: Arc<Spinlock<VNode>>) -> u32 {
         let mut counter = 0;
 
         let fd = loop {

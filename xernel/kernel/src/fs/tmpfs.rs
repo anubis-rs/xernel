@@ -1,10 +1,10 @@
 use alloc::{
-    rc::Weak,
     string::{String, ToString},
     sync::Arc,
+    sync::Weak,
     vec::Vec,
 };
-use libxernel::sync::Spinlock;
+use libxernel::{boot::InitAtBoot, sync::Spinlock};
 
 use crate::{
     fs::error::{Error, Result},
@@ -13,18 +13,18 @@ use crate::{
 
 use super::{
     mount::VfsOps,
-    vnode::{VNode, VNodeOperations},
+    vnode::{VNode, VNodeOperations, VType},
 };
 
 pub struct Tmpfs {
-    files: Vec<(String, Arc<Spinlock<VNode>>)>,
+    root_node: InitAtBoot<Arc<Spinlock<VNode>>>,
     mounted_on: Option<String>,
 }
 
 impl Tmpfs {
     pub fn new() -> Self {
         Self {
-            files: Vec::new(),
+            root_node: InitAtBoot::Uninitialized,
             mounted_on: None,
         }
     }
@@ -38,21 +38,23 @@ impl VfsOps for Tmpfs {
     }
 
     fn vfs_start(&mut self) {
-        let mut node = TmpfsNode::new();
+        let mut node = TmpfsNode::new(VType::Regular);
 
-        node.data.push(0xFE);
-        node.data.push(0xFF);
-        node.data.push(0xFF);
+        let data = node.data.as_mut().unwrap();
 
-        self.files.push((
+        data.push(0xFE);
+        data.push(0xFF);
+        data.push(0xFF);
+
+        self.root_node.lock().create(
             "/test.txt".to_string(),
             Arc::new(Spinlock::new(VNode::new(
                 Weak::new(),
-                Arc::new(node),
-                crate::fs::vnode::VType::Regular,
+                Arc::new(Spinlock::new(node)),
+                VType::Regular,
                 None,
             ))),
-        ));
+        );
     }
 
     fn vfs_unmount(&self) {
@@ -87,7 +89,18 @@ impl VfsOps for Tmpfs {
         todo!()
     }
 
-    fn vfs_init(&mut self) {}
+    fn vfs_init(&mut self) {
+        let tmpfs_node = TmpfsNode::new(VType::Directory);
+
+        let root = Arc::new(Spinlock::new(VNode::new(
+            Weak::new(),
+            Arc::new(Spinlock::new(tmpfs_node)),
+            VType::Directory,
+            None,
+        )));
+
+        self.root_node = InitAtBoot::Initialized(root);
+    }
 
     fn vfs_done(&self) {
         todo!()
@@ -105,23 +118,33 @@ impl VfsOps for Tmpfs {
     fn vfs_lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>> {
         println!("tmpfs path lookup: {}", path);
 
-        for i in &self.files {
-            if i.0 == path {
-                return Ok(i.1.clone());
-            }
-        }
+        let node = self.root_node.lock().lookup(path);
 
-        return Err(Error::EntryNotFound);
+        node
     }
 }
 
 pub struct TmpfsNode {
-    data: Vec<u8>,
+    data: Option<Vec<u8>>,
+    children: Option<Vec<(String, Arc<Spinlock<VNode>>)>>,
+    vtype: VType,
 }
 
 impl TmpfsNode {
-    pub fn new() -> Self {
-        Self { data: Vec::new() }
+    pub fn new(vtype: VType) -> Self {
+        if vtype == VType::Directory {
+            Self {
+                data: None,
+                children: Some(Vec::new()),
+                vtype,
+            }
+        } else {
+            Self {
+                data: Some(Vec::new()),
+                children: None,
+                vtype,
+            }
+        }
     }
 }
 
@@ -138,8 +161,14 @@ impl VNodeOperations for TmpfsNode {
         todo!()
     }
 
-    fn create(&self) {
-        todo!()
+    fn create(&mut self, path: String, node: Arc<Spinlock<VNode>>) -> Result<()> {
+        if self.vtype != VType::Directory {
+            return Err(Error::NotADirectory);
+        }
+
+        self.children.as_mut().unwrap().push((path, node));
+
+        Ok(())
     }
 
     fn fsync(&self) {
@@ -162,8 +191,20 @@ impl VNodeOperations for TmpfsNode {
         todo!()
     }
 
-    fn lookup(&self) {
-        todo!()
+    fn lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>> {
+        println!("tmpfs path lookup: {}", path);
+
+        if self.vtype != VType::Directory {
+            return Err(Error::NotADirectory);
+        } else {
+            for child in self.children.as_ref().unwrap() {
+                if child.0 == path {
+                    return Ok(child.1.clone());
+                }
+            }
+        }
+
+        Err(Error::EntryNotFound)
     }
 
     fn mknod(&self) {

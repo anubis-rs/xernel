@@ -1,6 +1,10 @@
+use super::error::Result;
 use super::mount::Mount;
-use alloc::{rc::Weak, sync::Arc};
+use alloc::string::String;
+use alloc::{sync::Arc, sync::Weak};
+use libxernel::sync::Spinlock;
 
+#[derive(PartialEq, Eq)]
 pub enum VType {
     Non,
     Regular,
@@ -21,7 +25,7 @@ pub struct VNode {
     vfsp: Weak<Mount>,
     /// Holds the vnode operations vector and the private data for fs in one member
     /// since the struct, which each fs, which implements the VNodeOperations trait can directly own the private fs data
-    v_data_op: Arc<dyn VNodeOperations>,
+    v_data_op: Arc<Spinlock<dyn VNodeOperations>>,
     v_type: VType,
     flags: u64,
     // TODO: add attributes
@@ -33,15 +37,15 @@ pub struct VNode {
 impl VNode {
     pub fn new(
         vfsp: Weak<Mount>,
-        data_op: Arc<dyn VNodeOperations>,
+        data_op: Arc<Spinlock<dyn VNodeOperations>>,
         v_type: VType,
         v_mounted_here: Option<Weak<Mount>>,
     ) -> Self {
         VNode {
-            vfsp: vfsp,
+            vfsp,
             v_data_op: data_op,
-            v_type: v_type,
-            v_mounted_here: v_mounted_here,
+            v_type,
+            v_mounted_here,
             flags: 0,
         }
     }
@@ -49,103 +53,103 @@ impl VNode {
 
 impl VNode {
     pub fn close(&self) {
-        self.v_data_op.close()
+        self.v_data_op.lock().close();
     }
 
     pub fn access(&self) {
-        self.v_data_op.access()
+        self.v_data_op.lock().access()
     }
 
     pub fn bmap(&self) {
-        self.v_data_op.bmap()
+        self.v_data_op.lock().bmap()
     }
 
-    pub fn create(&self) {
-        self.v_data_op.create()
+    pub fn create(&mut self, path: String, node: Arc<Spinlock<VNode>>) -> Result<()> {
+        self.v_data_op.lock().create(path, node)
     }
 
     pub fn fsync(&self) {
-        self.v_data_op.fsync()
+        self.v_data_op.lock().fsync()
     }
 
     pub fn getattr(&self) {
-        self.v_data_op.getattr()
+        self.v_data_op.lock().getattr()
     }
 
     pub fn inactive(&self) {
-        self.v_data_op.inactive()
+        self.v_data_op.lock().inactive()
     }
 
     pub fn ioctl(&self) {
-        self.v_data_op.ioctl()
+        self.v_data_op.lock().ioctl()
     }
 
     pub fn link(&self) {
-        self.v_data_op.link()
+        self.v_data_op.lock().link()
     }
 
-    pub fn lookup(&self) {
-        self.v_data_op.lookup()
+    pub fn lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>> {
+        self.v_data_op.lock().lookup(path)
     }
 
     pub fn mknod(&self) {
-        self.v_data_op.mknod()
+        self.v_data_op.lock().mknod()
     }
 
     pub fn open(&self) {
-        self.v_data_op.open()
+        self.v_data_op.lock().open()
     }
 
     pub fn pathconf(&self) {
-        self.v_data_op.pathconf()
+        self.v_data_op.lock().pathconf()
     }
 
     pub fn read(&self) {
-        self.v_data_op.read()
+        self.v_data_op.lock().read()
     }
 
     pub fn readdir(&self) {
-        self.v_data_op.readdir()
+        self.v_data_op.lock().readdir()
     }
 
     pub fn readlink(&self) {
-        self.v_data_op.readlink()
+        self.v_data_op.lock().readlink()
     }
 
     pub fn reclaim(&self) {
-        self.v_data_op.reclaim()
+        self.v_data_op.lock().reclaim()
     }
 
     pub fn remove(&self) {
-        self.v_data_op.remove()
+        self.v_data_op.lock().remove()
     }
 
     pub fn rename(&self) {
-        self.v_data_op.rename()
+        self.v_data_op.lock().rename()
     }
 
     pub fn mkdir(&self) {
-        self.v_data_op.mkdir()
+        self.v_data_op.lock().mkdir()
     }
 
     pub fn rmdir(&self) {
-        self.v_data_op.rmdir()
+        self.v_data_op.lock().rmdir()
     }
 
     pub fn setattr(&self) {
-        self.v_data_op.setattr()
+        self.v_data_op.lock().setattr()
     }
 
     pub fn symlink(&self) {
-        self.v_data_op.symlink()
+        self.v_data_op.lock().symlink()
     }
 
     pub fn write(&self) {
-        self.v_data_op.write()
+        self.v_data_op.lock().write()
     }
 
     pub fn kqfilter(&self) {
-        self.v_data_op.kqfilter()
+        self.v_data_op.lock().kqfilter()
     }
 }
 
@@ -175,7 +179,7 @@ pub trait VNodeOperations {
     fn close(&self);
 
     /// Creates a new file.
-    fn create(&self);
+    fn create(&mut self, path: String, node: Arc<Spinlock<VNode>>) -> Result<()>;
 
     /// Synchronizes the file with on-disk contents.
     fn fsync(&self);
@@ -193,7 +197,7 @@ pub trait VNodeOperations {
     fn link(&self);
 
     /// Performs a path name lookup.
-    fn lookup(&self);
+    fn lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>>;
 
     /// Creates a new special file (a device or a named pipe).
     fn mknod(&self);

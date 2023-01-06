@@ -6,7 +6,7 @@ use alloc::{
 use libxernel::sync::Spinlock;
 
 use super::{
-    error::{Error, Result},
+    error::Result,
     mount::{Mount, VfsOps},
     tmpfs::Tmpfs,
     vnode::VNode,
@@ -40,7 +40,7 @@ impl Vfs {
         let idx = self
             .drivers
             .iter()
-            .position(|x| x.0 == name_of_fs.to_string());
+            .position(|x| x.0 == *name_of_fs.to_string());
 
         if idx.is_none() {
             return; // TODO: return error here
@@ -52,7 +52,6 @@ impl Vfs {
             None
         } else {
             // get vnode to mount on
-
             if let Ok(node) = self.lookuppn(where_to_mount.to_string()) {
                 Some(node)
             } else {
@@ -72,11 +71,9 @@ impl Vfs {
 
     /// Lookup path name
     fn lookuppn(&mut self, path: String) -> Result<Arc<Spinlock<VNode>>> {
-        // get filesystem path is mounted to
+        // TODO: get filesystem path is mounted to
         let mnt = self.mount_point_list.first_mut().unwrap().1.clone();
-        let node = mnt.vfs_lookup(path);
-
-        node
+        mnt.vfs_lookup(path)
     }
 
     pub fn vn_open(&mut self, path: String, mode: u64) -> Result<()> {
@@ -113,6 +110,9 @@ pub fn init() {
 
     let tmpfs = Arc::new(Spinlock::new(Tmpfs::new()));
 
+    tmpfs.lock().vfs_init();
+
     vfs.register_filesystem(String::from("tmpfs"), tmpfs);
+
     vfs.vn_mount("tmpfs", "/");
 }

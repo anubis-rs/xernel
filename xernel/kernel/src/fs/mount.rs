@@ -22,7 +22,7 @@ impl Mount {
     ) -> Self {
         Mount {
             mnt_op_data: driver,
-            vnode_covered: vnode_covered,
+            vnode_covered,
             vnode_list: Vec::new(),
             flags: 0,
         }
@@ -87,7 +87,7 @@ impl Mount {
     }
 
     pub fn vfs_name(&self) -> String {
-        self.mnt_op_data.lock().vfs_name().clone()
+        self.mnt_op_data.lock().vfs_name()
     }
 }
 
