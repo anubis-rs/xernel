@@ -40,7 +40,11 @@ impl VfsOps for Tmpfs {
     fn vfs_start(&mut self) {
         let mut node = TmpfsNode::new(VType::Regular);
 
-        let data = node.data.as_mut().unwrap();
+        let data = if let TmpfsNodeData::Data(data) = &mut node.data {
+            data
+        } else {
+            return;
+        };
 
         data.push(0xFE);
         data.push(0xFF);
@@ -124,25 +128,24 @@ impl VfsOps for Tmpfs {
     }
 }
 
+enum TmpfsNodeData {
+    Children(Vec<(String, Arc<Spinlock<VNode>>)>),
+    Data(Vec<u8>),
+}
+
 pub struct TmpfsNode {
-    data: Option<Vec<u8>>,
-    children: Option<Vec<(String, Arc<Spinlock<VNode>>)>>,
-    vtype: VType,
+    data: TmpfsNodeData,
 }
 
 impl TmpfsNode {
     pub fn new(vtype: VType) -> Self {
         if vtype == VType::Directory {
             Self {
-                data: None,
-                children: Some(Vec::new()),
-                vtype,
+                data: TmpfsNodeData::Children(Vec::new()),
             }
         } else {
             Self {
-                data: Some(Vec::new()),
-                children: None,
-                vtype,
+                data: TmpfsNodeData::Data(Vec::new()),
             }
         }
     }
@@ -162,11 +165,11 @@ impl VNodeOperations for TmpfsNode {
     }
 
     fn create(&mut self, path: String, node: Arc<Spinlock<VNode>>) -> Result<()> {
-        if self.vtype != VType::Directory {
+        if let TmpfsNodeData::Children(children) = &mut self.data {
+            children.push((path, node));
+        } else {
             return Err(Error::NotADirectory);
         }
-
-        self.children.as_mut().unwrap().push((path, node));
 
         Ok(())
     }
@@ -194,14 +197,14 @@ impl VNodeOperations for TmpfsNode {
     fn lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>> {
         println!("tmpfs path lookup: {}", path);
 
-        if self.vtype != VType::Directory {
-            return Err(Error::NotADirectory);
-        } else {
-            for child in self.children.as_ref().unwrap() {
+        if let TmpfsNodeData::Children(children) = &self.data {
+            for child in children {
                 if child.0 == path {
                     return Ok(child.1.clone());
                 }
             }
+        } else {
+            return Err(Error::NotADirectory);
         }
 
         Err(Error::EntryNotFound)
@@ -220,7 +223,11 @@ impl VNodeOperations for TmpfsNode {
     }
 
     fn read(&self) {
-        println!("{:?}", self.data);
+        if let TmpfsNodeData::Data(data) = &self.data {
+            println!("reading tmpfs node: {:?}", data);
+        } else {
+            println!("have to throw error");
+        }
     }
 
     fn readdir(&self) {
