@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use libxernel::sync::TicketMutex;
-use x86_64::instructions::segmentation::{Segment, CS, DS, ES, FS, GS, SS};
+use x86_64::instructions::segmentation::{Segment, CS, DS, ES, SS};
 use x86_64::instructions::tables::load_tss;
 use x86_64::structures::gdt::SegmentSelector;
 use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable};
@@ -89,8 +89,8 @@ pub fn init_ap(ap_id: usize) {
     let gdt: &'static mut GlobalDescriptorTable = Box::leak(Box::new(GlobalDescriptorTable::new()));
     let code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
     let data_selector = gdt.add_entry(Descriptor::kernel_data_segment());
-    gdt.add_entry(Descriptor::user_code_segment());
-    gdt.add_entry(Descriptor::user_data_segment());
+    let user_data_selector = gdt.add_entry(Descriptor::user_data_segment());
+    let user_code_selector = gdt.add_entry(Descriptor::user_code_segment());
 
     let tss: &'static mut TaskStateSegment = Box::leak(Box::new(TaskStateSegment::new()));
     let tss_selector = gdt.add_entry(Descriptor::tss_segment(tss));
@@ -101,8 +101,8 @@ pub fn init_ap(ap_id: usize) {
             code_selector,
             data_selector,
             tss_selector,
-            user_code_selector: code_selector,
-            user_data_selector: data_selector,
+            user_code_selector,
+            user_data_selector,
         },
         tss,
         ap_id,
@@ -114,8 +114,6 @@ pub fn init_ap(ap_id: usize) {
         SS::set_reg(data_selector);
         DS::set_reg(data_selector);
         ES::set_reg(data_selector);
-        FS::set_reg(data_selector);
-        GS::set_reg(data_selector);
 
         load_tss(tss_selector);
     }

@@ -20,7 +20,7 @@ pub extern "C" fn x86_64_ap_main(boot_info: *const LimineSmpInfo) -> ! {
         }
     }
 
-    info!("booting CPU {:#?}", boot_info);
+    info!("booting CPU {:?}", boot_info);
 
     gdt::init_ap(ap_id);
     info!("CPU{}: gdt initialized", ap_id);
