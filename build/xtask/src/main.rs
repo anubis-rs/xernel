@@ -42,6 +42,8 @@ fn main() -> Result<()> {
     // cd into the root folder of this workspace
     let sh = Shell::new().unwrap();
 
+    sh.set_var("RUSTFLAGS", "-Cforce-frame-pointers=yes");
+
     let _cwd = sh.push_dir(root());
 
     match args.subcommand()?.as_deref() {
@@ -103,8 +105,6 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
     }
 
     let release = if rl { &["--release"] } else { &[][..] };
-
-    sh.set_var("RUSTFLAGS", "-Cforce-frame-pointers=yes");
 
     cmd!(
         sh,
@@ -213,7 +213,8 @@ fn clippy(sh: &Shell) -> Result<()> {
         "cargo clippy
             -p xernel
             --target ./build/targets/x86_64.json
-            -Zbuild-std=core,alloc,compiler_builtins"
+            -Z build-std=core,alloc,compiler_builtins
+            -Z build-std-features=compiler-builtins-mem"
     )
     .run()?;
 
