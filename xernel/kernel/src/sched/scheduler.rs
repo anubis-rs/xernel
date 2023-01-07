@@ -111,10 +111,8 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
 
     let context = task.context.clone();
 
-    let mut apic = APIC.lock();
-    apic.eoi();
-    apic.create_oneshot_timer(0x40, task.priority.ms() * 1000);
-    SpinlockIRQ::unlock(apic);
+    APIC.eoi();
+    APIC.create_oneshot_timer(0x40, task.priority.ms() * 1000);
 
     SpinlockIRQ::unlock(sched);
 

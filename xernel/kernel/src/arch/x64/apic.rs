@@ -1,6 +1,6 @@
 use acpi_parsing::platform::interrupt::Apic;
 use alloc::vec::Vec;
-use libxernel::sync::{Spinlock, SpinlockIRQ};
+use libxernel::sync::{Once, Spinlock};
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{
     structures::paging::{Page, PageTableFlags, PhysFrame, Size4KiB},
@@ -25,10 +25,7 @@ pub struct IOApic {
 
 pub static IOAPICS: Spinlock<Vec<IOApic>> = Spinlock::new(Vec::new());
 
-pub static APIC: SpinlockIRQ<LocalAPIC> = SpinlockIRQ::new(LocalAPIC {
-    address: 0,
-    frequency: 0,
-});
+pub static APIC: Once<LocalAPIC> = Once::new();
 
 pub fn init() {
     let apic_info = ACPI.get_apic();
@@ -43,16 +40,15 @@ pub fn init() {
         });
     }
 
-    let mut lapic = APIC.lock();
+    let lapic = LocalAPIC::new(&apic_info);
+    APIC.set_once(lapic);
 
     let ioapic = io_apics.first_mut().unwrap();
-
-    lapic.init(&apic_info);
     ioapic.init(&apic_info);
 }
 
 impl LocalAPIC {
-    pub fn init(&mut self, apic_info: &Apic) {
+    pub fn new(apic_info: &Apic) -> Self {
         let mut mapper = KERNEL_PAGE_MAPPER.lock();
 
         let apic_base = apic_info.local_apic_address + *HIGHER_HALF_OFFSET;
@@ -66,13 +62,16 @@ impl LocalAPIC {
             true,
         );
 
-        self.address = apic_base;
+        let mut lapic = LocalAPIC {
+            address: apic_base,
+            frequency: 0,
+        };
 
-        self.enable_apic();
+        lapic.enable_apic();
+        lapic.init_timer_frequency();
+        lapic.create_oneshot_timer(0x40, 10_000);
 
-        self.init_timer_frequency();
-
-        self.create_oneshot_timer(0x40, 10_000);
+        lapic
     }
 
     pub fn init_timer_frequency(&mut self) {
@@ -106,7 +105,7 @@ impl LocalAPIC {
         ((self.address + reg) as *const u32).read_volatile()
     }
 
-    pub unsafe fn write(&mut self, reg: u64, val: u32) {
+    pub unsafe fn write(&self, reg: u64, val: u32) {
         ((self.address + reg) as *mut u32).write_volatile(val);
     }
 
@@ -114,7 +113,7 @@ impl LocalAPIC {
         unsafe { self.read(0x20) }
     }
 
-    pub fn eoi(&mut self) {
+    pub fn eoi(&self) {
         unsafe { self.write(0xB0, 0) }
     }
 
@@ -123,11 +122,11 @@ impl LocalAPIC {
         unsafe { self.read(0xF0) }
     }
 
-    pub fn set_siv(&mut self, value: u32) {
+    pub fn set_siv(&self, value: u32) {
         unsafe { self.write(0xF0, value) }
     }
 
-    pub fn enable_apic(&mut self) {
+    pub fn enable_apic(&self) {
         unsafe {
             self.set_siv(0x1ff);
 
@@ -136,7 +135,7 @@ impl LocalAPIC {
         }
     }
 
-    pub fn create_periodic_timer(&mut self, int_no: u8, micro_seconds_period: u64) {
+    pub fn create_periodic_timer(&self, int_no: u8, micro_seconds_period: u64) {
         let mut apic_ticks = self.frequency * micro_seconds_period / (1000 * 1000);
         apic_ticks /= 16;
 
@@ -152,7 +151,7 @@ impl LocalAPIC {
         }
     }
 
-    pub fn create_oneshot_timer(&mut self, int_no: u8, micro_seconds_period: u64) {
+    pub fn create_oneshot_timer(&self, int_no: u8, micro_seconds_period: u64) {
         let mut apic_ticks = self.frequency * micro_seconds_period / (1000 * 1000);
         apic_ticks /= 16;
 
@@ -168,7 +167,7 @@ impl LocalAPIC {
         }
     }
 
-    pub fn stop(&mut self) {
+    pub fn stop(&self) {
         unsafe {
             self.write(0x380, 0);
         }
@@ -254,7 +253,5 @@ impl IOApic {
 }
 
 pub extern "x86-interrupt" fn apic_spurious_interrupt(_stack_frame: InterruptStackFrame) {
-    let mut apic = APIC.lock();
-
-    apic.eoi();
+    APIC.eoi();
 }

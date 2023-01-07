@@ -6,7 +6,6 @@ pub mod ports;
 use crate::arch::x64::apic::APIC;
 use crate::info;
 use crate::KERNEL_PAGE_MAPPER;
-use libxernel::sync::SpinlockIRQ;
 use limine::LimineSmpInfo;
 use x86_64::instructions::interrupts;
 
@@ -30,13 +29,8 @@ pub extern "C" fn x86_64_ap_main(boot_info: *const LimineSmpInfo) -> ! {
     idt::init();
     info!("CPU{}: idt initialized", ap_id);
 
-    let mut apic = APIC.lock();
-
-    apic.enable_apic();
-
-    apic.create_oneshot_timer(0x40, 10_000);
-
-    SpinlockIRQ::unlock(apic);
+    APIC.enable_apic();
+    APIC.create_oneshot_timer(0x40, 10_000);
 
     info!("CPU{}: apic initialized", ap_id);
 
