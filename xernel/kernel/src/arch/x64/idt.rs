@@ -1,7 +1,8 @@
-use crate::arch::x64::apic::{apic_spurious_interrupt, timer};
+use crate::arch::x64::apic::apic_spurious_interrupt;
 use crate::arch::x64::gdt::DOUBLE_FAULT_IST_INDEX;
 use crate::arch::x64::ports::outb;
 use crate::drivers::ps2::keyboard::keyboard;
+use crate::sched::scheduler::scheduler_irq_handler;
 use core::arch::asm;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::PageFaultErrorCode;
@@ -25,7 +26,7 @@ lazy_static! {
             .set_handler_fn(general_fault_handler);
 
         unsafe {
-            idt[0x40].set_handler_addr(VirtAddr::new(timer as u64));
+            idt[0x40].set_handler_addr(VirtAddr::new(scheduler_irq_handler as u64));
         }
         idt[0x47].set_handler_fn(keyboard);
         idt[0xff].set_handler_fn(apic_spurious_interrupt);

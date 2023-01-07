@@ -2,9 +2,11 @@ use crate::arch::x64::gdt::GDT_BSP;
 use crate::sched::context::restore_context;
 use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
+use core::arch::asm;
 use libxernel::sync::SpinlockIRQ;
 use x86_64::registers::model_specific::KernelGsBase;
 use x86_64::registers::segmentation::{Segment, DS};
+use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::VirtAddr;
 
 use super::context::TaskContext;
@@ -55,6 +57,31 @@ impl Scheduler {
 
     pub fn current_task(&mut self) -> &mut Task {
         self.tasks.front_mut().unwrap()
+    }
+}
+
+#[naked]
+pub extern "C" fn scheduler_irq_handler(_stack_frame: InterruptStackFrame) {
+    unsafe {
+        asm!(
+            "push r15;
+            push r14; 
+            push r13;
+            push r12;
+            push r11;
+            push r10;
+            push r9;
+            push r8;
+            push rdi;
+            push rsi;
+            push rdx;
+            push rcx;
+            push rbx;
+            push rax;
+            push rbp;
+            call schedule_handle",
+            options(noreturn)
+        );
     }
 }
 

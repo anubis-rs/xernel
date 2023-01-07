@@ -1,6 +1,5 @@
 use acpi_parsing::platform::interrupt::Apic;
 use alloc::vec::Vec;
-use core::arch::asm;
 use libxernel::sync::{Spinlock, SpinlockIRQ};
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{
@@ -50,31 +49,6 @@ pub fn init() {
 
     lapic.init(&apic_info);
     ioapic.init(&apic_info);
-}
-
-#[naked]
-pub extern "C" fn timer(_stack_frame: InterruptStackFrame) {
-    unsafe {
-        asm!(
-            "push r15;
-            push r14; 
-            push r13;
-            push r12;
-            push r11;
-            push r10;
-            push r9;
-            push r8;
-            push rdi;
-            push rsi;
-            push rdx;
-            push rcx;
-            push rbx;
-            push rax;
-            push rbp;
-            call schedule_handle",
-            options(noreturn)
-        );
-    }
 }
 
 impl LocalAPIC {
