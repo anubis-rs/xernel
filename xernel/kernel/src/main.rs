@@ -104,9 +104,11 @@ extern "C" fn kernel_main() -> ! {
 
     let mut vfs = VFS.lock();
 
-    vfs.vn_open("/test.txt".to_string(), 12);
+    vfs.vn_open("/test.txt".to_string(), 12)
+        .expect("Open of /test.txt failed");
 
-    vfs.vn_read("/test.txt".to_string());
+    vfs.vn_read("/test.txt".to_string())
+        .expect("Reading of /test.txt failed");
 
     let bootloader_info = BOOTLOADER_INFO
         .get_response()

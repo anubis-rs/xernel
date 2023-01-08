@@ -23,7 +23,7 @@ impl PathBuf {
 
     pub fn components(&self) -> Vec<String> {
         self.inner
-            .split_inclusive("/")
+            .split_inclusive('/')
             .map(|s| s.to_string())
             .collect()
     }

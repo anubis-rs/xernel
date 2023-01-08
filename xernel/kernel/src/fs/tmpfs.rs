@@ -50,15 +50,18 @@ impl VfsOps for Tmpfs {
         data.push(0xFF);
         data.push(0xFF);
 
-        self.root_node.lock().create(
-            "/test.txt".to_string(),
-            Arc::new(Spinlock::new(VNode::new(
-                Weak::new(),
-                Arc::new(Spinlock::new(node)),
-                VType::Regular,
-                None,
-            ))),
-        );
+        self.root_node
+            .lock()
+            .create(
+                "/test.txt".to_string(),
+                Arc::new(Spinlock::new(VNode::new(
+                    Weak::new(),
+                    Arc::new(Spinlock::new(node)),
+                    VType::Regular,
+                    None,
+                ))),
+            )
+            .expect("Creation of root node in tmpfs failed");
     }
 
     fn vfs_unmount(&self) {
