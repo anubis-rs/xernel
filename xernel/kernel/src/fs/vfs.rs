@@ -5,9 +5,12 @@ use alloc::{
 };
 use libxernel::sync::Spinlock;
 
+use crate::{debug, println};
+
 use super::{
-    error::Result,
+    error::{Error, Result},
     mount::{Mount, VfsOps},
+    pathbuf::PathBuf,
     tmpfs::Tmpfs,
     vnode::VNode,
 };
@@ -70,10 +73,34 @@ impl Vfs {
     }
 
     /// Lookup path name
-    fn lookuppn(&mut self, path: String) -> Result<Arc<Spinlock<VNode>>> {
+    pub fn lookuppn(&mut self, path: String) -> Result<Arc<Spinlock<VNode>>> {
         // TODO: get filesystem path is mounted to
-        let mnt = self.mount_point_list.first_mut().unwrap().1.clone();
+        let path = PathBuf::from(path);
+
+        let mnt_point = self.get_mount_point(&path);
+
+        if mnt_point.is_err() {
+            return Err(Error::MountPointNotFound);
+        }
+
+        let mnt_point_name = mnt_point.unwrap();
+
+        let mnt = &self
+            .mount_point_list
+            .iter()
+            .find(|s| s.0 == mnt_point_name)
+            .unwrap()
+            .1;
+
+        let mnt = &self.mount_point_list.first().unwrap().1;
+
         mnt.vfs_lookup(path)
+    }
+
+    fn get_mount_point(&mut self, path: &PathBuf) -> Result<String> {
+        let components = path.components();
+
+        Ok(String::from("/"))
     }
 
     pub fn vn_open(&mut self, path: String, mode: u64) -> Result<()> {

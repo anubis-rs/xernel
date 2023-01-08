@@ -3,6 +3,7 @@
 ///! NetBSD was my choice since it had the simplest codebase to read through.
 mod error;
 mod mount;
+pub mod pathbuf;
 pub mod tmpfs;
 pub mod vfs;
 pub mod vnode;

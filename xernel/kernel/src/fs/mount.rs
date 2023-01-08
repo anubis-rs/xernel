@@ -1,4 +1,4 @@
-use super::{error::Result, vnode::VNode};
+use super::{error::Result, pathbuf::PathBuf, vnode::VNode};
 use alloc::{string::String, sync::Arc, vec::Vec};
 use libxernel::sync::Spinlock;
 
@@ -62,8 +62,8 @@ impl Mount {
         self.mnt_op_data.lock().vfs_vget()
     }
 
-    pub fn vfs_lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>> {
-        self.mnt_op_data.lock().vfs_lookup(path)
+    pub fn vfs_lookup(&self, path: PathBuf) -> Result<Arc<Spinlock<VNode>>> {
+        self.mnt_op_data.lock().vfs_lookup(path.into_string())
     }
 
     pub fn vfs_fhtovp(&self) {
