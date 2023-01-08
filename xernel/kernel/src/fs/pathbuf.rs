@@ -3,11 +3,7 @@ use alloc::{
     vec::Vec,
 };
 
-use crate::{
-    fs::error::{Error, Result},
-    println,
-};
-
+#[derive(Debug)]
 pub struct PathBuf {
     inner: String,
 }
@@ -44,6 +40,18 @@ impl PathBuf {
         self.inner.clear()
     }
 
+    pub fn starts_with(&self, pat: &PathBuf) -> bool {
+        self.inner.starts_with(&pat.as_string())
+    }
+
+    pub fn as_string(&self) -> String {
+        self.inner.clone()
+    }
+
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
     // TODO:
     pub fn push(&mut self) {}
 
@@ -61,6 +69,28 @@ impl From<&str> for PathBuf {
     fn from(path: &str) -> Self {
         PathBuf {
             inner: path.to_string(),
+        }
+    }
+}
+
+impl From<&String> for PathBuf {
+    fn from(path: &String) -> Self {
+        PathBuf {
+            inner: path.clone(),
+        }
+    }
+}
+
+impl PartialEq for PathBuf {
+    fn eq(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+}
+
+impl Clone for PathBuf {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
         }
     }
 }
