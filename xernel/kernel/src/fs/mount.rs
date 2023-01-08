@@ -107,10 +107,14 @@ pub trait VfsOps {
     fn vfs_root(&self);
 
     /// Queries or modifies space quotas.
-    fn vfs_quotactl(&self);
+    fn vfs_quotactl(&self) {
+        unimplemented!("{} does not implement vfs_quotactl", self.vfs_name());
+    }
 
     /// Gets file system statistics.
-    fn vfs_statvfs(&self);
+    fn vfs_statvfs(&self) {
+        unimplemented!("{} does not implement vfs_statvfs", self.vfs_name());
+    }
 
     /// Flushes file system buffers.
     fn vfs_sync(&self);
@@ -121,17 +125,21 @@ pub trait VfsOps {
     fn vfs_lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>>;
 
     /// Converts a NFS file handle to a vnode.
-    fn vfs_fhtovp(&self);
+    fn vfs_fhtovp(&self) {
+        unimplemented!("{} does not implement vfs_fhtovp", self.vfs_name());
+    }
 
     /// Converts a vnode to a NFS file handle.
-    fn vfs_vptofh(&self);
+    fn vfs_vptofh(&self) {
+        unimplemented!("{} does not implement vfs_vptofh", self.vfs_name());
+    }
 
     /// Initializes the file system driver.
     fn vfs_init(&mut self);
 
     /// Reinitializes the file system driver.
     fn vfs_reinit(&self) {
-        unimplemented!("{} does not implement fs_reinit", self.vfs_name());
+        unimplemented!("{} does not implement vfs_reinit", self.vfs_name());
     }
 
     /// Finalizes the file system driver.
@@ -139,13 +147,15 @@ pub trait VfsOps {
 
     /// Mounts an instance of the file system as the root file system.
     fn vfs_mountroot(&self) {
-        unimplemented!("{} does not implement fs_mountroot", self.vfs_name());
+        unimplemented!("{} does not implement vfs_mountroot", self.vfs_name());
     }
 
     /// Controls extended attributes.
     // The generic vfs_stdextattrctl function is provided as a simple hook for file system that do not support this operation
     // TODO: create a generic vfs_stdextattrctl function
-    fn vfs_extattrctl(&self);
+    fn vfs_extattrctl(&self) {
+        unimplemented!("{} does not implement vfs_extattrctl", self.vfs_name());
+    }
 
     /// Returns the name of the file system
     fn vfs_name(&self) -> String;

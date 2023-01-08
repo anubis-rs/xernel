@@ -161,14 +161,18 @@ pub trait VNodeOperations {
     }
 
     /// Checks access permissions on a file.
-    fn access(&self);
+    fn access(&self) {
+        unimplemented!()
+    }
 
     fn advlock(&self) {
         unimplemented!()
     }
 
     /// Maps a logical block number to a physical block number.
-    fn bmap(&self);
+    fn bmap(&self) {
+        unimplemented!()
+    }
 
     /// Writes a system buffer.
     fn bwrite(&self) {
@@ -182,19 +186,27 @@ pub trait VNodeOperations {
     fn create(&mut self, path: String, node: Arc<Spinlock<VNode>>) -> Result<()>;
 
     /// Synchronizes the file with on-disk contents.
-    fn fsync(&self);
+    fn fsync(&self) {
+        unimplemented!()
+    }
 
     /// Gets a file's attributes.
-    fn getattr(&self);
+    fn getattr(&self) {
+        unimplemented!()
+    }
 
     /// Marks the vnode as inactive.
-    fn inactive(&self);
+    fn inactive(&self) {
+        unimplemented!()
+    }
 
     /// Performs an ioctl on a file.
     fn ioctl(&self);
 
     /// Creates a new hard link for a file.
-    fn link(&self);
+    fn link(&self) {
+        unimplemented!()
+    }
 
     /// Performs a path name lookup.
     fn lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>>;
@@ -206,7 +218,9 @@ pub trait VNodeOperations {
     fn open(&self);
 
     /// Returns pathconf information.
-    fn pathconf(&self);
+    fn pathconf(&self) {
+        unimplemented!()
+    }
 
     /// Reads a chunk of data from a file.
     fn read(&self);
@@ -233,7 +247,9 @@ pub trait VNodeOperations {
     fn rmdir(&self);
 
     /// Sets a file's attributes.
-    fn setattr(&self);
+    fn setattr(&self) {
+        unimplemented!()
+    }
 
     /// Performs a file transfer between the file system's backing store and memory.
     fn strategy(&self) {
@@ -246,7 +262,9 @@ pub trait VNodeOperations {
     /// Writes a chunk of data to a file.
     fn write(&self);
 
-    fn kqfilter(&self);
+    fn kqfilter(&self) {
+        unimplemented!()
+    }
 
     fn print(&self) {
         unimplemented!()

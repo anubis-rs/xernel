@@ -69,27 +69,7 @@ impl VfsOps for Tmpfs {
         todo!()
     }
 
-    fn vfs_quotactl(&self) {
-        todo!()
-    }
-
-    fn vfs_statvfs(&self) {
-        todo!()
-    }
-
-    fn vfs_sync(&self) {
-        todo!()
-    }
-
     fn vfs_vget(&self) {
-        todo!()
-    }
-
-    fn vfs_fhtovp(&self) {
-        todo!()
-    }
-
-    fn vfs_vptofh(&self) {
         todo!()
     }
 
@@ -110,10 +90,6 @@ impl VfsOps for Tmpfs {
         todo!()
     }
 
-    fn vfs_extattrctl(&self) {
-        todo!()
-    }
-
     fn vfs_name(&self) -> String {
         "tmpfs".to_string()
     }
@@ -125,6 +101,10 @@ impl VfsOps for Tmpfs {
         let node = self.root_node.lock().lookup(path);
 
         node
+    }
+
+    fn vfs_sync(&self) {
+        todo!()
     }
 }
 
@@ -152,14 +132,6 @@ impl TmpfsNode {
 }
 
 impl VNodeOperations for TmpfsNode {
-    fn access(&self) {
-        todo!()
-    }
-
-    fn bmap(&self) {
-        todo!()
-    }
-
     fn close(&self) {
         todo!()
     }
@@ -174,23 +146,7 @@ impl VNodeOperations for TmpfsNode {
         Ok(())
     }
 
-    fn fsync(&self) {
-        todo!()
-    }
-
-    fn getattr(&self) {
-        todo!()
-    }
-
-    fn inactive(&self) {
-        todo!()
-    }
-
     fn ioctl(&self) {
-        todo!()
-    }
-
-    fn link(&self) {
         todo!()
     }
 
@@ -216,10 +172,6 @@ impl VNodeOperations for TmpfsNode {
 
     fn open(&self) {
         println!("opening file on tmpfs");
-    }
-
-    fn pathconf(&self) {
-        todo!()
     }
 
     fn read(&self) {
@@ -258,19 +210,11 @@ impl VNodeOperations for TmpfsNode {
         todo!()
     }
 
-    fn setattr(&self) {
-        todo!()
-    }
-
     fn symlink(&self) {
         todo!()
     }
 
     fn write(&self) {
-        todo!()
-    }
-
-    fn kqfilter(&self) {
         todo!()
     }
 }
