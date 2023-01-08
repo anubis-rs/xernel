@@ -5,8 +5,6 @@ use alloc::{
 };
 use libxernel::sync::Spinlock;
 
-use crate::{debug, println};
-
 use super::{
     error::{Error, Result},
     mount::{Mount, VfsOps},
@@ -18,7 +16,7 @@ use super::{
 pub static VFS: Spinlock<Vfs> = Spinlock::new(Vfs::new());
 
 pub struct Vfs {
-    mount_point_list: Vec<(String, Arc<Mount>)>,
+    mount_point_list: Vec<(PathBuf, Arc<Mount>)>,
     drivers: Vec<(String, Arc<Spinlock<dyn VfsOps>>)>,
     free_vnodes: Vec<Arc<VNode>>,
 }
@@ -69,44 +67,41 @@ impl Vfs {
         mount.vfs_start();
 
         self.mount_point_list
-            .push((where_to_mount.to_string(), Arc::new(mount)));
+            .push((PathBuf::from(where_to_mount), Arc::new(mount)));
     }
 
     /// Lookup path name
-    pub fn lookuppn(&mut self, path: String) -> Result<Arc<Spinlock<VNode>>> {
-        // TODO: get filesystem path is mounted to
+    pub fn lookuppn(&self, path: String) -> Result<Arc<Spinlock<VNode>>> {
         let path = PathBuf::from(path);
 
-        let mnt_point = self.get_mount_point(&path);
+        let mnt_point = self.get_mount_point(&path)?;
 
-        if mnt_point.is_err() {
-            return Err(Error::MountPointNotFound);
-        }
-
-        let mnt_point_name = mnt_point.unwrap();
-
-        let mnt = &self
+        let mnt = self
             .mount_point_list
             .iter()
-            .find(|s| s.0 == mnt_point_name)
-            .unwrap()
-            .1;
-
-        let mnt = &self.mount_point_list.first().unwrap().1;
+            .find(|(pt, _)| pt == mnt_point)
+            .map(|(_, mnt)| mnt)
+            .ok_or(Error::MountPointNotFound)?;
 
         mnt.vfs_lookup(path)
     }
 
-    fn get_mount_point(&mut self, path: &PathBuf) -> Result<String> {
-        let components = path.components();
+    fn get_mount_point(&self, path: &PathBuf) -> Result<&PathBuf> {
+        let mnt_point = self
+            .mount_point_list
+            .iter()
+            .filter(|(pt, _)| path.starts_with(pt))
+            .max_by_key(|(pt, _)| pt.len())
+            .map(|(pt, _)| pt)
+            .ok_or(Error::MountPointNotFound)?;
 
-        Ok(String::from("/"))
+        Ok(mnt_point)
     }
 
     pub fn vn_open(&mut self, path: String, mode: u64) -> Result<()> {
-        let node = self.lookuppn(path);
+        let node = self.lookuppn(path)?;
 
-        node?.lock().open();
+        node.lock().open();
 
         Ok(())
     }
@@ -114,9 +109,9 @@ impl Vfs {
     pub fn vn_close(&mut self) {}
 
     pub fn vn_read(&mut self, path: String) -> Result<()> {
-        let node = self.lookuppn(path);
+        let node = self.lookuppn(path)?;
 
-        node?.lock().read();
+        node.lock().read();
 
         Ok(())
     }
