@@ -36,18 +36,13 @@ impl Vfs {
         self.drivers.push((name, operations));
     }
 
-    pub fn vn_mount(&mut self, name_of_fs: &str, where_to_mount: &str) {
-        // TODO: return if driver for given fs is not registered
-        let idx = self
+    pub fn vn_mount(&mut self, name_of_fs: &str, where_to_mount: &str) -> Result<()> {
+        let driver = self
             .drivers
             .iter()
-            .position(|x| x.0 == *name_of_fs.to_string());
-
-        if idx.is_none() {
-            return; // TODO: return error here
-        }
-
-        let driver = self.drivers.get(idx.unwrap()).unwrap().1.clone();
+            .find(|(name, _)| name == name_of_fs)
+            .map(|(_, driver)| driver)
+            .ok_or(Error::FileSystemNotFound)?;
 
         let node_covered = if where_to_mount == "/" {
             None
@@ -56,11 +51,11 @@ impl Vfs {
             if let Ok(node) = self.lookuppn(where_to_mount.to_string()) {
                 Some(node)
             } else {
-                return;
+                return Err(Error::EntryNotFound);
             }
         };
 
-        let mut mount = Mount::new(driver, node_covered);
+        let mut mount = Mount::new(driver.clone(), node_covered);
 
         mount.vfs_mount(where_to_mount.to_string());
 
@@ -68,6 +63,8 @@ impl Vfs {
 
         self.mount_point_list
             .push((PathBuf::from(where_to_mount), Arc::new(mount)));
+
+        Ok(())
     }
 
     /// Lookup path name
@@ -98,7 +95,7 @@ impl Vfs {
         Ok(mnt_point)
     }
 
-    pub fn vn_open(&mut self, path: String, mode: u64) -> Result<()> {
+    pub fn vn_open(&mut self, path: String, _mode: u64) -> Result<()> {
         let node = self.lookuppn(path)?;
 
         node.lock().open();
@@ -136,5 +133,6 @@ pub fn init() {
 
     vfs.register_filesystem(String::from("tmpfs"), tmpfs);
 
-    vfs.vn_mount("tmpfs", "/");
+    vfs.vn_mount("tmpfs", "/")
+        .expect("Mounting tmpfs on / failed");
 }
