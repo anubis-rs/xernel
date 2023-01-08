@@ -59,6 +59,10 @@ impl Pagemap {
         }
     }
 
+    pub fn pml4(&self) -> PhysAddr {
+        PhysAddr::new(self.page_table as u64 - *HIGHER_HALF_OFFSET)
+    }
+
     pub fn fill_with_kernel_entries(&mut self) {
         let kernel_mapper = KERNEL_PAGE_MAPPER.lock();
         let pt = unsafe { &*kernel_mapper.page_table };

@@ -4,6 +4,7 @@ use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
 use core::arch::asm;
 use libxernel::sync::SpinlockIRQ;
+use x86_64::registers::control::Cr3;
 use x86_64::registers::model_specific::KernelGsBase;
 use x86_64::registers::segmentation::{Segment, DS};
 use x86_64::structures::idt::InterruptStackFrame;
@@ -100,7 +101,15 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     if !task.is_kernel_task() {
         unsafe {
             // SAFETY: a user task always has a page table
-            task.get_page_table().unwrap().load_pt();
+            let pt = task.get_page_table().unwrap();
+
+            let cr3 = Cr3::read_raw();
+            let cr3 = cr3.0.start_address().as_u64() | cr3.1 as u64;
+
+            // Only reload the page table if it's different to avoid unnecessary TLB flushes
+            if cr3 != pt.pml4().as_u64() {
+                pt.load_pt();
+            }
 
             DS::set_reg(GDT_BSP.1.user_data_selector);
 
