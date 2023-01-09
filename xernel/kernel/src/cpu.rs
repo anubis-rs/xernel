@@ -11,8 +11,8 @@ static CPU_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 pub static CPU_COUNT: Once<usize> = Once::new();
 
 #[repr(packed)]
-pub struct CpuData {
-    // NOTE: don't move this variables as we need to access them from assembly
+pub struct PerCpuData {
+    // NOTE: don't move these variables as we need to access them from assembly
     user_space_stack: usize,
     kernel_stack: usize,
 
@@ -20,7 +20,7 @@ pub struct CpuData {
     lapic_id: u32,
 }
 
-impl CpuData {
+impl PerCpuData {
     pub fn set_kernel_stack(&mut self, kernel_stack: usize) {
         self.kernel_stack = kernel_stack;
     }
@@ -34,7 +34,7 @@ pub fn register_cpu() {
     let cpu_id = CPU_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
     let lapic_id = APIC.lapic_id();
 
-    let cpu_data = Box::leak(Box::new(CpuData {
+    let cpu_data = Box::leak(Box::new(PerCpuData {
         user_space_stack: 0,
         kernel_stack: 0,
         cpu_id,
@@ -45,7 +45,7 @@ pub fn register_cpu() {
     KernelGsBase::write(VirtAddr::new(cpu_data as *const _ as u64));
 }
 
-pub fn get_cpu_data() -> &'static mut CpuData {
-    let cpu_data = KernelGsBase::read().as_u64() as *mut CpuData;
+pub fn get_per_cpu_data() -> &'static mut PerCpuData {
+    let cpu_data = KernelGsBase::read().as_u64() as *mut PerCpuData;
     unsafe { &mut *cpu_data }
 }

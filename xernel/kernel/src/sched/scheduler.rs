@@ -1,5 +1,5 @@
 use crate::arch::x64::gdt::GDT_BSP;
-use crate::cpu::get_cpu_data;
+use crate::cpu::get_per_cpu_data;
 use crate::sched::context::restore_context;
 use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
@@ -112,7 +112,7 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
 
             DS::set_reg(GDT_BSP.1.user_data_selector);
 
-            get_cpu_data().set_kernel_stack(task.kernel_stack.as_ref().unwrap().end as usize);
+            get_per_cpu_data().set_kernel_stack(task.kernel_stack.as_ref().unwrap().end as usize);
         }
     }
 
