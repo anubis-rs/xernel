@@ -1,4 +1,5 @@
 use alloc::boxed::Box;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use libxernel::sync::Once;
 use x86_64::registers::model_specific::KernelGsBase;
@@ -9,6 +10,45 @@ use crate::arch::x64::apic::APIC;
 static CPU_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 pub static CPU_COUNT: Once<usize> = Once::new();
+
+pub struct PerCpu<T> {
+    data: Vec<T>,
+}
+
+impl<T> PerCpu<T>
+where
+    T: Default,
+{
+    pub fn new() -> Self {
+        assert_eq!(*CPU_COUNT, CPU_ID_COUNTER.load(Ordering::SeqCst));
+
+        let mut data = Vec::with_capacity(*CPU_COUNT);
+
+        for _ in 0..*CPU_COUNT {
+            data.push(T::default());
+        }
+
+        Self { data }
+    }
+
+    pub fn get(&self) -> &T {
+        let cpu_id = get_per_cpu_data().get_cpu_id();
+        &self.data[cpu_id]
+    }
+
+    pub fn get_mut(&mut self) -> &mut T {
+        let cpu_id = get_per_cpu_data().get_cpu_id();
+        &mut self.data[cpu_id]
+    }
+
+    pub fn get_all(&self) -> &Vec<T> {
+        &self.data
+    }
+
+    pub unsafe fn get_all_mut(&mut self) -> &mut Vec<T> {
+        &mut self.data
+    }
+}
 
 #[repr(packed)]
 pub struct PerCpuData {
