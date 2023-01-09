@@ -237,7 +237,7 @@ impl IOApic {
             PhysAddr::new(self.address - *HIGHER_HALF_OFFSET),
             VirtAddr::new(self.address),
             0x2000,
-            PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::WRITABLE,
+            PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
             true,
         );
 
