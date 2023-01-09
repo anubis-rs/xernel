@@ -1,14 +1,13 @@
 use crate::arch::x64::gdt::GDT_BSP;
+use crate::cpu::get_cpu_data;
 use crate::sched::context::restore_context;
 use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
 use core::arch::asm;
 use libxernel::sync::SpinlockIRQ;
 use x86_64::registers::control::Cr3;
-use x86_64::registers::model_specific::KernelGsBase;
 use x86_64::registers::segmentation::{Segment, DS};
 use x86_64::structures::idt::InterruptStackFrame;
-use x86_64::VirtAddr;
 
 use super::context::TaskContext;
 use super::task::TaskStatus;
@@ -113,8 +112,7 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
 
             DS::set_reg(GDT_BSP.1.user_data_selector);
 
-            let base = &**task.kernel_stack.as_ref().unwrap() as *const _ as u64;
-            KernelGsBase::write(VirtAddr::new(base));
+            get_cpu_data().set_kernel_stack(task.kernel_stack.as_ref().unwrap().end as usize);
         }
     }
 

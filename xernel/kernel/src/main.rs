@@ -18,6 +18,7 @@ mod acpi;
 mod allocator;
 mod arch;
 mod backtrace;
+mod cpu;
 mod drivers;
 mod framebuffer;
 mod fs;
@@ -49,6 +50,8 @@ use x86_64::VirtAddr;
 
 use crate::acpi::hpet;
 use crate::arch::x64::apic;
+use crate::cpu::register_cpu;
+use crate::cpu::CPU_COUNT;
 use crate::fs::vfs;
 use crate::fs::vfs::VFS;
 use crate::mem::pmm::FRAME_ALLOCATOR;
@@ -160,17 +163,21 @@ extern "C" fn kernel_main() -> ! {
     SCHEDULER.lock().add_task(kernel_task);
     SCHEDULER.lock().add_task(kernel_task2);
 
-    interrupts::enable();
-
     let smp_response = SMP_REQUEST.get_response().get_mut().unwrap();
 
     let bsp_lapic_id = smp_response.bsp_lapic_id;
+
+    CPU_COUNT.set_once(smp_response.cpu_count as usize);
+
+    register_cpu();
 
     for cpu in smp_response.cpus().iter_mut() {
         if cpu.lapic_id != bsp_lapic_id {
             cpu.goto_address = arch::x64::x86_64_ap_main;
         }
     }
+
+    interrupts::enable();
 
     let mut var = 1;
 
@@ -186,20 +193,23 @@ extern "C" fn kernel_main() -> ! {
     }
 }
 
+#[naked]
 pub extern "C" fn test_userspace_fn() {
-    loop {
-        unsafe {
-            asm!(
-                "\
+    //loop {
+    unsafe {
+        asm!(
+            "\
                 mov rax, 0
                 mov rdi, 2
                 mov rsi, 3
                 mov rdx, 4
                 syscall
-            "
-            );
-        }
+                mov rax, 0
+            ",
+            options(noreturn)
+        );
     }
+    //}
 }
 
 #[no_mangle]

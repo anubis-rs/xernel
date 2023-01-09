@@ -8,7 +8,7 @@ use x86_64::{
     VirtAddr,
 };
 
-use crate::{arch::x64::gdt::GDT_BSP, println};
+use crate::arch::x64::gdt::GDT_BSP;
 
 pub fn init() {
     // set IA32_STAR
@@ -65,7 +65,7 @@ unsafe extern "C" fn asm_syscall_handler() {
     swapgs # gs contains the stackpointer for this thread now
 
     mov gs:0, rsp # save the stackpointer for this task
-    mov rsp, gs:16 # load the kernel stackpointer for this task
+    mov rsp, gs:8 # load the kernel stackpointer for this task
 
     # backup registers for sysretq
     push rbp
@@ -135,7 +135,7 @@ fn syscall_arg_to_reference<'a, T>(ptr: usize) -> &'a mut T {
 
 #[no_mangle]
 extern "sysv64" fn general_syscall_handler(data: SyscallData) -> i64 {
-    println!("general_syscall_handler: {:#x?}", data);
+    // println!("general_syscall_handler: {:#x?}", data);
 
     let result = match data.syscall_number as usize {
         SYS_READ => sys_read(data.arg0, syscall_arg_to_slice(data.arg1, data.arg2)),
