@@ -2,6 +2,7 @@
 pub enum Error {
     VNodeNotFound,
     NotADirectory,
+    IsADirectory,
     NoSpace,
     NotEmpty,
     EntryNotFound,
