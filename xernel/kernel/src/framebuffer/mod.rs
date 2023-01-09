@@ -151,7 +151,7 @@ impl Framebuffer {
 
     /// Returns the framebuffer size in bytes
     pub fn length(&self) -> u64 {
-        (FRAMEBUFFER_DATA.height * FRAMEBUFFER_DATA.pitch) as u64
+        FRAMEBUFFER_DATA.height * FRAMEBUFFER_DATA.pitch
     }
 
     /// Sets the color which the framebuffer uses for writing
@@ -175,7 +175,7 @@ impl Framebuffer {
 
         let file_base = image_data.base.as_ptr().unwrap();
 
-        let bpp = file_base.offset(0x1c).read() as u8;
+        let bpp = file_base.offset(0x1c).read();
 
         let img_data_offset = file_base.offset(0xa).read() as u32;
 

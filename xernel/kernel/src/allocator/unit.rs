@@ -33,7 +33,7 @@ where
         let count = this as f32;
 
         match this {
-            0..KIB => write!(f, "{:>6} B", this)?,
+            0..KIB => write!(f, "{this:>6} B")?,
             KIB..MIB => write!(f, "{:>6.2} KiB", count / KIB as f32)?,
             MIB..GIB => write!(f, "{:>6.2} MiB", count / MIB as f32)?,
             GIB..TIB => write!(f, "{:>6.2} GiB", count / GIB as f32)?,

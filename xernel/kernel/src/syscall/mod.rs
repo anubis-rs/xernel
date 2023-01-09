@@ -137,7 +137,7 @@ fn syscall_arg_to_reference<'a, T>(ptr: usize) -> &'a mut T {
 extern "sysv64" fn general_syscall_handler(data: SyscallData) -> i64 {
     // println!("general_syscall_handler: {:#x?}", data);
 
-    let result = match data.syscall_number as usize {
+    let result = match data.syscall_number {
         SYS_READ => sys_read(data.arg0, syscall_arg_to_slice(data.arg1, data.arg2)),
         SYS_WRITE => todo!("write"),
         _ => {

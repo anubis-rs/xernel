@@ -16,12 +16,10 @@ pub struct Scheduler {
     pub tasks: VecDeque<Task>,
 }
 
-lazy_static! {
-    pub static ref SCHEDULER: SpinlockIRQ<Scheduler> = SpinlockIRQ::new(Scheduler::new());
-}
+pub static SCHEDULER: SpinlockIRQ<Scheduler> = SpinlockIRQ::new(Scheduler::new());
 
 impl Scheduler {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             tasks: VecDeque::new(),
         }

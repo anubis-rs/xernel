@@ -6,7 +6,6 @@
 #![feature(pointer_byte_offsets)]
 #![feature(naked_functions)]
 #![feature(exclusive_range_pattern)]
-#![feature(const_btree_new)]
 #![allow(dead_code)]
 #![allow(clippy::fn_to_numeric_cast)]
 extern crate alloc;
