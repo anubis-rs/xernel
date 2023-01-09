@@ -42,7 +42,7 @@ impl Mount {
         self.mnt_op_data.lock().vfs_unmount()
     }
 
-    pub fn vfs_root(&self) {
+    pub fn vfs_root(&self) -> Result<Arc<Spinlock<VNode>>> {
         self.mnt_op_data.lock().vfs_root()
     }
 
@@ -62,8 +62,8 @@ impl Mount {
         self.mnt_op_data.lock().vfs_vget()
     }
 
-    pub fn vfs_lookup(&self, path: PathBuf) -> Result<Arc<Spinlock<VNode>>> {
-        self.mnt_op_data.lock().vfs_lookup(path.into_string())
+    pub fn vfs_lookup(&self, path: &PathBuf) -> Result<Arc<Spinlock<VNode>>> {
+        self.mnt_op_data.lock().vfs_lookup(path)
     }
 
     pub fn vfs_fhtovp(&self) {
@@ -104,7 +104,7 @@ pub trait VfsOps {
     fn vfs_unmount(&self);
 
     /// Gets the file system root vnode.
-    fn vfs_root(&self);
+    fn vfs_root(&self) -> Result<Arc<Spinlock<VNode>>>;
 
     /// Queries or modifies space quotas.
     fn vfs_quotactl(&self) {
@@ -122,7 +122,7 @@ pub trait VfsOps {
     /// Gets a vnode from a file identifier.
     fn vfs_vget(&self);
 
-    fn vfs_lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>>;
+    fn vfs_lookup(&self, path: &PathBuf) -> Result<Arc<Spinlock<VNode>>>;
 
     /// Converts a NFS file handle to a vnode.
     fn vfs_fhtovp(&self) {
