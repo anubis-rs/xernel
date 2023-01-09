@@ -1,7 +1,11 @@
+use core::fmt::Display;
+
 use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+
+use super::vfs::VFS;
 
 #[derive(Debug)]
 pub struct PathBuf {
@@ -52,6 +56,22 @@ impl PathBuf {
         self.inner.len()
     }
 
+    pub fn exists(&self) -> bool {
+        VFS.lock().lookuppn(self.inner.clone()).is_ok()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
+    pub fn strip_prefix(&self, prefix: &PathBuf) -> PathBuf {
+        PathBuf::from(
+            self.inner
+                .strip_prefix(&prefix.as_string())
+                .expect("Stripping prefix of pathbuf paniced!"),
+        )
+    }
+
     // TODO:
     pub fn push(&mut self) {}
 
@@ -87,10 +107,34 @@ impl PartialEq for PathBuf {
     }
 }
 
+impl PartialEq<String> for PathBuf {
+    fn eq(&self, other: &String) -> bool {
+        &self.inner == other
+    }
+}
+
+impl PartialEq<String> for &PathBuf {
+    fn eq(&self, other: &String) -> bool {
+        &self.inner == other
+    }
+}
+
+impl PartialEq<&str> for &PathBuf {
+    fn eq(&self, other: &&str) -> bool {
+        &self.inner == other
+    }
+}
+
 impl Clone for PathBuf {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
         }
+    }
+}
+
+impl Display for PathBuf {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(&self.inner)
     }
 }
