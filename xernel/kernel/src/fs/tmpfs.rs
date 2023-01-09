@@ -1,3 +1,5 @@
+use core::{mem, ptr::copy};
+
 use alloc::{
     string::{String, ToString},
     sync::Arc,
@@ -13,6 +15,7 @@ use crate::{
 
 use super::{
     mount::VfsOps,
+    pathbuf::PathBuf,
     vnode::{VNode, VNodeOperations, VType},
 };
 
@@ -53,7 +56,7 @@ impl VfsOps for Tmpfs {
         self.root_node
             .lock()
             .create(
-                "/test.txt".to_string(),
+                "test.txt".to_string(),
                 Arc::new(Spinlock::new(VNode::new(
                     Weak::new(),
                     Arc::new(Spinlock::new(node)),
@@ -68,8 +71,8 @@ impl VfsOps for Tmpfs {
         todo!()
     }
 
-    fn vfs_root(&self) {
-        todo!()
+    fn vfs_root(&self) -> Result<Arc<Spinlock<VNode>>> {
+        Ok(self.root_node.clone())
     }
 
     fn vfs_vget(&self) {
@@ -97,13 +100,12 @@ impl VfsOps for Tmpfs {
         "tmpfs".to_string()
     }
 
-    // FIXME: Write a proper lookup algorithm, which gets a directory node and calls lookup on that
-    fn vfs_lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>> {
-        println!("tmpfs path lookup: {}", path);
+    fn vfs_lookup(&self, path: &PathBuf) -> Result<Arc<Spinlock<VNode>>> {
+        if path == "/" || path.is_empty() {
+            return Ok(self.root_node.clone());
+        }
 
-        let node = self.root_node.lock().lookup(path);
-
-        node
+        self.root_node.lock().lookup(path)
     }
 
     fn vfs_sync(&self) {
@@ -112,11 +114,12 @@ impl VfsOps for Tmpfs {
 }
 
 enum TmpfsNodeData {
-    Children(Vec<(String, Arc<Spinlock<VNode>>)>),
+    Children(Vec<(PathBuf, Arc<Spinlock<VNode>>)>),
     Data(Vec<u8>),
 }
 
 pub struct TmpfsNode {
+    parent: Option<Arc<Spinlock<VNode>>>,
     data: TmpfsNodeData,
 }
 
@@ -124,10 +127,12 @@ impl TmpfsNode {
     pub fn new(vtype: VType) -> Self {
         if vtype == VType::Directory {
             Self {
+                parent: None,
                 data: TmpfsNodeData::Children(Vec::new()),
             }
         } else {
             Self {
+                parent: None,
                 data: TmpfsNodeData::Data(Vec::new()),
             }
         }
@@ -139,9 +144,9 @@ impl VNodeOperations for TmpfsNode {
         todo!()
     }
 
-    fn create(&mut self, path: String, node: Arc<Spinlock<VNode>>) -> Result<()> {
+    fn create(&mut self, file_name: String, node: Arc<Spinlock<VNode>>) -> Result<()> {
         if let TmpfsNodeData::Children(children) = &mut self.data {
-            children.push((path, node));
+            children.push((PathBuf::from(file_name), node));
         } else {
             return Err(Error::NotADirectory);
         }
@@ -153,13 +158,34 @@ impl VNodeOperations for TmpfsNode {
         todo!()
     }
 
-    fn lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>> {
+    fn lookup(&self, path: &PathBuf) -> Result<Arc<Spinlock<VNode>>> {
         println!("tmpfs path lookup: {}", path);
 
+        let stripped_path = if path.starts_with(&PathBuf::from("/")) {
+            path.strip_prefix(&PathBuf::from("/"))
+        } else {
+            path.clone()
+        };
+
+        let components = stripped_path.components();
+
         if let TmpfsNodeData::Children(children) = &self.data {
-            for child in children {
-                if child.0 == path {
-                    return Ok(child.1.clone());
+            if components.len() == 1 {
+                let node = children
+                    .iter()
+                    .find(|(pt, _)| pt == components[0])
+                    .map(|(_, node)| node.clone());
+                return node.ok_or(Error::EntryNotFound);
+            } else if components.len() > 1 {
+                let node = children
+                    .iter()
+                    .find(|(pt, _)| pt == components[0])
+                    .map(|(_, node)| node.clone());
+
+                if let Some(node) = node {
+                    return node.lock().lookup(&stripped_path);
+                } else {
+                    return Err(Error::EntryNotFound);
                 }
             }
         } else {
@@ -177,11 +203,37 @@ impl VNodeOperations for TmpfsNode {
         println!("opening file on tmpfs");
     }
 
-    fn read(&self) {
+    fn read(&self, buf: &mut [u8]) -> Result<usize> {
         if let TmpfsNodeData::Data(data) = &self.data {
-            println!("reading tmpfs node: {:?}", data);
+            let max_read = if buf.len() > data.len() {
+                data.len()
+            } else {
+                buf.len()
+            };
+
+            buf[..max_read].copy_from_slice(&data[..max_read]);
+
+            Ok(max_read)
         } else {
-            println!("have to throw error");
+            return Err(Error::IsADirectory);
+        }
+    }
+
+    fn write(&mut self, buf: &mut [u8]) -> Result<usize> {
+        if let TmpfsNodeData::Data(ref mut data) = &mut self.data {
+            let max_write = if buf.len() > data.len() {
+                data.len()
+            } else {
+                buf.len()
+            };
+
+            data.reserve(max_write);
+
+            data[..max_write].copy_from_slice(&buf[..max_write]);
+
+            Ok(max_write)
+        } else {
+            return Err(Error::IsADirectory);
         }
     }
 
@@ -214,10 +266,6 @@ impl VNodeOperations for TmpfsNode {
     }
 
     fn symlink(&self) {
-        todo!()
-    }
-
-    fn write(&self) {
         todo!()
     }
 }

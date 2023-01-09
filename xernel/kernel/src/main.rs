@@ -32,7 +32,6 @@ mod mem;
 #[macro_use]
 mod writer;
 
-use alloc::string::ToString;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use limine::*;
@@ -52,7 +51,6 @@ use crate::arch::x64::apic;
 use crate::cpu::register_cpu;
 use crate::cpu::CPU_COUNT;
 use crate::fs::vfs;
-use crate::fs::vfs::VFS;
 use crate::mem::pmm::FRAME_ALLOCATOR;
 use crate::mem::vmm::KERNEL_PAGE_MAPPER;
 use crate::sched::scheduler::SCHEDULER;
@@ -103,14 +101,6 @@ extern "C" fn kernel_main() -> ! {
     syscall::init();
 
     vfs::init();
-
-    let mut vfs = VFS.lock();
-
-    vfs.vn_open("/test.txt".to_string(), 12)
-        .expect("Open of /test.txt failed");
-
-    vfs.vn_read("/test.txt".to_string())
-        .expect("Reading of /test.txt failed");
 
     let bootloader_info = BOOTLOADER_INFO
         .get_response()

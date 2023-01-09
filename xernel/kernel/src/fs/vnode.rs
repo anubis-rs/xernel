@@ -1,5 +1,6 @@
 use super::error::Result;
 use super::mount::Mount;
+use super::pathbuf::PathBuf;
 use alloc::string::String;
 use alloc::{sync::Arc, sync::Weak};
 use libxernel::sync::Spinlock;
@@ -88,7 +89,7 @@ impl VNode {
         self.v_data_op.lock().link()
     }
 
-    pub fn lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>> {
+    pub fn lookup(&self, path: &PathBuf) -> Result<Arc<Spinlock<VNode>>> {
         self.v_data_op.lock().lookup(path)
     }
 
@@ -104,8 +105,8 @@ impl VNode {
         self.v_data_op.lock().pathconf()
     }
 
-    pub fn read(&self) {
-        self.v_data_op.lock().read()
+    pub fn read(&self, buf: &mut [u8]) -> Result<usize> {
+        self.v_data_op.lock().read(buf)
     }
 
     pub fn readdir(&self) {
@@ -144,8 +145,8 @@ impl VNode {
         self.v_data_op.lock().symlink()
     }
 
-    pub fn write(&self) {
-        self.v_data_op.lock().write()
+    pub fn write(&self, buf: &mut [u8]) -> Result<usize> {
+        self.v_data_op.lock().write(buf)
     }
 
     pub fn kqfilter(&self) {
@@ -209,7 +210,7 @@ pub trait VNodeOperations {
     }
 
     /// Performs a path name lookup.
-    fn lookup(&self, path: String) -> Result<Arc<Spinlock<VNode>>>;
+    fn lookup(&self, path: &PathBuf) -> Result<Arc<Spinlock<VNode>>>;
 
     /// Creates a new special file (a device or a named pipe).
     fn mknod(&self);
@@ -223,7 +224,7 @@ pub trait VNodeOperations {
     }
 
     /// Reads a chunk of data from a file.
-    fn read(&self);
+    fn read(&self, buf: &mut [u8]) -> Result<usize>;
 
     /// Reads directory entries from a directory.
     fn readdir(&self);
@@ -260,7 +261,7 @@ pub trait VNodeOperations {
     fn symlink(&self);
 
     /// Writes a chunk of data to a file.
-    fn write(&self);
+    fn write(&mut self, buf: &mut [u8]) -> Result<usize>;
 
     fn kqfilter(&self) {
         unimplemented!()

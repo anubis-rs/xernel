@@ -80,7 +80,7 @@ impl Vfs {
             .map(|(_, mnt)| mnt)
             .ok_or(Error::MountPointNotFound)?;
 
-        mnt.vfs_lookup(path)
+        mnt.vfs_lookup(&path.strip_prefix(&mnt_point))
     }
 
     fn get_mount_point(&self, path: &PathBuf) -> Result<&PathBuf> {
@@ -95,25 +95,24 @@ impl Vfs {
         Ok(mnt_point)
     }
 
-    pub fn vn_open(&mut self, path: String, _mode: u64) -> Result<()> {
+    pub fn vn_open(&mut self, path: String, _mode: u64) -> Result<Arc<Spinlock<VNode>>> {
         let node = self.lookuppn(path)?;
 
         node.lock().open();
 
-        Ok(())
+        Ok(node)
     }
 
     pub fn vn_close(&mut self) {}
 
-    pub fn vn_read(&mut self, path: String) -> Result<()> {
-        let node = self.lookuppn(path)?;
-
-        node.lock().read();
-
-        Ok(())
+    // TODO: When available, replace node with filedescriptor
+    pub fn vn_read(&mut self, node: Arc<Spinlock<VNode>>, buf: &mut [u8]) -> Result<usize> {
+        node.lock().read(buf)
     }
 
-    pub fn vn_write(&mut self) {}
+    pub fn vn_write(&mut self, node: Arc<Spinlock<VNode>>, buf: &mut [u8]) -> Result<usize> {
+        node.lock().write(buf)
+    }
 
     pub fn vn_create(&mut self) {}
 
