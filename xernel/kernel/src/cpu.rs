@@ -1,5 +1,6 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use libxernel::sync::Once;
 use x86_64::registers::model_specific::KernelGsBase;
@@ -12,41 +13,60 @@ static CPU_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 pub static CPU_COUNT: Once<usize> = Once::new();
 
 pub struct PerCpu<T> {
-    data: Vec<T>,
+    data: UnsafeCell<Vec<T>>,
 }
 
-impl<T> PerCpu<T>
-where
-    T: Default,
-{
-    pub fn new() -> Self {
+impl<T> PerCpu<T> {
+    pub const fn new() -> Self {
+        Self {
+            data: UnsafeCell::new(Vec::new()),
+        }
+    }
+
+    pub fn init(&self, init_fn: fn() -> T) {
         assert_eq!(*CPU_COUNT, CPU_ID_COUNTER.load(Ordering::SeqCst));
 
-        let mut data = Vec::with_capacity(*CPU_COUNT);
+        let vec = unsafe { &mut *self.data.get() };
 
         for _ in 0..*CPU_COUNT {
-            data.push(T::default());
+            vec.push(init_fn());
         }
+    }
 
-        Self { data }
+    fn check_initialized(&self) {
+        let vec = unsafe { &*self.data.get() };
+
+        assert_eq!(vec.len(), *CPU_COUNT);
     }
 
     pub fn get(&self) -> &T {
+        self.check_initialized();
+
         let cpu_id = get_per_cpu_data().get_cpu_id();
-        &self.data[cpu_id]
+        let vec = unsafe { &mut *self.data.get() };
+        &vec[cpu_id]
     }
 
-    pub fn get_mut(&mut self) -> &mut T {
+    #[allow(clippy::mut_from_ref)]
+    pub fn get_mut(&self) -> &mut T {
+        self.check_initialized();
+
         let cpu_id = get_per_cpu_data().get_cpu_id();
-        &mut self.data[cpu_id]
+        let vec = unsafe { &mut *self.data.get() };
+        &mut vec[cpu_id]
     }
 
-    pub fn get_all(&self) -> &Vec<T> {
-        &self.data
+    pub unsafe fn get_all(&self) -> &Vec<T> {
+        self.check_initialized();
+
+        &*self.data.get()
     }
 
-    pub unsafe fn get_all_mut(&mut self) -> &mut Vec<T> {
-        &mut self.data
+    #[allow(clippy::mut_from_ref)]
+    pub unsafe fn get_all_mut(&self) -> &mut Vec<T> {
+        self.check_initialized();
+
+        &mut *self.data.get()
     }
 }
 
