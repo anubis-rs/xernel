@@ -23,7 +23,7 @@ pub enum VType {
 pub struct VNode {
     /// ptr to vfs we are in
     /// filesystem to which the vnode (we are mounted to) belongs to
-    vfsp: Weak<Mount>,
+    pub vfsp: Weak<Spinlock<Mount>>,
     /// Holds the vnode operations vector and the private data for fs in one member
     /// since the struct, which each fs, which implements the VNodeOperations trait can directly own the private fs data
     v_data_op: Arc<Spinlock<dyn VNodeOperations>>,
@@ -37,7 +37,7 @@ pub struct VNode {
 
 impl VNode {
     pub fn new(
-        vfsp: Weak<Mount>,
+        vfsp: Weak<Spinlock<Mount>>,
         data_op: Arc<Spinlock<dyn VNodeOperations>>,
         v_type: VType,
         v_mounted_here: Option<Weak<Mount>>,
@@ -66,7 +66,9 @@ impl VNode {
     }
 
     pub fn create(&mut self, path: String, v_type: VType) -> Result<Arc<Spinlock<VNode>>> {
-        self.v_data_op.lock().create(path, v_type)
+        self.v_data_op
+            .lock()
+            .create(path, v_type, self.vfsp.clone())
     }
 
     pub fn fsync(&self) {
@@ -184,7 +186,12 @@ pub trait VNodeOperations {
     fn close(&self);
 
     /// Creates a new file.
-    fn create(&mut self, path: String, v_type: VType) -> Result<Arc<Spinlock<VNode>>>;
+    fn create(
+        &mut self,
+        path: String,
+        v_type: VType,
+        mount: Weak<Spinlock<Mount>>,
+    ) -> Result<Arc<Spinlock<VNode>>>;
 
     /// Synchronizes the file with on-disk contents.
     fn fsync(&self) {

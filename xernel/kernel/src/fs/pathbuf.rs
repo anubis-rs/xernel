@@ -138,3 +138,9 @@ impl Display for PathBuf {
         f.write_str(&self.inner)
     }
 }
+
+impl Default for PathBuf {
+    fn default() -> Self {
+        Self::new()
+    }
+}

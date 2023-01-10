@@ -5,8 +5,6 @@ use alloc::{
 };
 use libxernel::sync::Spinlock;
 
-use crate::println;
-
 use super::{
     error::{Error, Result},
     mount::{Mount, VfsOps},
@@ -18,7 +16,7 @@ use super::{
 pub static VFS: Spinlock<Vfs> = Spinlock::new(Vfs::new());
 
 pub struct Vfs {
-    mount_point_list: Vec<(PathBuf, Arc<Mount>)>,
+    mount_point_list: Vec<(PathBuf, Arc<Spinlock<Mount>>)>,
     drivers: Vec<(String, Arc<Spinlock<dyn VfsOps>>)>,
     free_vnodes: Vec<Arc<VNode>>,
 }
@@ -34,12 +32,11 @@ impl Vfs {
         }
     }
 
-    pub fn get_mount(&self, mounted_on: &PathBuf) -> Result<Arc<Mount>> {
+    pub fn get_mount(&self, mounted_on: &PathBuf) -> Result<Arc<Spinlock<Mount>>> {
         self.mount_point_list
             .iter()
             .find(|(pt, _)| pt == mounted_on)
             .map(|(_, mnt)| mnt)
-            .clone()
             .ok_or(Error::MountPointNotFound)
             .cloned()
     }
@@ -67,14 +64,18 @@ impl Vfs {
             }
         };
 
-        let mut mount = Mount::new(driver.clone(), node_covered);
+        let mount = Arc::new(Spinlock::new(Mount::new(driver.clone(), node_covered)));
 
-        mount.vfs_mount(where_to_mount.to_string());
+        let root_node = mount.lock().vfs_root().expect("root node not found");
 
-        mount.vfs_start();
+        root_node.lock().vfsp = Arc::downgrade(&mount);
+
+        mount.lock().vfs_mount(where_to_mount.to_string());
+
+        mount.lock().vfs_start();
 
         self.mount_point_list
-            .push((PathBuf::from(where_to_mount), Arc::new(mount)));
+            .push((PathBuf::from(where_to_mount), mount));
 
         Ok(())
     }
@@ -92,7 +93,7 @@ impl Vfs {
             .map(|(_, mnt)| mnt)
             .ok_or(Error::MountPointNotFound)?;
 
-        mnt.vfs_lookup(&path.strip_prefix(&mnt_point))
+        mnt.lock().vfs_lookup(&path.strip_prefix(mnt_point))
     }
 
     fn get_mount_point(&self, path: &PathBuf) -> Result<&PathBuf> {

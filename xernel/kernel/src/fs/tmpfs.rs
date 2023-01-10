@@ -1,5 +1,3 @@
-use core::{mem, ptr::copy};
-
 use alloc::{
     string::{String, ToString},
     sync::Arc,
@@ -14,7 +12,7 @@ use crate::{
 };
 
 use super::{
-    mount::VfsOps,
+    mount::{Mount, VfsOps},
     pathbuf::PathBuf,
     vnode::{VNode, VNodeOperations, VType},
 };
@@ -22,6 +20,7 @@ use super::{
 pub struct Tmpfs {
     root_node: InitAtBoot<Arc<Spinlock<VNode>>>,
     mounted_on: Option<String>,
+    mount: Option<Arc<Mount>>,
 }
 
 impl Tmpfs {
@@ -29,6 +28,7 @@ impl Tmpfs {
         Self {
             root_node: InitAtBoot::Uninitialized,
             mounted_on: None,
+            mount: None,
         }
     }
 }
@@ -37,12 +37,10 @@ impl VfsOps for Tmpfs {
     fn vfs_mount(&mut self, path: String) {
         println!("mounting tmpfs on {}", path);
 
-        self.mounted_on = Some(path)
+        self.mounted_on = Some(path);
     }
 
     fn vfs_start(&mut self) {
-        let mut node = TmpfsNode::new(VType::Regular);
-
         self.root_node
             .lock()
             .create("test.txt".to_string(), VType::Regular)
@@ -126,9 +124,14 @@ impl VNodeOperations for TmpfsNode {
         todo!()
     }
 
-    fn create(&mut self, file_name: String, v_type: VType) -> Result<Arc<Spinlock<VNode>>> {
+    fn create(
+        &mut self,
+        file_name: String,
+        v_type: VType,
+        mount: Weak<Spinlock<Mount>>,
+    ) -> Result<Arc<Spinlock<VNode>>> {
         let new_node = Arc::new(Spinlock::new(VNode::new(
-            Weak::new(),
+            mount,
             Arc::new(Spinlock::new(TmpfsNode::new(v_type))),
             v_type,
             None,
@@ -204,7 +207,7 @@ impl VNodeOperations for TmpfsNode {
 
             Ok(max_read)
         } else {
-            return Err(Error::IsADirectory);
+            Err(Error::IsADirectory)
         }
     }
 
@@ -224,7 +227,7 @@ impl VNodeOperations for TmpfsNode {
 
             Ok(max_write)
         } else {
-            return Err(Error::IsADirectory);
+            Err(Error::IsADirectory)
         }
     }
 

@@ -1,5 +1,5 @@
 use super::{error::Result, pathbuf::PathBuf, vnode::VNode};
-use alloc::{string::String, sync::Arc, vec::Vec};
+use alloc::{string::String, sync::Arc};
 use libxernel::sync::Spinlock;
 
 // According to BSD each Mount object has a pointer to vfsops and to private data
@@ -11,7 +11,6 @@ pub struct Mount {
     /// VNode we are mounted on
     /// None if root node
     vnode_covered: Option<Arc<Spinlock<VNode>>>,
-    vnode_list: Vec<Arc<Spinlock<VNode>>>,
     flags: u64,
 }
 
@@ -23,7 +22,6 @@ impl Mount {
         Mount {
             mnt_op_data: driver,
             vnode_covered,
-            vnode_list: Vec::new(),
             flags: 0,
         }
     }
