@@ -66,6 +66,9 @@ static SMP_REQUEST: LimineSmpRequest = LimineSmpRequest::new(0);
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
+    dbg!("Kernel PANIC !!!");
+    dbg!("panic info: {:#?}", info);
+
     // print the panic info
     // NOTE: this might panic again, but it is better than printing nothing
     error!("Kernel PANIC !!!");
