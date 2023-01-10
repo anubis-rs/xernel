@@ -43,27 +43,9 @@ impl VfsOps for Tmpfs {
     fn vfs_start(&mut self) {
         let mut node = TmpfsNode::new(VType::Regular);
 
-        let data = if let TmpfsNodeData::Data(data) = &mut node.data {
-            data
-        } else {
-            return;
-        };
-
-        data.push(0xFE);
-        data.push(0xFF);
-        data.push(0xFF);
-
         self.root_node
             .lock()
-            .create(
-                "test.txt".to_string(),
-                Arc::new(Spinlock::new(VNode::new(
-                    Weak::new(),
-                    Arc::new(Spinlock::new(node)),
-                    VType::Regular,
-                    None,
-                ))),
-            )
+            .create("test.txt".to_string(), VType::Regular)
             .expect("Creation of root node in tmpfs failed");
     }
 
@@ -144,14 +126,21 @@ impl VNodeOperations for TmpfsNode {
         todo!()
     }
 
-    fn create(&mut self, file_name: String, node: Arc<Spinlock<VNode>>) -> Result<()> {
+    fn create(&mut self, file_name: String, v_type: VType) -> Result<Arc<Spinlock<VNode>>> {
+        let new_node = Arc::new(Spinlock::new(VNode::new(
+            Weak::new(),
+            Arc::new(Spinlock::new(TmpfsNode::new(v_type))),
+            v_type,
+            None,
+        )));
+
         if let TmpfsNodeData::Children(children) = &mut self.data {
-            children.push((PathBuf::from(file_name), node));
+            children.push((PathBuf::from(file_name), new_node.clone()));
         } else {
             return Err(Error::NotADirectory);
         }
 
-        Ok(())
+        Ok(new_node)
     }
 
     fn ioctl(&self) {
@@ -221,6 +210,8 @@ impl VNodeOperations for TmpfsNode {
 
     fn write(&mut self, buf: &mut [u8]) -> Result<usize> {
         if let TmpfsNodeData::Data(ref mut data) = &mut self.data {
+            data.resize(data.len() + buf.len(), 0);
+
             let max_write = if buf.len() > data.len() {
                 data.len()
             } else {

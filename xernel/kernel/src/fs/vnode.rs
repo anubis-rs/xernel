@@ -5,7 +5,7 @@ use alloc::string::String;
 use alloc::{sync::Arc, sync::Weak};
 use libxernel::sync::Spinlock;
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub enum VType {
     Non,
     Regular,
@@ -65,8 +65,8 @@ impl VNode {
         self.v_data_op.lock().bmap()
     }
 
-    pub fn create(&mut self, path: String, node: Arc<Spinlock<VNode>>) -> Result<()> {
-        self.v_data_op.lock().create(path, node)
+    pub fn create(&mut self, path: String, v_type: VType) -> Result<Arc<Spinlock<VNode>>> {
+        self.v_data_op.lock().create(path, v_type)
     }
 
     pub fn fsync(&self) {
@@ -184,7 +184,7 @@ pub trait VNodeOperations {
     fn close(&self);
 
     /// Creates a new file.
-    fn create(&mut self, path: String, node: Arc<Spinlock<VNode>>) -> Result<()>;
+    fn create(&mut self, path: String, v_type: VType) -> Result<Arc<Spinlock<VNode>>>;
 
     /// Synchronizes the file with on-disk contents.
     fn fsync(&self) {

@@ -32,6 +32,9 @@ mod mem;
 #[macro_use]
 mod writer;
 
+use alloc::string::ToString;
+use alloc::vec;
+use alloc::vec::Vec;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use libxernel::sync::SpinlockIRQ;
@@ -52,6 +55,7 @@ use crate::arch::x64::apic;
 use crate::cpu::register_cpu;
 use crate::cpu::CPU_COUNT;
 use crate::fs::vfs;
+use crate::fs::vfs::VFS;
 use crate::mem::pmm::FRAME_ALLOCATOR;
 use crate::mem::vmm::KERNEL_PAGE_MAPPER;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
@@ -102,6 +106,19 @@ extern "C" fn kernel_main() -> ! {
     syscall::init();
 
     vfs::init();
+
+    let t = VFS.lock().vn_open("/test.txt".to_string(), 0).unwrap();
+
+    let mut write_buf: Vec<u8> = vec![5; 10];
+
+    VFS.lock().vn_write(t.clone(), &mut write_buf);
+
+    let mut read_buf: Vec<u8> = vec![0; 5];
+
+    VFS.lock().vn_read(t, &mut read_buf).expect("read failed");
+
+    println!("{:?}", write_buf);
+    println!("{:?}", read_buf);
 
     let bootloader_info = BOOTLOADER_INFO
         .get_response()

@@ -5,6 +5,8 @@ use alloc::{
 };
 use libxernel::sync::Spinlock;
 
+use crate::println;
+
 use super::{
     error::{Error, Result},
     mount::{Mount, VfsOps},
@@ -30,6 +32,16 @@ impl Vfs {
             drivers: Vec::new(),
             free_vnodes: Vec::new(),
         }
+    }
+
+    pub fn get_mount(&self, mounted_on: &PathBuf) -> Result<Arc<Mount>> {
+        self.mount_point_list
+            .iter()
+            .find(|(pt, _)| pt == mounted_on)
+            .map(|(_, mnt)| mnt)
+            .clone()
+            .ok_or(Error::MountPointNotFound)
+            .cloned()
     }
 
     pub fn register_filesystem(&mut self, name: String, operations: Arc<Spinlock<dyn VfsOps>>) {
