@@ -26,6 +26,12 @@ impl<T> PerCpu<T> {
         }
     }
 
+    pub fn wait_until_cpus_registered(&self) {
+        while CPU_ID_COUNTER.load(Ordering::SeqCst) != *CPU_COUNT {
+            core::hint::spin_loop();
+        }
+    }
+
     pub fn init(&self, init_fn: fn() -> T) {
         assert_eq!(*CPU_COUNT, CPU_ID_COUNTER.load(Ordering::SeqCst));
 

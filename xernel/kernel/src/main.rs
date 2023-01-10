@@ -145,7 +145,7 @@ extern "C" fn kernel_main() -> ! {
         }
     }
 
-    // FIXME: wait until all registered cpus are registered
+    SCHEDULER.wait_until_cpus_registered();
     SCHEDULER.init(|| SpinlockIRQ::new(Scheduler::new()));
 
     let user_task = Task::new_user_task(VirtAddr::new(0x200000));
