@@ -1,3 +1,4 @@
+use alloc::alloc::alloc_zeroed;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use libxernel::sync::TicketMutex;
@@ -9,12 +10,13 @@ use x86_64::structures::tss::TaskStateSegment;
 use x86_64::VirtAddr;
 
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
+pub const IST_STACK_SIZE: usize = 4096 * 5;
 
 lazy_static! {
     static ref TSS: TaskStateSegment = {
         let mut tss = TaskStateSegment::new();
         tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = {
-            const STACK_SIZE: usize = 4096 * 5;
+            const STACK_SIZE: usize = IST_STACK_SIZE;
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
 
             let stack_start = VirtAddr::from_ptr(unsafe { &STACK });
@@ -92,7 +94,14 @@ pub fn init_ap(ap_id: usize) {
     let user_data_selector = gdt.add_entry(Descriptor::user_data_segment());
     let user_code_selector = gdt.add_entry(Descriptor::user_code_segment());
 
-    let tss: &'static mut TaskStateSegment = Box::leak(Box::new(TaskStateSegment::new()));
+    let mut boxed_tss = Box::new(TaskStateSegment::new());
+
+    let ist0 =
+        unsafe { alloc_zeroed(core::alloc::Layout::from_size_align(IST_STACK_SIZE, 4096).unwrap()) };
+    boxed_tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] =
+        unsafe { VirtAddr::from_ptr(ist0.add(IST_STACK_SIZE)) };
+
+    let tss: &'static mut TaskStateSegment = Box::leak(boxed_tss);
     let tss_selector = gdt.add_entry(Descriptor::tss_segment(tss));
 
     gdt_ap.push(Gdt {
