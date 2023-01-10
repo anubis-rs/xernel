@@ -16,10 +16,13 @@ pub struct PerCpu<T> {
     data: UnsafeCell<Vec<T>>,
 }
 
+unsafe impl<T> Send for PerCpu<T> {}
+unsafe impl<T> Sync for PerCpu<T> {}
+
 impl<T> PerCpu<T> {
     pub const fn new() -> Self {
         Self {
-            data: UnsafeCell::new(Vec::new()),
+            data: UnsafeCell::new(Vec::<T>::new()),
         }
     }
 

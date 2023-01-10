@@ -34,6 +34,7 @@ mod writer;
 
 use core::arch::asm;
 use core::panic::PanicInfo;
+use libxernel::sync::SpinlockIRQ;
 use limine::*;
 use x86_64::instructions::interrupts;
 
@@ -53,7 +54,7 @@ use crate::cpu::CPU_COUNT;
 use crate::fs::vfs;
 use crate::mem::pmm::FRAME_ALLOCATOR;
 use crate::mem::vmm::KERNEL_PAGE_MAPPER;
-use crate::sched::scheduler::SCHEDULER;
+use crate::sched::scheduler::{Scheduler, SCHEDULER};
 use crate::sched::task::Task;
 
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
@@ -113,6 +114,23 @@ extern "C" fn kernel_main() -> ! {
         bootloader_info.version.to_str().unwrap()
     );
 
+    let smp_response = SMP_REQUEST.get_response().get_mut().unwrap();
+
+    let bsp_lapic_id = smp_response.bsp_lapic_id;
+
+    CPU_COUNT.set_once(smp_response.cpu_count as usize);
+
+    register_cpu();
+
+    for cpu in smp_response.cpus().iter_mut() {
+        if cpu.lapic_id != bsp_lapic_id {
+            cpu.goto_address = arch::x64::x86_64_ap_main;
+        }
+    }
+
+    // FIXME: wait until all registered cpus are registered
+    SCHEDULER.init(|| SpinlockIRQ::new(Scheduler::new()));
+
     let user_task = Task::new_user_task(VirtAddr::new(0x200000));
 
     let page = FRAME_ALLOCATOR.lock().allocate_frame::<Size2MiB>().unwrap();
@@ -147,24 +165,10 @@ extern "C" fn kernel_main() -> ! {
 
     let kernel_task2 = Task::kernel_task_from_fn(task2);
 
-    SCHEDULER.lock().add_task(main_task);
-    //SCHEDULER.lock().add_task(user_task);
-    SCHEDULER.lock().add_task(kernel_task);
-    SCHEDULER.lock().add_task(kernel_task2);
-
-    let smp_response = SMP_REQUEST.get_response().get_mut().unwrap();
-
-    let bsp_lapic_id = smp_response.bsp_lapic_id;
-
-    CPU_COUNT.set_once(smp_response.cpu_count as usize);
-
-    register_cpu();
-
-    for cpu in smp_response.cpus().iter_mut() {
-        if cpu.lapic_id != bsp_lapic_id {
-            cpu.goto_address = arch::x64::x86_64_ap_main;
-        }
-    }
+    SCHEDULER.get().lock().add_task(main_task);
+    //SCHEDULER.get().lock().add_task(user_task);
+    SCHEDULER.get().lock().add_task(kernel_task);
+    SCHEDULER.get().lock().add_task(kernel_task2);
 
     interrupts::enable();
 

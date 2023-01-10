@@ -1,5 +1,5 @@
 use crate::arch::x64::gdt::GDT_BSP;
-use crate::cpu::get_per_cpu_data;
+use crate::cpu::{get_per_cpu_data, PerCpu};
 use crate::sched::context::restore_context;
 use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
@@ -16,7 +16,7 @@ pub struct Scheduler {
     pub tasks: VecDeque<Task>,
 }
 
-pub static SCHEDULER: SpinlockIRQ<Scheduler> = SpinlockIRQ::new(Scheduler::new());
+pub static SCHEDULER: PerCpu<SpinlockIRQ<Scheduler>> = PerCpu::new();
 
 impl Scheduler {
     pub const fn new() -> Self {
@@ -86,7 +86,7 @@ pub extern "C" fn scheduler_irq_handler(_stack_frame: InterruptStackFrame) {
 // TODO: Schedule on multiple cores if multiple cores are started up
 #[no_mangle]
 pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
-    let mut sched = SCHEDULER.lock();
+    let mut sched = SCHEDULER.get().lock();
     sched.save_ctx(ctx);
 
     sched.set_current_task_status(TaskStatus::Waiting);
