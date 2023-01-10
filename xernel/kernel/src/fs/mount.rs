@@ -1,4 +1,4 @@
-use super::{error::Result, pathbuf::PathBuf, vnode::VNode};
+use super::{pathbuf::PathBuf, vnode::VNode, Result};
 use alloc::{string::String, sync::Arc};
 use libxernel::sync::Spinlock;
 

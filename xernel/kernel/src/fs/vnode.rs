@@ -1,6 +1,6 @@
-use super::error::Result;
 use super::mount::Mount;
 use super::pathbuf::PathBuf;
+use super::Result;
 use alloc::string::String;
 use alloc::{sync::Arc, sync::Weak};
 use libxernel::sync::Spinlock;

@@ -6,11 +6,11 @@ use alloc::{
 use libxernel::sync::Spinlock;
 
 use super::{
-    error::{Error, Result},
     mount::{Mount, VfsOps},
     pathbuf::PathBuf,
     tmpfs::Tmpfs,
     vnode::VNode,
+    {Error, Result},
 };
 
 pub static VFS: Spinlock<Vfs> = Spinlock::new(Vfs::new());
@@ -108,7 +108,7 @@ impl Vfs {
         Ok(mnt_point)
     }
 
-    pub fn vn_open(&mut self, path: String, _mode: u64) -> Result<Arc<Spinlock<VNode>>> {
+    pub fn vn_open(&self, path: String, _mode: u64) -> Result<Arc<Spinlock<VNode>>> {
         let node = self.lookuppn(path)?;
 
         node.lock().open();
@@ -119,11 +119,11 @@ impl Vfs {
     pub fn vn_close(&mut self) {}
 
     // TODO: When available, replace node with filedescriptor
-    pub fn vn_read(&mut self, node: Arc<Spinlock<VNode>>, buf: &mut [u8]) -> Result<usize> {
+    pub fn vn_read(&self, node: Arc<Spinlock<VNode>>, buf: &mut [u8]) -> Result<usize> {
         node.lock().read(buf)
     }
 
-    pub fn vn_write(&mut self, node: Arc<Spinlock<VNode>>, buf: &mut [u8]) -> Result<usize> {
+    pub fn vn_write(&self, node: Arc<Spinlock<VNode>>, buf: &mut [u8]) -> Result<usize> {
         node.lock().write(buf)
     }
 

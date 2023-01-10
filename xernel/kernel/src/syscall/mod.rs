@@ -1,5 +1,9 @@
-use core::arch::asm;
-use libxernel::syscall::{SyscallError, SYS_READ, SYS_WRITE};
+use alloc::{
+    ffi::CString,
+    string::{String, ToString},
+};
+use core::{arch::asm, ffi::c_char};
+use libxernel::syscall::{SyscallError, SYS_CLOSE, SYS_OPEN, SYS_READ, SYS_WRITE};
 use x86_64::{
     registers::{
         model_specific::{Efer, EferFlags, LStar, Star},
@@ -8,7 +12,27 @@ use x86_64::{
     VirtAddr,
 };
 
-use crate::arch::x64::gdt::GDT_BSP;
+use crate::{
+    arch::x64::gdt::GDT_BSP,
+    fs::{self, vfs_syscalls},
+};
+
+impl From<fs::Error> for SyscallError {
+    fn from(err: fs::Error) -> SyscallError {
+        match err {
+            fs::Error::VNodeNotFound => SyscallError::VNodeNotFound,
+            fs::Error::NotADirectory => SyscallError::NotADirectory,
+            fs::Error::IsADirectory => SyscallError::IsADirectory,
+            fs::Error::NoSpace => SyscallError::NoSpace,
+            fs::Error::NotEmpty => SyscallError::NotEmpty,
+            fs::Error::EntryNotFound => SyscallError::EntryNotFound,
+            fs::Error::MountPointNotFound => SyscallError::MountPointNotFound,
+            fs::Error::FileSystemNotFound => SyscallError::FileSystemNotFound,
+        }
+    }
+}
+
+pub type Result<T, E = SyscallError> = core::result::Result<T, E>;
 
 pub fn init() {
     // set IA32_STAR
@@ -121,10 +145,6 @@ unsafe extern "C" fn asm_syscall_handler() {
     );
 }
 
-fn sys_read(fd: usize, buf: &mut [u8]) -> Result<isize, SyscallError> {
-    Ok((fd * buf.len()) as isize)
-}
-
 fn syscall_arg_to_slice<'a, T>(ptr: usize, len: usize) -> &'a mut [T] {
     unsafe { core::slice::from_raw_parts_mut(ptr as *mut T, len) }
 }
@@ -133,13 +153,25 @@ fn syscall_arg_to_reference<'a, T>(ptr: usize) -> &'a mut T {
     unsafe { &mut *(ptr as *mut T) }
 }
 
+// FIXME: Dont use plain unwrap, return syscall error
+fn syscall_arg_to_string(ptr: usize) -> String {
+    unsafe {
+        CString::from_raw(ptr as *mut c_char)
+            .to_str()
+            .unwrap()
+            .to_string()
+    }
+}
+
 #[no_mangle]
 extern "sysv64" fn general_syscall_handler(data: SyscallData) -> i64 {
     // println!("general_syscall_handler: {:#x?}", data);
 
     let result = match data.syscall_number {
-        SYS_READ => sys_read(data.arg0, syscall_arg_to_slice(data.arg1, data.arg2)),
-        SYS_WRITE => todo!("write"),
+        SYS_READ => vfs_syscalls::sys_read(data.arg0, syscall_arg_to_slice(data.arg1, data.arg2)),
+        SYS_WRITE => vfs_syscalls::sys_write(data.arg0, syscall_arg_to_slice(data.arg1, data.arg2)),
+        SYS_OPEN => vfs_syscalls::sys_open(syscall_arg_to_string(data.arg0), data.arg1 as u64),
+        SYS_CLOSE => vfs_syscalls::sys_close(data.arg0),
         _ => {
             unimplemented!("unknown syscall: {:x?}", data);
         }

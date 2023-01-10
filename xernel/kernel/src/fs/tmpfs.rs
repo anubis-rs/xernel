@@ -7,7 +7,7 @@ use alloc::{
 use libxernel::{boot::InitAtBoot, sync::Spinlock};
 
 use crate::{
-    fs::error::{Error, Result},
+    fs::{Error, Result},
     println,
 };
 
@@ -162,29 +162,31 @@ impl VNodeOperations for TmpfsNode {
         let components = stripped_path.components();
 
         if let TmpfsNodeData::Children(children) = &self.data {
-            if components.len() == 1 {
-                let node = children
-                    .iter()
-                    .find(|(pt, _)| pt == components[0])
-                    .map(|(_, node)| node.clone());
-                return node.ok_or(Error::EntryNotFound);
-            } else if components.len() > 1 {
-                let node = children
-                    .iter()
-                    .find(|(pt, _)| pt == components[0])
-                    .map(|(_, node)| node.clone());
-
-                if let Some(node) = node {
-                    return node.lock().lookup(&stripped_path);
-                } else {
-                    return Err(Error::EntryNotFound);
+            match components.len().cmp(&1) {
+                core::cmp::Ordering::Equal => {
+                    let node = children
+                        .iter()
+                        .find(|(pt, _)| pt == components[0])
+                        .map(|(_, node)| node.clone());
+                    node.ok_or(Error::EntryNotFound)
                 }
+                core::cmp::Ordering::Greater => {
+                    let node = children
+                        .iter()
+                        .find(|(pt, _)| pt == components[0])
+                        .map(|(_, node)| node.clone());
+
+                    if let Some(node) = node {
+                        return node.lock().lookup(&stripped_path);
+                    } else {
+                        Err(Error::EntryNotFound)
+                    }
+                }
+                core::cmp::Ordering::Less => todo!(),
             }
         } else {
-            return Err(Error::NotADirectory);
+            Err(Error::NotADirectory)
         }
-
-        Err(Error::EntryNotFound)
     }
 
     fn mknod(&self) {

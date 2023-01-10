@@ -2,14 +2,12 @@ use core::alloc::Layout;
 use core::pin::Pin;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::fs::vnode::VNode;
+use crate::fs::file::FileHandle;
 use alloc::alloc::{alloc_zeroed, dealloc};
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::rc::Weak;
-use alloc::sync::Arc;
+use alloc::sync::Weak;
 use alloc::vec::Vec;
-use libxernel::sync::Spinlock;
 use x86_64::VirtAddr;
 
 use crate::mem::vmm::Pagemap;
@@ -64,7 +62,7 @@ pub struct Task {
     pub status: TaskStatus,
     pub priority: TaskPriority,
     pub context: TaskContext,
-    pub fds: BTreeMap<usize, Arc<Spinlock<VNode>>>,
+    pub fds: BTreeMap<usize, FileHandle>,
     pub kernel_stack: Option<Pin<Box<KernelStack>>>,
 }
 
@@ -202,12 +200,12 @@ impl Task {
         self.context.cs == 0x8 && self.context.ss == 0x10
     }
 
-    pub fn append_fd(&mut self, node: Arc<Spinlock<VNode>>) -> u32 {
+    pub fn append_fd(&mut self, file_handle: FileHandle) -> u32 {
         let mut counter = 0;
 
         let fd = loop {
             if let alloc::collections::btree_map::Entry::Vacant(e) = self.fds.entry(counter) {
-                e.insert(node);
+                e.insert(file_handle);
                 break counter;
             }
 
@@ -215,5 +213,11 @@ impl Task {
         };
 
         fd as u32
+    }
+
+    pub fn get_filehandle_from_fd(&self, fd: usize) -> &FileHandle {
+        let handle = self.fds.get(&fd).expect("Failed to get FileHandle for fd");
+
+        handle
     }
 }
