@@ -6,6 +6,7 @@
 #![feature(pointer_byte_offsets)]
 #![feature(naked_functions)]
 #![feature(exclusive_range_pattern)]
+#![feature(let_chains)]
 #![allow(dead_code)]
 #![allow(clippy::fn_to_numeric_cast)]
 extern crate alloc;
@@ -60,6 +61,7 @@ use crate::mem::pmm::FRAME_ALLOCATOR;
 use crate::mem::vmm::KERNEL_PAGE_MAPPER;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
 use crate::sched::task::Task;
+use crate::sched::task::TaskStatus;
 
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 static SMP_REQUEST: LimineSmpRequest = LimineSmpRequest::new(0);
@@ -187,7 +189,8 @@ extern "C" fn kernel_main() -> ! {
         }
     }
 
-    let main_task = Task::new_kernel_task(VirtAddr::new(0));
+    let mut main_task = Task::new_kernel_task(VirtAddr::new(0));
+    main_task.status = TaskStatus::Running;
 
     let kernel_task = Task::kernel_task_from_fn(task1);
 

@@ -96,8 +96,9 @@ pub fn init_ap(ap_id: usize) {
 
     let mut boxed_tss = Box::new(TaskStateSegment::new());
 
-    let ist0 =
-        unsafe { alloc_zeroed(core::alloc::Layout::from_size_align(IST_STACK_SIZE, 4096).unwrap()) };
+    let ist0 = unsafe {
+        alloc_zeroed(core::alloc::Layout::from_size_align(IST_STACK_SIZE, 4096).unwrap())
+    };
     boxed_tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] =
         unsafe { VirtAddr::from_ptr(ist0.add(IST_STACK_SIZE)) };
 

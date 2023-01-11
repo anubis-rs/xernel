@@ -87,9 +87,12 @@ pub extern "C" fn scheduler_irq_handler(_stack_frame: InterruptStackFrame) {
 #[no_mangle]
 pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     let mut sched = SCHEDULER.get().lock();
-    sched.save_ctx(ctx);
 
-    sched.set_current_task_status(TaskStatus::Waiting);
+    if let Some(task) = sched.tasks.get(0) && task.status == TaskStatus::Running {
+        sched.save_ctx(ctx);
+
+        sched.set_current_task_status(TaskStatus::Waiting);
+    }
 
     let task = sched.get_next_task();
 
