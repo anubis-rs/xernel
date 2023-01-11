@@ -3,6 +3,7 @@ use crate::cpu::{get_per_cpu_data, PerCpu};
 use crate::sched::context::restore_context;
 use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
+use x86_64::instructions::interrupts;
 use core::arch::asm;
 use libxernel::sync::SpinlockIRQ;
 use x86_64::registers::control::Cr3;
@@ -92,6 +93,21 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
         sched.save_ctx(ctx);
 
         sched.set_current_task_status(TaskStatus::Waiting);
+    }
+
+    // only schedule if there are tasks to schedule
+    if sched.tasks.len() == 0 {
+        SpinlockIRQ::unlock(sched);
+
+        APIC.eoi();
+        APIC.create_oneshot_timer(0x40,  5 * 1000);
+
+        interrupts::enable();
+
+        // wait until next scheduler interrupt fires
+        loop {
+            unsafe { asm!("hlt") };
+        }
     }
 
     let task = sched.get_next_task();
