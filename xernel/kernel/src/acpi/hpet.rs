@@ -28,7 +28,7 @@ pub fn init() {
         Page::containing_address(VirtAddr::new(
             hpet_info.base_address as u64 + *HIGHER_HALF_OFFSET,
         )),
-        PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
+        PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE,
         true,
     );
 

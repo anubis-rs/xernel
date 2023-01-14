@@ -348,7 +348,7 @@ pub fn init() {
                 PhysAddr::new(memory_entry.base),
                 VirtAddr::new(memory_entry.base + *HIGHER_HALF_OFFSET),
                 memory_entry.len as usize,
-                PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
+                PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE,
                 false,
             )
         }

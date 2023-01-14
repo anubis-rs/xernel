@@ -58,7 +58,7 @@ impl LocalAPIC {
         mapper.map::<Size4KiB>(
             PhysFrame::containing_address(PhysAddr::new(apic_info.local_apic_address)),
             Page::containing_address(VirtAddr::new(apic_base)),
-            PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
+            PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE,
             true,
         );
 
@@ -237,7 +237,7 @@ impl IOApic {
             PhysAddr::new(self.address - *HIGHER_HALF_OFFSET),
             VirtAddr::new(self.address),
             0x2000,
-            PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
+            PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE,
             true,
         );
 
