@@ -56,7 +56,7 @@ impl TaskContext {
 
 #[naked]
 /// Restores the gives context and jumps to new RIP via iretq
-pub extern "C" fn restore_context(ctx: &TaskContext) -> ! {
+pub extern "C" fn restore_context(ctx: *const TaskContext) -> ! {
     unsafe {
         asm!(
             "mov rsp, rdi;

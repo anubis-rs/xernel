@@ -126,12 +126,12 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
         }
     }
 
-    let context = task.context.clone();
+    let context = &task.context as *const TaskContext;
 
     APIC.eoi();
     APIC.create_oneshot_timer(0x40, task.priority.ms() * 1000);
 
     SpinlockIRQ::unlock(sched);
 
-    restore_context(&context);
+    restore_context(context);
 }
