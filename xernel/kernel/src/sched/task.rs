@@ -79,6 +79,14 @@ impl Drop for Task {
     }
 }
 
+fn idle_task_fn() {
+    loop {
+        unsafe {
+            core::arch::asm!("hlt");
+        }
+    }
+}
+
 impl Task {
     pub fn new_kernel_task(entry_point: VirtAddr) -> Self {
         let task_stack = unsafe {
@@ -177,6 +185,15 @@ impl Task {
                 end: kernel_stack_end,
             })),
         }
+    }
+
+    pub fn new_idle_task() -> Self {
+        // TODO: don't use a normal kernel task as a huge stack is allocated
+        let mut task = Self::kernel_task_from_fn(idle_task_fn);
+
+        task.priority = TaskPriority::Low;
+
+        task
     }
 
     pub fn get_page_table(&self) -> Option<Pagemap> {

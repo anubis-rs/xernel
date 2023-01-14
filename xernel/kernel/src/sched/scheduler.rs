@@ -5,7 +5,6 @@ use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
 use core::arch::asm;
 use libxernel::sync::SpinlockIRQ;
-use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
 use x86_64::structures::idt::InterruptStackFrame;
@@ -15,14 +14,16 @@ use super::task::TaskStatus;
 
 pub struct Scheduler {
     pub tasks: VecDeque<Task>,
+    pub idle_task: Task,
 }
 
 pub static SCHEDULER: PerCpu<SpinlockIRQ<Scheduler>> = PerCpu::new();
 
 impl Scheduler {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             tasks: VecDeque::new(),
+            idle_task: Task::new_idle_task(),
         }
     }
 
@@ -39,14 +40,18 @@ impl Scheduler {
         task.context = ctx;
     }
 
-    pub fn get_next_task(&mut self) -> &mut Task {
+    pub fn get_next_task(&mut self) -> Option<&mut Task> {
+        if self.tasks.is_empty() {
+            return None;
+        }
+
         let old_task = self.tasks.pop_front().unwrap();
 
         self.tasks.push_back(old_task);
 
         let t = self.tasks.front_mut().unwrap();
 
-        t
+        Some(t)
     }
 
     pub fn set_current_task_status(&mut self, status: TaskStatus) {
@@ -95,22 +100,10 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
         sched.set_current_task_status(TaskStatus::Waiting);
     }
 
-    // only schedule if there are tasks to schedule
-    if sched.tasks.is_empty() {
-        SpinlockIRQ::unlock(sched);
-
-        APIC.eoi();
-        APIC.create_oneshot_timer(0x40, 5 * 1000);
-
-        interrupts::enable();
-
-        // wait until next scheduler interrupt fires
-        loop {
-            unsafe { asm!("hlt") };
-        }
-    }
-
-    let task = sched.get_next_task();
+    let task = match sched.get_next_task() {
+        Some(t) => t,
+        None => &mut sched.idle_task, // Use the idle task if there are no other tasks to schedule
+    };
 
     task.status = TaskStatus::Running;
 
