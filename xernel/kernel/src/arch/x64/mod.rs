@@ -6,6 +6,7 @@ pub mod ports;
 use crate::arch::x64::apic::APIC;
 use crate::cpu::register_cpu;
 use crate::info;
+use crate::sched::scheduler::SCHEDULER;
 use crate::KERNEL_PAGE_MAPPER;
 use limine::LimineSmpInfo;
 use x86_64::instructions::interrupts;
@@ -32,6 +33,9 @@ pub extern "C" fn x86_64_ap_main(boot_info: *const LimineSmpInfo) -> ! {
 
     register_cpu();
     info!("CPU{}: cpu registered", ap_id);
+
+    // wait until all CPUs are registered before scheduling
+    SCHEDULER.wait_until_cpus_registered();
 
     APIC.enable_apic();
     APIC.create_oneshot_timer(0x40, 10_000);
