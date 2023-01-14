@@ -3,9 +3,9 @@ use crate::cpu::{get_per_cpu_data, PerCpu};
 use crate::sched::context::restore_context;
 use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
-use x86_64::instructions::interrupts;
 use core::arch::asm;
 use libxernel::sync::SpinlockIRQ;
+use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
 use x86_64::structures::idt::InterruptStackFrame;
@@ -96,11 +96,11 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     }
 
     // only schedule if there are tasks to schedule
-    if sched.tasks.len() == 0 {
+    if sched.tasks.is_empty() {
         SpinlockIRQ::unlock(sched);
 
         APIC.eoi();
-        APIC.create_oneshot_timer(0x40,  5 * 1000);
+        APIC.create_oneshot_timer(0x40, 5 * 1000);
 
         interrupts::enable();
 
