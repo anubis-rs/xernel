@@ -74,6 +74,10 @@ impl<T: ?Sized> Spinlock<T> {
     pub fn unlock(_guard: MutexGuard<'_, T>) {}
 }
 
+impl<T: ?Sized> MutexGuard<'_, T> {
+    pub fn unlock(self) {}
+}
+
 impl<'a, T: ?Sized> Drop for MutexGuard<'a, T> {
     fn drop(&mut self) {
         // Releasing the lock

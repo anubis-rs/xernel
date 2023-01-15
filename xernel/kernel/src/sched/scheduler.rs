@@ -131,7 +131,7 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     APIC.eoi();
     APIC.create_oneshot_timer(0x40, task.priority.ms() * 1000);
 
-    SpinlockIRQ::unlock(sched);
+    sched.unlock();
 
     restore_context(context);
 }

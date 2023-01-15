@@ -35,6 +35,10 @@ pub struct SpinlockIRQGuard<'a, T: 'a> {
     _held_irq: HeldIRQ,
 }
 
+impl<T> SpinlockIRQGuard<'_, T> {
+    pub fn unlock(self) {}
+}
+
 impl<'a, T> Deref for SpinlockIRQGuard<'a, T> {
     type Target = T;
 
