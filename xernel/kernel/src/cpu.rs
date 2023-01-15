@@ -65,6 +65,21 @@ impl<T> PerCpu<T> {
         &mut vec[cpu_id]
     }
 
+    pub unsafe fn get_index(&self, index: usize) -> &T {
+        self.check_initialized();
+
+        let vec = unsafe { &mut *self.data.get() };
+        &vec[index]
+    }
+
+    #[allow(clippy::mut_from_ref)]
+    pub unsafe fn get_index_mut(&self, index: usize) -> &mut T {
+        self.check_initialized();
+
+        let vec = unsafe { &mut *self.data.get() };
+        &mut vec[index]
+    }
+
     pub unsafe fn get_all(&self) -> &Vec<T> {
         self.check_initialized();
 
