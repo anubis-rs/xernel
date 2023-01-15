@@ -40,10 +40,7 @@ impl<T> RwLock<T> {
     }
 
     pub fn write(&self) -> WriteGuard<T> {
-        while let Err(_) =
-            self.state
-                .compare_exchange(0, u32::MAX, Ordering::Acquire, Ordering::Relaxed)
-        {
+        while self.state.compare_exchange(0, u32::MAX, Ordering::Acquire, Ordering::Relaxed).is_err() {
             core::hint::spin_loop();
         }
         WriteGuard { rwlock: self }
