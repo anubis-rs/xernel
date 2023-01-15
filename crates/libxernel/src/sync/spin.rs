@@ -78,7 +78,7 @@ impl<T: ?Sized> MutexGuard<'_, T> {
     /// Unlocking a spinlock
     ///
     /// Sometimes it is nice to be able to unlock a lock when you want to.
-    /// Normally a Spinlock in Rust would only unlock when the correspondoing Guard would be dropped.
+    /// Normally a Spinlock in Rust would only unlock when the corresponding Guard would be dropped.
     /// In special cases, like the [`Scheduler`], we even need the lock to be released before the function end, since we would wind up in a dead lock on the next timer interrupt.
     /// Semantically there is no difference between this method and [`Spinlock::unlock`](struct.Spinlock.html#method.unlock)
     pub fn unlock(self) {}
