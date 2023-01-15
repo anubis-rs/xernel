@@ -8,7 +8,7 @@ use super::MutexGuard;
 /// A handle for interrupt state
 pub struct HeldIRQ(bool);
 
-/// Spinlock which disables interrupt when taking the lock
+/// Spinlock which disables interrupts when taking the lock
 pub struct SpinlockIRQ<T> {
     lock: Spinlock<T>,
 }
@@ -32,7 +32,7 @@ impl<T> SpinlockIRQ<T> {
 
     /// Unlock the underlying spinlock
     ///
-    /// If needed the release the lock before the Guard gets dropped you may use this function
+    /// If needed to release the lock before the Guard gets dropped you may use this function
     pub fn unlock(_guard: SpinlockIRQGuard<'_, T>) {}
 }
 
@@ -45,7 +45,7 @@ pub struct SpinlockIRQGuard<'a, T: 'a> {
 impl<T> SpinlockIRQGuard<'_, T> {
     /// Unlock the underlying spinlock
     ///
-    /// If needed the release the lock before the Guard gets dropped you may use this function
+    /// If needed to release the lock before the Guard gets dropped you may use this function
     pub fn unlock(self) {}
 }
 
@@ -73,8 +73,8 @@ impl Drop for HeldIRQ {
 
 /// Gets the interrupt state
 ///
-/// Returns a bool if interrupt are currently enabled or not.
-/// Is used when dropping the SpinlockIRQGuard to get back to old interrupt state.
+/// Returns a bool if interrupts are currently enabled or not.
+/// Is used when dropping the SpinlockIRQGuard to get back to the old interrupt state.
 #[inline(always)]
 pub fn interrupts_enabled() -> bool {
     if cfg!(target_arch = "x86_64") {
@@ -91,7 +91,7 @@ pub fn interrupts_enabled() -> bool {
 /// Returns a HeldIRQ object with the current interrupt state
 ///
 /// Gets the current interrupt state and creates a HeldIRQ object
-/// It then disables the interrupt, even if they are already disabled and returns the HeldIRQ object.
+/// It then disables the interrupts, even if they are already disabled and returns the HeldIRQ object.
 pub fn hold_interrupts() -> HeldIRQ {
     let enabled = interrupts_enabled();
     let retval = HeldIRQ(enabled);
@@ -99,7 +99,7 @@ pub fn hold_interrupts() -> HeldIRQ {
     retval
 }
 
-/// Disables interrupt across multiple architectures
+/// Disables interrupts across multiple architectures
 #[inline(always)]
 pub fn disable_interrupts() {
     unsafe {
@@ -112,7 +112,7 @@ pub fn disable_interrupts() {
     compiler_fence(Ordering::SeqCst);
 }
 
-/// Enables interrupt across multiple architectures
+/// Enables interrupts across multiple architectures
 #[inline(always)]
 pub fn enable_interrupts() {
     compiler_fence(Ordering::SeqCst);
