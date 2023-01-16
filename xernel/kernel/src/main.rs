@@ -45,7 +45,6 @@ use x86_64::instructions::interrupts;
 use arch::x64::gdt;
 use arch::x64::idt;
 
-use mem::{heap, pmm, vmm};
 use x86_64::structures::paging::Page;
 use x86_64::structures::paging::PageTableFlags;
 use x86_64::structures::paging::Size2MiB;
@@ -89,14 +88,7 @@ extern "C" fn kernel_main() -> ! {
     info!("IDT loaded");
     idt::disable_pic();
 
-    pmm::init();
-    info!("pm initialized");
-
-    vmm::init();
-    info!("vm initialized");
-
-    heap::init();
-    info!("heap initialized");
+    mem::init();
 
     acpi::init();
     info!("acpi initialized");
