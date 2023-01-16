@@ -4,6 +4,7 @@ use crate::arch::x64::ports::outb;
 use crate::drivers::ps2::keyboard::keyboard;
 use crate::sched::scheduler::scheduler_irq_handler;
 use core::arch::asm;
+use libxernel::boot::InitAtBoot;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::PageFaultErrorCode;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
@@ -11,31 +12,31 @@ use x86_64::{set_general_handler, VirtAddr};
 
 use crate::{backtrace, dbg, println};
 
-lazy_static! {
-    static ref IDT: InterruptDescriptorTable = {
-        let mut idt = InterruptDescriptorTable::new();
-
-        set_general_handler!(&mut idt, interrupt_handler);
-        unsafe {
-            idt.double_fault
-                .set_handler_fn(double_fault_handler)
-                .set_stack_index(DOUBLE_FAULT_IST_INDEX);
-        }
-        idt.page_fault.set_handler_fn(page_fault_handler);
-        idt.general_protection_fault
-            .set_handler_fn(general_fault_handler);
-
-        unsafe {
-            idt[0x40].set_handler_addr(VirtAddr::new(scheduler_irq_handler as u64));
-        }
-        idt[0x47].set_handler_fn(keyboard);
-        idt[0xff].set_handler_fn(apic_spurious_interrupt);
-        idt
-    };
-}
+pub static mut IDT: InitAtBoot<InterruptDescriptorTable> = InitAtBoot::Uninitialized;
 
 pub fn init() {
-    IDT.load();
+    let mut idt = InterruptDescriptorTable::new();
+
+    set_general_handler!(&mut idt, interrupt_handler);
+    unsafe {
+        idt.double_fault
+            .set_handler_fn(double_fault_handler)
+            .set_stack_index(DOUBLE_FAULT_IST_INDEX);
+    }
+    idt.page_fault.set_handler_fn(page_fault_handler);
+    idt.general_protection_fault
+        .set_handler_fn(general_fault_handler);
+
+    unsafe {
+        idt[0x40].set_handler_addr(VirtAddr::new(scheduler_irq_handler as u64));
+    }
+    idt[0x47].set_handler_fn(keyboard);
+    idt[0xff].set_handler_fn(apic_spurious_interrupt);
+
+    unsafe {
+        IDT = InitAtBoot::Initialized(idt);
+        IDT.load();
+    }
 }
 
 fn interrupt_handler(stack_frame: InterruptStackFrame, index: u8, error_code: Option<u64>) {
