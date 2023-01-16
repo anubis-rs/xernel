@@ -43,6 +43,11 @@ impl<T> Once<T> {
             panic!("Value already set");
         }
     }
+
+    /// Returns `true` if some [`set_once()`](struct.Once.html#methods.set_once) has completed successfully
+    pub fn is_completed(&self) -> bool {
+        self.is_set.load(Ordering::Relaxed)
+    }
 }
 
 unsafe impl<T> Send for Once<T> {}
