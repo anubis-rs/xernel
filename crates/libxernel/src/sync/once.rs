@@ -9,7 +9,7 @@ use core::{
 /// Type which represents a value which gets set exactly once
 ///
 /// This type will allow to be set once, then never again.
-/// Made for values which are only available at runtime and is used in a [`static`] context
+/// Made for values which are only available at runtime, used in a [`static`] context and won't change after initialization
 pub struct Once<T> {
     /// Determines if the value is set or if it's uninitialized
     is_set: AtomicBool,

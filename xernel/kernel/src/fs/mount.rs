@@ -4,7 +4,6 @@ use libxernel::sync::Spinlock;
 
 // According to BSD each Mount object has a pointer to vfsops and to private data
 // As in vnode we combine the member which holds the vfs operations and the private data which is used by the file system
-// FIXME: Fix cyclic Arc's
 pub struct Mount {
     /// Operations vector including private data for file system
     mnt_op_data: Arc<Spinlock<dyn VfsOps>>,
