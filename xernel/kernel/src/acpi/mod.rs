@@ -5,6 +5,7 @@ use core::ptr::NonNull;
 use crate::mem::HIGHER_HALF_OFFSET;
 use acpi_parsing::platform::interrupt::Apic;
 use acpi_parsing::{AcpiHandler, AcpiTables, InterruptModel, PhysicalMapping};
+use libxernel::sync::Once;
 use limine::LimineRsdpRequest;
 
 #[derive(Clone)]
@@ -12,12 +13,10 @@ struct AcpiMapper;
 
 static RSDP_REQUEST: LimineRsdpRequest = LimineRsdpRequest::new(0);
 
-lazy_static! {
-    pub static ref ACPI: Acpi = Acpi::new();
-}
+pub static ACPI: Once<Acpi> = Once::new();
 
 pub fn init() {
-    lazy_static::initialize(&ACPI);
+    ACPI.set_once(Acpi::new());
 }
 
 impl AcpiHandler for AcpiMapper {
