@@ -80,7 +80,8 @@ fn panic(info: &PanicInfo) -> ! {
 // define the kernel's entry point function
 #[no_mangle]
 extern "C" fn kernel_main() -> ! {
-    framebuffer::show_start_image();
+    framebuffer::init();
+    info!("framebuffer initialized");
 
     gdt::init();
     info!("GDT loaded");

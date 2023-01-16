@@ -3,7 +3,7 @@ mod font;
 use core::ptr::copy;
 
 use crate::{framebuffer::font::FONT, limine_module::get_limine_module};
-use libxernel::sync::Spinlock;
+use libxernel::sync::{Once, Spinlock};
 use limine::{LimineFile, LimineFramebuffer, LimineFramebufferRequest};
 
 /// A struct providing information about the framebuffer
@@ -39,16 +39,27 @@ pub static FRAMEBUFFER: Spinlock<Framebuffer> = Spinlock::new(Framebuffer {
     address: core::ptr::null_mut(),
 });
 
-lazy_static! {
-    static ref FRAMEBUFFER_DATA: &'static LimineFramebuffer = {
+pub static FRAMEBUFFER_DATA: Once<&'static LimineFramebuffer> = Once::new();
+
+pub fn init() {
+    FRAMEBUFFER_DATA.set_once(
         FRAMEBUFFER_REQUEST
             .get_response()
             .get()
             .expect("limine-protocol: invalid framebuffer response")
             .framebuffers()
             .first()
-            .expect("limine-protocol: could not get first framebuffer")
-    };
+            .expect("limine-protocol: could not get first framebuffer"),
+    );
+
+    // show start image
+    let img_file = get_limine_module("logo").unwrap();
+
+    unsafe {
+        let mut framebuffer = FRAMEBUFFER.lock();
+
+        framebuffer.show_bitmap_image(img_file);
+    }
 }
 
 impl Framebuffer {
@@ -209,17 +220,5 @@ impl Framebuffer {
 
         self.new_line();
         self.new_line();
-    }
-}
-/// Shows a given image included in the source code at the top of the framebuffer at the beginning
-///
-/// Intended as a nice gimmick so we show our logo when starting the kernel
-pub fn show_start_image() {
-    let img_file = get_limine_module("logo").unwrap();
-
-    unsafe {
-        let mut framebuffer = FRAMEBUFFER.lock();
-
-        framebuffer.show_bitmap_image(img_file);
     }
 }
