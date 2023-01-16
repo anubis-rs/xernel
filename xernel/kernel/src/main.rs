@@ -11,9 +11,6 @@
 #![allow(clippy::fn_to_numeric_cast)]
 extern crate alloc;
 
-#[macro_use]
-extern crate lazy_static;
-
 mod acpi;
 mod allocator;
 mod arch;

@@ -11,6 +11,5 @@ license = "MIT OR Apache-2.0"
 limine = { git = "https://github.com/limine-bootloader/limine-rs" }
 x86_64 = "0.14.10"
 acpi_parsing = { package = "acpi", version = "4.1.1" }
-lazy_static = { version = "1.4.0", features = ["spin_no_std"]}
 libxernel = { path = "../../crates/libxernel", features = ["kernel"] }
 linked_list_allocator = { version = "0.10.3", features = [] }
