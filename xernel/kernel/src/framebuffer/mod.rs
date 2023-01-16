@@ -58,6 +58,12 @@ pub fn init() {
     unsafe {
         let mut framebuffer = FRAMEBUFFER.lock();
 
+        framebuffer.address = FRAMEBUFFER_DATA
+            .address
+            .as_ptr()
+            .expect("Could not get framebuffer address")
+            .cast::<u8>();
+
         framebuffer.show_bitmap_image(img_file);
     }
 }
@@ -71,10 +77,6 @@ impl Framebuffer {
         debug_assert!(character.is_ascii());
 
         let c = character as u8;
-
-        if self.address.is_null() {
-            self.address = FRAMEBUFFER_DATA.address.as_ptr().unwrap().cast::<u8>();
-        }
 
         let mut index: u16 = 0;
 
