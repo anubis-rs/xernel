@@ -74,8 +74,6 @@ impl Scheduler {
         unsafe {
             asm!("hlt");
         }
-
-        unreachable!();
     }
 }
 
