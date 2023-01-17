@@ -5,6 +5,7 @@ use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
 use core::arch::asm;
 use libxernel::sync::SpinlockIRQ;
+use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
 use x86_64::structures::idt::InterruptStackFrame;
@@ -62,6 +63,20 @@ impl Scheduler {
     pub fn current_task(&mut self) -> &mut Task {
         self.tasks.front_mut().unwrap()
     }
+
+    pub fn hand_over() {
+        interrupts::disable();
+
+        APIC.create_oneshot_timer(0x40, 1);
+
+        interrupts::enable();
+
+        unsafe {
+            asm!("hlt");
+        }
+
+        unreachable!();
+    }
 }
 
 #[naked]
@@ -93,7 +108,6 @@ pub extern "C" fn scheduler_irq_handler(_stack_frame: InterruptStackFrame) {
 #[no_mangle]
 pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
     let mut sched = SCHEDULER.get().lock();
-
     if let Some(task) = sched.tasks.get(0) && task.status == TaskStatus::Running {
         sched.save_ctx(ctx);
 

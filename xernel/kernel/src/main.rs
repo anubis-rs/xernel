@@ -36,7 +36,6 @@ use core::arch::asm;
 use core::panic::PanicInfo;
 use libxernel::sync::SpinlockIRQ;
 use limine::*;
-use x86_64::instructions::interrupts;
 
 use arch::x64::gdt;
 use arch::x64::idt;
@@ -56,7 +55,6 @@ use crate::mem::pmm::FRAME_ALLOCATOR;
 use crate::mem::vmm::KERNEL_PAGE_MAPPER;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
 use crate::sched::task::Task;
-use crate::sched::task::TaskStatus;
 
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 static SMP_REQUEST: LimineSmpRequest = LimineSmpRequest::new(0);
@@ -178,8 +176,7 @@ extern "C" fn kernel_main() -> ! {
         }
     }
 
-    let mut main_task = Task::new_kernel_task(VirtAddr::new(0));
-    main_task.status = TaskStatus::Running;
+    let main_task = Task::kernel_task_from_fn(kernel_main_task);
 
     let kernel_task = Task::kernel_task_from_fn(task1);
 
@@ -190,8 +187,12 @@ extern "C" fn kernel_main() -> ! {
     SCHEDULER.get().lock().add_task(kernel_task);
     SCHEDULER.get().lock().add_task(kernel_task2);
 
-    interrupts::enable();
+    Scheduler::hand_over();
 
+    unreachable!();
+}
+
+pub fn kernel_main_task() {
     let mut var = 1;
 
     loop {
