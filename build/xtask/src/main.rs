@@ -13,7 +13,7 @@ FLAGS:
     --release       Build the kernel with optimizations.
     --gdb           Start QEMU with GDB server enabled and waiting for a connection.
     --check         Only checks if the format is correct, without making changes (Can only be used with the fmt or lint subcommand)
-    --cpus          Set the number CPU cores (default: 1).
+    --cpus          Set the number CPU cores (default: 2).
     --ram           Set the amount of RAM in given size (M for Megabyte and G for Gigabyte) (default: 128M).
     --wsl-qemu      If you use wsl but got a X server installed like GWSL you can use this flag to say you want to use the qemu you've got installed with your wsl distro and not on windows (also possible to use a env variable called qemu_in_wsl and setting it to true)
     --kvm           Use KVM for QEMU (default: false).
@@ -161,7 +161,7 @@ fn run(sh: &Shell, gdb: bool, mut args: Arguments) -> Result<()> {
         .unwrap_or_else(|| "128M".to_string());
     let cpus = args
         .opt_value_from_str::<_, u32>("--cpus")?
-        .unwrap_or(1)
+        .unwrap_or(2)
         .to_string();
 
     let kvm = if args.contains("--kvm") {
