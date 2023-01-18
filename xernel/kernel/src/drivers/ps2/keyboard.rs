@@ -1,9 +1,6 @@
 use x86_64::structures::idt::InterruptStackFrame;
 
-use crate::{
-    arch::x64::{apic::APIC, ports::inb},
-    dbg, debug,
-};
+use crate::arch::x64::{apic::APIC, ports::inb};
 
 pub extern "x86-interrupt" fn keyboard(_stack_frame: InterruptStackFrame) {
     dbg!("keyboard hit");

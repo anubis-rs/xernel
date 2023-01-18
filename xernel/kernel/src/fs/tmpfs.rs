@@ -6,10 +6,7 @@ use alloc::{
 };
 use libxernel::{boot::InitAtBoot, sync::Spinlock};
 
-use crate::{
-    fs::{Error, Result},
-    println,
-};
+use crate::fs::{Error, Result};
 
 use super::{
     mount::{Mount, VfsOps},

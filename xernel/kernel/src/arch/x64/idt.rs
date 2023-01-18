@@ -10,7 +10,7 @@ use x86_64::structures::idt::PageFaultErrorCode;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 use x86_64::{set_general_handler, VirtAddr};
 
-use crate::{backtrace, dbg, println};
+use crate::backtrace;
 
 pub static mut IDT: InitAtBoot<InterruptDescriptorTable> = InitAtBoot::Uninitialized;
 

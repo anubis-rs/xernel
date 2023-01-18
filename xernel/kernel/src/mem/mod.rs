@@ -5,8 +5,6 @@ pub mod vmm;
 use libxernel::sync::Once;
 use limine::LimineHhdmRequest;
 
-use crate::info;
-
 static HHDM_REQUEST: LimineHhdmRequest = LimineHhdmRequest::new(0);
 
 pub static HIGHER_HALF_OFFSET: Once<u64> = Once::new();

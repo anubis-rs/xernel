@@ -7,7 +7,6 @@ use x86_64::structures::paging::{Page, PageSize, PageTableFlags, PhysFrame, Size
 use x86_64::VirtAddr;
 
 use crate::allocator::align_up;
-use crate::info;
 
 use super::{pmm::FRAME_ALLOCATOR, vmm::KERNEL_PAGE_MAPPER};
 

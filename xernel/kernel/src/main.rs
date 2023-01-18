@@ -10,6 +10,12 @@
 #![allow(clippy::fn_to_numeric_cast)]
 extern crate alloc;
 
+#[macro_use]
+mod writer;
+
+#[macro_use]
+mod logger;
+
 mod acpi;
 mod allocator;
 mod arch;
@@ -22,21 +28,16 @@ mod limine_module;
 mod sched;
 mod syscall;
 
-#[macro_use]
-mod logger;
 mod mem;
-
-#[macro_use]
-mod writer;
 
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-use x86_64::instructions::interrupts;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use libxernel::sync::SpinlockIRQ;
 use limine::*;
+use x86_64::instructions::interrupts;
 
 use arch::x64::gdt;
 use arch::x64::idt;

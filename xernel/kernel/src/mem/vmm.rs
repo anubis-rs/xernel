@@ -1,7 +1,6 @@
 use super::{pmm::FRAME_ALLOCATOR, HIGHER_HALF_OFFSET};
 use crate::{
     allocator::align_up,
-    debug,
     mem::{pmm::MEMORY_MAP, KERNEL_OFFSET},
 };
 use libxernel::boot::InitAtBoot;

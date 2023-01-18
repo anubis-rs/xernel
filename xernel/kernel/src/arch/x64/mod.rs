@@ -5,7 +5,6 @@ pub mod ports;
 
 use crate::arch::x64::apic::APIC;
 use crate::cpu::register_cpu;
-use crate::info;
 use crate::sched::scheduler::SCHEDULER;
 use crate::KERNEL_PAGE_MAPPER;
 use limine::LimineSmpInfo;
