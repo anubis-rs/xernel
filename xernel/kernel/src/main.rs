@@ -32,6 +32,7 @@ mod writer;
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
+use x86_64::instructions::interrupts;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use libxernel::sync::SpinlockIRQ;
@@ -61,6 +62,11 @@ static SMP_REQUEST: LimineSmpRequest = LimineSmpRequest::new(0);
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
+    // disable interrupts in panic handler to prevent getting scheduled again
+    interrupts::disable();
+
+    // TODO: check which task paniced and kill it
+
     dbg!("Kernel PANIC !!!");
     dbg!("panic info: {:#?}", info);
 
