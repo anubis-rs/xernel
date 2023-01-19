@@ -1,9 +1,13 @@
+use crate::acpi::hpet;
 use crate::arch::x64::gdt::GDT_BSP;
 use crate::cpu::{get_per_cpu_data, PerCpu, CPU_COUNT};
 use crate::sched::context::restore_context;
 use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
+use alloc::vec::Vec;
 use core::arch::asm;
+use core::sync::atomic::AtomicU64;
+use core::sync::atomic::Ordering;
 use libxernel::sync::SpinlockIRQ;
 use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
@@ -28,12 +32,14 @@ impl Scheduler {
         }
     }
 
-    fn add_task(&mut self, new_task: Task) {
+    pub fn add_task(&mut self, new_task: Task) {
         self.tasks.push_back(new_task);
     }
 
     /// Adds the task to the scheduler with the least amount of tasks
     pub fn add_task_balanced(new_task: Task) {
+        Self::load_balance();
+
         let mut smallest_queue_index = 0;
         let mut smallest_queue_len = usize::MAX;
 
@@ -48,6 +54,65 @@ impl Scheduler {
 
         let mut sched = unsafe { SCHEDULER.get_index(smallest_queue_index).lock() };
         sched.add_task(new_task);
+    }
+
+    /// Balances the load of all schedulers
+    /// Currently this method tries to move the tasks between schedulers so every scheduler has the same amount of tasks
+    pub fn load_balance() {
+        static LAST_LOAD_BALANCE: AtomicU64 = AtomicU64::new(0);
+
+        let now = hpet::milliseconds();
+        let diff = now - LAST_LOAD_BALANCE.load(Ordering::Relaxed);
+
+        // only balance every 5 seconds because this function is very slow
+        if diff < 5000 {
+            return;
+        }
+
+        // TODO: currently we lock all schedulers during the load balancing procedure
+        //       find a way to avoid locking all schedulers
+        let mut schedulers = unsafe {
+            SCHEDULER
+                .get_all()
+                .iter()
+                .map(|s| s.lock())
+                .collect::<Vec<_>>()
+        };
+
+        let mut total_tasks = 0;
+
+        for sched in &schedulers {
+            total_tasks += sched.tasks.len();
+        }
+
+        let avg_tasks = total_tasks / schedulers.len();
+
+        for i in 0..schedulers.len() {
+            let mut tasks_needed = avg_tasks as isize - schedulers[i].tasks.len() as isize;
+
+            // move the neededs tasks from the other schedulers to this scheduler
+            for j in 0..schedulers.len() {
+                if i == j {
+                    continue;
+                }
+
+                while tasks_needed > 0
+                    && !schedulers[j].tasks.is_empty()
+                    && schedulers[j].tasks.len() > avg_tasks
+                {
+                    let task = schedulers[j].tasks.back().unwrap();
+
+                    if task.status == TaskStatus::Running {
+                        continue;
+                    }
+
+                    let task = schedulers[j].tasks.pop_back().unwrap();
+
+                    schedulers[i].tasks.push_back(task);
+                    tasks_needed -= 1;
+                }
+            }
+        }
     }
 
     pub fn save_ctx(&mut self, ctx: TaskContext) {
