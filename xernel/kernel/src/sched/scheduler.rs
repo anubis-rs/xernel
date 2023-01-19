@@ -1,5 +1,5 @@
 use crate::arch::x64::gdt::GDT_BSP;
-use crate::cpu::{get_per_cpu_data, PerCpu};
+use crate::cpu::{get_per_cpu_data, PerCpu, CPU_COUNT};
 use crate::sched::context::restore_context;
 use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
@@ -28,13 +28,27 @@ impl Scheduler {
         }
     }
 
-    pub fn add_task(&mut self, new_task: Task) {
+    fn add_task(&mut self, new_task: Task) {
         self.tasks.push_back(new_task);
     }
 
-    pub fn schedule_task() {}
+    /// Adds the task to the scheduler with the least amount of tasks
+    pub fn add_task_balanced(new_task: Task) {
+        let mut smallest_queue_index = 0;
+        let mut smallest_queue_len = usize::MAX;
 
-    pub fn schedule_next_task() {}
+        for i in 0..*CPU_COUNT {
+            let sched = unsafe { SCHEDULER.get_index(i).lock() };
+
+            if sched.tasks.len() < smallest_queue_len {
+                smallest_queue_len = sched.tasks.len();
+                smallest_queue_index = i;
+            }
+        }
+
+        let mut sched = unsafe { SCHEDULER.get_index(smallest_queue_index).lock() };
+        sched.add_task(new_task);
+    }
 
     pub fn save_ctx(&mut self, ctx: TaskContext) {
         let task = self.tasks.get_mut(0).unwrap();

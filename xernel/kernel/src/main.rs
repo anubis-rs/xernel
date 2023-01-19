@@ -189,10 +189,16 @@ extern "C" fn kernel_main() -> ! {
 
     let kernel_task2 = Task::kernel_task_from_fn(task2);
 
-    SCHEDULER.get().lock().add_task(main_task);
-    //SCHEDULER.get().lock().add_task(user_task);
-    SCHEDULER.get().lock().add_task(kernel_task);
-    SCHEDULER.get().lock().add_task(kernel_task2);
+    Scheduler::add_task_balanced(main_task);
+    //Scheduler::add_task_balanced(user_task);
+    Scheduler::add_task_balanced(kernel_task);
+    Scheduler::add_task_balanced(kernel_task2);
+
+    unsafe {
+        for (i, sched) in SCHEDULER.get_all().iter().enumerate() {
+            println!("cpu {} has {} tasks", i, sched.lock().tasks.len());
+        }
+    }
 
     Scheduler::hand_over();
 
