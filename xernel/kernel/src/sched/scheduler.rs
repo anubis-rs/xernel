@@ -192,7 +192,6 @@ pub extern "C" fn scheduler_irq_handler(_stack_frame: InterruptStackFrame) {
     }
 }
 
-// TODO: Schedule on multiple cores if multiple cores are started up
 #[no_mangle]
 pub extern "sysv64" fn schedule_handle(ctx: ThreadContext) {
     let mut sched = SCHEDULER.get().lock();
@@ -238,6 +237,7 @@ pub extern "sysv64" fn schedule_handle(ctx: ThreadContext) {
     APIC.eoi();
     APIC.create_oneshot_timer(0x40, thread.priority.ms() * 1000);
 
+    thread.unlock();
     sched.unlock();
 
     restore_context(context);
