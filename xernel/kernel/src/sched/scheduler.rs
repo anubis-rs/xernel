@@ -16,6 +16,7 @@ use x86_64::registers::segmentation::{Segment, DS};
 use x86_64::structures::idt::InterruptStackFrame;
 
 use super::context::ThreadContext;
+use super::process::Process;
 use super::thread::{Thread, ThreadStatus};
 
 pub struct Scheduler {
@@ -35,6 +36,10 @@ impl Scheduler {
 
     pub fn current_thread() -> Arc<Spinlock<Thread>> {
         SCHEDULER.get().lock().executing_thread()
+    }
+
+    pub fn current_process() -> Arc<Spinlock<Process>> {
+        Self::current_thread().lock().get_process().unwrap()
     }
 
     pub fn add_thread(&mut self, new_task: Arc<Spinlock<Thread>>) {

@@ -11,10 +11,7 @@ pub fn sys_open(path: String, mode: u64) -> Result<isize> {
 
     let file_handle = FileHandle::new(node);
 
-    let task = Scheduler::current_thread();
-    let task = task.lock();
-
-    let process = task.get_process().unwrap();
+    let process = Scheduler::current_process();
     let mut process = process.lock();
 
     let fd = process.append_fd(file_handle);
@@ -23,10 +20,7 @@ pub fn sys_open(path: String, mode: u64) -> Result<isize> {
 }
 
 pub fn sys_close(fd: usize) -> Result<isize> {
-    let task = Scheduler::current_thread();
-    let task = task.lock();
-
-    let process = task.get_process().unwrap();
+    let process = Scheduler::current_process();
     let process = process.lock();
 
     let file_handle = process.get_filehandle_from_fd(fd);
@@ -41,10 +35,7 @@ pub fn sys_close(fd: usize) -> Result<isize> {
 pub fn sys_read(fd: usize, buf: &mut [u8]) -> Result<isize> {
     let vfs = VFS.lock();
 
-    let task = Scheduler::current_thread();
-    let task = task.lock();
-
-    let process = task.get_process().unwrap();
+    let process = Scheduler::current_process();
     let process = process.lock();
 
     let file_handle = process.get_filehandle_from_fd(fd);
@@ -59,10 +50,7 @@ pub fn sys_read(fd: usize, buf: &mut [u8]) -> Result<isize> {
 pub fn sys_write(fd: usize, buf: &mut [u8]) -> Result<isize> {
     let vfs = VFS.lock();
 
-    let task = Scheduler::current_thread();
-    let task = task.lock();
-
-    let process = task.get_process().unwrap();
+    let process = Scheduler::current_process();
     let process = process.lock();
 
     let file_handle = process.get_filehandle_from_fd(fd);
