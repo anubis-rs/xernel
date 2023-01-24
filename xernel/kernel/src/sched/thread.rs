@@ -175,13 +175,12 @@ impl Thread {
     }
 
     pub fn new_idle_thread() -> Self {
-        todo!("idle thread");
         // TODO: don't use a normal kernel task as a huge stack is allocated
-        //let mut task = Self::kernel_task_from_fn(idle_task_fn);
+        let mut thread = Self::kernel_thread_from_fn(idle_thread_fn);
 
-        //task.priority = TaskPriority::Low;
+        thread.priority = ThreadPriority::Low;
 
-        //task
+        thread
     }
 
     pub fn set_priority(&mut self, priority: ThreadPriority) {
