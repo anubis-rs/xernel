@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 use libxernel::sync::Spinlock;
 
 use super::context::ThreadContext;
-use super::process::Process;
+use super::process::{Process, KERNEL_PROCESS};
 
 use core::alloc::Layout;
 use core::pin::Pin;
@@ -71,10 +71,7 @@ pub struct Thread {
 }
 
 impl Thread {
-    pub fn new_kernel_thread(
-        parent_process: Arc<Spinlock<Process>>,
-        entry_point: VirtAddr,
-    ) -> Self {
+    pub fn new_kernel_thread(entry_point: VirtAddr) -> Self {
         let thread_stack = unsafe {
             let layout = Layout::from_size_align_unchecked(STACK_SIZE as usize, 0x1000);
             alloc_zeroed(layout).add(layout.size())
@@ -88,13 +85,13 @@ impl Thread {
         ctx.rsp = thread_stack as u64;
         ctx.rflags = 0x202;
 
-        let mut parent = parent_process.lock();
+        let mut parent = KERNEL_PROCESS.lock();
 
         let tid = parent.next_tid();
 
         Self {
             id: tid,
-            process: Arc::downgrade(&parent_process),
+            process: Arc::downgrade(&KERNEL_PROCESS),
             status: ThreadStatus::Ready,
             priority: ThreadPriority::Normal,
             context: ctx,
@@ -103,7 +100,7 @@ impl Thread {
         }
     }
 
-    pub fn kernel_thread_from_fn(parent_process: Arc<Spinlock<Process>>, entry: fn()) -> Self {
+    pub fn kernel_thread_from_fn(entry: fn()) -> Self {
         let thread_stack = unsafe {
             let layout = Layout::from_size_align_unchecked(STACK_SIZE as usize, 0x1000);
             alloc_zeroed(layout).add(layout.size())
@@ -117,13 +114,13 @@ impl Thread {
         ctx.rsp = thread_stack as u64;
         ctx.rflags = 0x202;
 
-        let mut parent = parent_process.lock();
+        let mut parent = KERNEL_PROCESS.lock();
 
         let tid = parent.next_tid();
 
         Self {
             id: tid,
-            process: Arc::downgrade(&parent_process),
+            process: Arc::downgrade(&KERNEL_PROCESS),
             status: ThreadStatus::Ready,
             priority: ThreadPriority::Normal,
             context: ctx,

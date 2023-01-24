@@ -6,13 +6,15 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
-use libxernel::sync::Spinlock;
+use libxernel::sync::{Once, Spinlock};
 
 use crate::mem::vmm::Pagemap;
 use crate::sched::thread::Thread;
 
 /// Ongoing counter for the ProcessID
 static PROCESS_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+pub static KERNEL_PROCESS: Once<Arc<Spinlock<Process>>> = Once::new();
 
 pub struct Process {
     pub pid: usize,
@@ -24,6 +26,7 @@ pub struct Process {
     pub fds: BTreeMap<usize, FileHandle>,
     pub thread_stack_top: usize,
     pub thread_id_counter: usize,
+    // TODO: add cwd here
     // TODO: list of memory maps (look at mmap)
 }
 

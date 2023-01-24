@@ -58,6 +58,7 @@ use crate::fs::vfs::VFS;
 use crate::mem::pmm::FRAME_ALLOCATOR;
 use crate::mem::vmm::KERNEL_PAGE_MAPPER;
 use crate::sched::process::Process;
+use crate::sched::process::KERNEL_PROCESS;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
 use crate::sched::thread::Thread;
 
@@ -155,6 +156,8 @@ extern "C" fn kernel_main() -> ! {
         }
     }
 
+    KERNEL_PROCESS.set_once(Arc::new(Spinlock::new(Process::new())));
+
     SCHEDULER.wait_until_cpus_registered();
     SCHEDULER.init(|| SpinlockIRQ::new(Scheduler::new()));
 
@@ -188,11 +191,11 @@ extern "C" fn kernel_main() -> ! {
         }
     }
 
-    let main_task = Thread::kernel_thread_from_fn(process.clone(), kernel_main_task);
+    let main_task = Thread::kernel_thread_from_fn(kernel_main_task);
 
-    let kernel_task = Thread::kernel_thread_from_fn(process.clone(), task1);
+    let kernel_task = Thread::kernel_thread_from_fn(task1);
 
-    let kernel_task2 = Thread::kernel_thread_from_fn(process, task2);
+    let kernel_task2 = Thread::kernel_thread_from_fn(task2);
 
     Scheduler::add_thread_balanced(Arc::new(Spinlock::new(main_task)));
     //Scheduler::add_task_balanced(Arc::new(Spinlock::new(user_task)));
