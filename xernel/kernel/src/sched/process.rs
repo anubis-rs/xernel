@@ -31,14 +31,19 @@ pub struct Process {
 }
 
 impl Process {
-    pub fn new() -> Self {
+    pub fn new(parent_process: Option<Arc<Spinlock<Process>>>) -> Self {
         let mut page_map = Pagemap::new(None);
         page_map.fill_with_kernel_entries();
+
+        let parent = match parent_process {
+            Some(p) => Arc::downgrade(&p),
+            None => Weak::new(),
+        };
 
         Self {
             pid: PROCESS_ID_COUNTER.fetch_add(1, Ordering::AcqRel),
             page_table: Some(page_map),
-            parent: Weak::new(),
+            parent,
             children: Vec::new(),
             threads: Vec::new(),
             fds: BTreeMap::new(),
