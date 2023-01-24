@@ -1,25 +1,26 @@
 use crate::acpi::hpet;
+use crate::arch::x64::apic::APIC;
 use crate::arch::x64::gdt::GDT_BSP;
 use crate::cpu::{get_per_cpu_data, PerCpu, CPU_COUNT};
 use crate::sched::context::restore_context;
-use crate::{arch::x64::apic::APIC, Task};
 use alloc::collections::VecDeque;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::arch::asm;
 use core::sync::atomic::AtomicU64;
 use core::sync::atomic::Ordering;
-use libxernel::sync::SpinlockIRQ;
+use libxernel::sync::{Spinlock, SpinlockIRQ};
 use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
 use x86_64::structures::idt::InterruptStackFrame;
 
-use super::context::TaskContext;
-use super::task::TaskStatus;
+use super::context::ThreadContext;
+use super::thread::{Thread, ThreadStatus};
 
 pub struct Scheduler {
-    pub tasks: VecDeque<Task>,
-    pub idle_task: Task,
+    pub tasks: VecDeque<Arc<Spinlock<Thread>>>,
+    pub idle_thread: Arc<Spinlock<Thread>>,
 }
 
 pub static SCHEDULER: PerCpu<SpinlockIRQ<Scheduler>> = PerCpu::new();
@@ -28,16 +29,20 @@ impl Scheduler {
     pub fn new() -> Self {
         Self {
             tasks: VecDeque::new(),
-            idle_task: Task::new_idle_task(),
+            idle_thread: Arc::new(Spinlock::new(Thread::new_idle_thread())),
         }
     }
 
-    pub fn add_task(&mut self, new_task: Task) {
+    pub fn current_thread() -> Arc<Spinlock<Thread>> {
+        SCHEDULER.get().lock().executing_thread()
+    }
+
+    pub fn add_thread(&mut self, new_task: Arc<Spinlock<Thread>>) {
         self.tasks.push_back(new_task);
     }
 
     /// Adds the task to the scheduler with the least amount of tasks
-    pub fn add_task_balanced(new_task: Task) {
+    pub fn add_thread_balanced(new_task: Arc<Spinlock<Thread>>) {
         Self::load_balance();
 
         let mut smallest_queue_index = 0;
@@ -53,7 +58,7 @@ impl Scheduler {
         }
 
         let mut sched = unsafe { SCHEDULER.get_index(smallest_queue_index).lock() };
-        sched.add_task(new_task);
+        sched.add_thread(new_task);
     }
 
     /// Balances the load of all schedulers
@@ -100,11 +105,13 @@ impl Scheduler {
                     && !schedulers[j].tasks.is_empty()
                     && schedulers[j].tasks.len() > avg_tasks
                 {
-                    let task = schedulers[j].tasks.back().unwrap();
+                    let task = schedulers[j].tasks.back().unwrap().lock();
 
-                    if task.status == TaskStatus::Running {
+                    if task.status == ThreadStatus::Running {
                         continue;
                     }
+
+                    drop(task);
 
                     let task = schedulers[j].tasks.pop_back().unwrap();
 
@@ -115,12 +122,12 @@ impl Scheduler {
         }
     }
 
-    pub fn save_ctx(&mut self, ctx: TaskContext) {
-        let task = self.tasks.get_mut(0).unwrap();
+    pub fn save_ctx(&mut self, ctx: ThreadContext) {
+        let mut task = self.tasks.get_mut(0).unwrap().lock();
         task.context = ctx;
     }
 
-    pub fn get_next_task(&mut self) -> Option<&mut Task> {
+    pub fn get_next_thread(&mut self) -> Option<Arc<Spinlock<Thread>>> {
         if self.tasks.is_empty() {
             return None;
         }
@@ -131,16 +138,15 @@ impl Scheduler {
 
         let t = self.tasks.front_mut().unwrap();
 
-        Some(t)
+        Some(t.clone())
     }
 
-    pub fn set_current_task_status(&mut self, status: TaskStatus) {
-        let task = self.tasks.front_mut().unwrap();
-        task.status = status;
+    pub fn set_current_thread_status(&mut self, status: ThreadStatus) {
+        self.tasks.front_mut().unwrap().lock().status = status;
     }
 
-    pub fn current_task(&mut self) -> &mut Task {
-        self.tasks.front_mut().unwrap()
+    fn executing_thread(&mut self) -> Arc<Spinlock<Thread>> {
+        self.tasks.front_mut().unwrap().clone()
     }
 
     pub fn hand_over() {
@@ -183,25 +189,29 @@ pub extern "C" fn scheduler_irq_handler(_stack_frame: InterruptStackFrame) {
 
 // TODO: Schedule on multiple cores if multiple cores are started up
 #[no_mangle]
-pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
+pub extern "sysv64" fn schedule_handle(ctx: ThreadContext) {
     let mut sched = SCHEDULER.get().lock();
-    if let Some(task) = sched.tasks.get(0) && task.status == TaskStatus::Running {
+    if let Some(task) = sched.tasks.get(0) && task.lock().status == ThreadStatus::Running {
         sched.save_ctx(ctx);
 
-        sched.set_current_task_status(TaskStatus::Waiting);
+        sched.set_current_thread_status(ThreadStatus::Ready);
     }
 
-    let task = match sched.get_next_task() {
-        Some(t) => t,
-        None => &mut sched.idle_task, // Use the idle task if there are no other tasks to schedule
-    };
+    let thread = sched.get_next_thread().unwrap_or(sched.idle_thread.clone());
+    let mut thread = thread.lock();
 
-    task.status = TaskStatus::Running;
+    thread.status = ThreadStatus::Running;
 
-    if !task.is_kernel_task() {
+    if !thread.is_kernel_thread() {
         unsafe {
-            // SAFETY: a user task always has a page table
-            let pt = task.get_page_table().unwrap();
+            // SAFETY: a user thread always has a page table
+            let pt = thread
+                .process
+                .upgrade()
+                .unwrap()
+                .lock()
+                .get_page_table()
+                .unwrap();
 
             let cr3 = Cr3::read_raw();
             let cr3 = cr3.0.start_address().as_u64() | cr3.1 as u64;
@@ -213,14 +223,15 @@ pub extern "sysv64" fn schedule_handle(ctx: TaskContext) {
 
             DS::set_reg(GDT_BSP.1.user_data_selector);
 
-            get_per_cpu_data().set_kernel_stack(task.kernel_stack.as_ref().unwrap().end as usize);
+            get_per_cpu_data()
+                .set_kernel_stack(thread.kernel_stack.as_ref().unwrap().kernel_stack_top);
         }
     }
 
-    let context = &task.context as *const TaskContext;
+    let context = &thread.context as *const ThreadContext;
 
     APIC.eoi();
-    APIC.create_oneshot_timer(0x40, task.priority.ms() * 1000);
+    APIC.create_oneshot_timer(0x40, thread.priority.ms() * 1000);
 
     sched.unlock();
 

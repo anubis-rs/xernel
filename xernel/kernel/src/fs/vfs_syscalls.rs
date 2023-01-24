@@ -1,6 +1,6 @@
 use alloc::string::String;
 
-use crate::{sched::scheduler::SCHEDULER, syscall::Result};
+use crate::{sched::scheduler::Scheduler, syscall::Result};
 
 use super::{file::FileHandle, vfs::VFS};
 
@@ -11,17 +11,25 @@ pub fn sys_open(path: String, mode: u64) -> Result<isize> {
 
     let file_handle = FileHandle::new(node);
 
-    let fd = SCHEDULER.get().lock().current_task().append_fd(file_handle);
+    let task = Scheduler::current_thread();
+    let task = task.lock();
+
+    let process = task.get_process().unwrap();
+    let mut process = process.lock();
+
+    let fd = process.append_fd(file_handle);
 
     Ok(fd as isize)
 }
 
 pub fn sys_close(fd: usize) -> Result<isize> {
-    let mut scheduler = SCHEDULER.get().lock();
+    let task = Scheduler::current_thread();
+    let task = task.lock();
 
-    let task = scheduler.current_task();
+    let process = task.get_process().unwrap();
+    let process = process.lock();
 
-    let file_handle = task.get_filehandle_from_fd(fd);
+    let file_handle = process.get_filehandle_from_fd(fd);
 
     let node = file_handle.get_node();
 
@@ -33,11 +41,13 @@ pub fn sys_close(fd: usize) -> Result<isize> {
 pub fn sys_read(fd: usize, buf: &mut [u8]) -> Result<isize> {
     let vfs = VFS.lock();
 
-    let mut scheduler = SCHEDULER.get().lock();
+    let task = Scheduler::current_thread();
+    let task = task.lock();
 
-    let task = scheduler.current_task();
+    let process = task.get_process().unwrap();
+    let process = process.lock();
 
-    let file_handle = task.get_filehandle_from_fd(fd);
+    let file_handle = process.get_filehandle_from_fd(fd);
 
     let node = file_handle.get_node();
 
@@ -49,11 +59,13 @@ pub fn sys_read(fd: usize, buf: &mut [u8]) -> Result<isize> {
 pub fn sys_write(fd: usize, buf: &mut [u8]) -> Result<isize> {
     let vfs = VFS.lock();
 
-    let mut scheduler = SCHEDULER.get().lock();
+    let task = Scheduler::current_thread();
+    let task = task.lock();
 
-    let task = scheduler.current_task();
+    let process = task.get_process().unwrap();
+    let process = process.lock();
 
-    let file_handle = task.get_filehandle_from_fd(fd);
+    let file_handle = process.get_filehandle_from_fd(fd);
 
     let node = file_handle.get_node();
 
