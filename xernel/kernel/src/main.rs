@@ -207,7 +207,7 @@ extern "C" fn kernel_main() -> ! {
 
     unsafe {
         for (i, sched) in SCHEDULER.get_all().iter().enumerate() {
-            println!("cpu {} has {} tasks", i, sched.lock().tasks.len());
+            println!("cpu {} has {} tasks", i, sched.lock().threads.len());
         }
     }
 

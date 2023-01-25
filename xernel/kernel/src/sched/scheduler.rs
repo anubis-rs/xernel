@@ -20,7 +20,7 @@ use super::process::Process;
 use super::thread::{Thread, ThreadStatus};
 
 pub struct Scheduler {
-    pub tasks: VecDeque<Arc<Spinlock<Thread>>>,
+    pub threads: VecDeque<Arc<Spinlock<Thread>>>,
     pub idle_thread: Arc<Spinlock<Thread>>,
 }
 
@@ -29,7 +29,7 @@ pub static SCHEDULER: PerCpu<SpinlockIRQ<Scheduler>> = PerCpu::new();
 impl Scheduler {
     pub fn new() -> Self {
         Self {
-            tasks: VecDeque::new(),
+            threads: VecDeque::new(),
             idle_thread: Arc::new(Spinlock::new(Thread::new_idle_thread())),
         }
     }
@@ -43,7 +43,7 @@ impl Scheduler {
     }
 
     pub fn add_thread(&mut self, new_task: Arc<Spinlock<Thread>>) {
-        self.tasks.push_back(new_task);
+        self.threads.push_back(new_task);
     }
 
     /// Adds the task to the scheduler with the least amount of tasks
@@ -56,8 +56,8 @@ impl Scheduler {
         for i in 0..*CPU_COUNT {
             let sched = unsafe { SCHEDULER.get_index(i).lock() };
 
-            if sched.tasks.len() < smallest_queue_len {
-                smallest_queue_len = sched.tasks.len();
+            if sched.threads.len() < smallest_queue_len {
+                smallest_queue_len = sched.threads.len();
                 smallest_queue_index = i;
             }
         }
@@ -92,13 +92,13 @@ impl Scheduler {
         let mut total_tasks = 0;
 
         for sched in &schedulers {
-            total_tasks += sched.tasks.len();
+            total_tasks += sched.threads.len();
         }
 
         let avg_tasks = total_tasks / schedulers.len();
 
         for i in 0..schedulers.len() {
-            let mut tasks_needed = avg_tasks as isize - schedulers[i].tasks.len() as isize;
+            let mut tasks_needed = avg_tasks as isize - schedulers[i].threads.len() as isize;
 
             // move the neededs tasks from the other schedulers to this scheduler
             for j in 0..schedulers.len() {
@@ -107,10 +107,10 @@ impl Scheduler {
                 }
 
                 while tasks_needed > 0
-                    && !schedulers[j].tasks.is_empty()
-                    && schedulers[j].tasks.len() > avg_tasks
+                    && !schedulers[j].threads.is_empty()
+                    && schedulers[j].threads.len() > avg_tasks
                 {
-                    let task = schedulers[j].tasks.back().unwrap().lock();
+                    let task = schedulers[j].threads.back().unwrap().lock();
 
                     if task.status == ThreadStatus::Running {
                         continue;
@@ -118,9 +118,9 @@ impl Scheduler {
 
                     drop(task);
 
-                    let task = schedulers[j].tasks.pop_back().unwrap();
+                    let task = schedulers[j].threads.pop_back().unwrap();
 
-                    schedulers[i].tasks.push_back(task);
+                    schedulers[i].threads.push_back(task);
                     tasks_needed -= 1;
                 }
             }
@@ -128,30 +128,30 @@ impl Scheduler {
     }
 
     pub fn save_ctx(&mut self, ctx: ThreadContext) {
-        let mut task = self.tasks.get_mut(0).unwrap().lock();
+        let mut task = self.threads.get_mut(0).unwrap().lock();
         task.context = ctx;
     }
 
     pub fn get_next_thread(&mut self) -> Option<Arc<Spinlock<Thread>>> {
-        if self.tasks.is_empty() {
+        if self.threads.is_empty() {
             return None;
         }
 
-        let old_task = self.tasks.pop_front().unwrap();
+        let old_task = self.threads.pop_front().unwrap();
 
-        self.tasks.push_back(old_task);
+        self.threads.push_back(old_task);
 
-        let t = self.tasks.front_mut().unwrap();
+        let t = self.threads.front_mut().unwrap();
 
         Some(t.clone())
     }
 
     pub fn set_current_thread_status(&mut self, status: ThreadStatus) {
-        self.tasks.front_mut().unwrap().lock().status = status;
+        self.threads.front_mut().unwrap().lock().status = status;
     }
 
     fn executing_thread(&mut self) -> Arc<Spinlock<Thread>> {
-        self.tasks.front_mut().unwrap().clone()
+        self.threads.front_mut().unwrap().clone()
     }
 
     pub fn hand_over() {
@@ -195,7 +195,7 @@ pub extern "C" fn scheduler_irq_handler(_stack_frame: InterruptStackFrame) {
 #[no_mangle]
 pub extern "sysv64" fn schedule_handle(ctx: ThreadContext) {
     let mut sched = SCHEDULER.get().lock();
-    if let Some(task) = sched.tasks.get(0) && task.lock().status == ThreadStatus::Running {
+    if let Some(task) = sched.threads.get(0) && task.lock().status == ThreadStatus::Running {
         sched.save_ctx(ctx);
 
         sched.set_current_thread_status(ThreadStatus::Ready);
