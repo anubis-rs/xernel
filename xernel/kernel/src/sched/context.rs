@@ -2,8 +2,8 @@ use core::arch::asm;
 
 #[derive(Debug, Clone)]
 #[repr(C)]
-/// Represents a Task Context which gets saved on a context switch
-pub struct TaskContext {
+/// Represents a Thread Context which gets saved on a context switch
+pub struct ThreadContext {
     pub rbp: u64,
     pub rax: u64,
     pub rbx: u64,
@@ -26,7 +26,7 @@ pub struct TaskContext {
     pub ss: u64,
 }
 
-impl TaskContext {
+impl ThreadContext {
     /// Creates a new, zero-initialized context
     pub const fn new() -> Self {
         Self {
@@ -56,7 +56,7 @@ impl TaskContext {
 
 #[naked]
 /// Restores the gives context and jumps to new RIP via iretq
-pub extern "C" fn restore_context(ctx: *const TaskContext) -> ! {
+pub extern "C" fn restore_context(ctx: *const ThreadContext) -> ! {
     unsafe {
         asm!(
             "mov rsp, rdi;

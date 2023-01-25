@@ -31,10 +31,12 @@ mod syscall;
 mod mem;
 
 use alloc::string::ToString;
+use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::arch::asm;
 use core::panic::PanicInfo;
+use libxernel::sync::Spinlock;
 use libxernel::sync::SpinlockIRQ;
 use limine::*;
 use x86_64::instructions::interrupts;
@@ -55,8 +57,10 @@ use crate::fs::vfs;
 use crate::fs::vfs::VFS;
 use crate::mem::pmm::FRAME_ALLOCATOR;
 use crate::mem::vmm::KERNEL_PAGE_MAPPER;
+use crate::sched::process::Process;
+use crate::sched::process::KERNEL_PROCESS;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
-use crate::sched::task::Task;
+use crate::sched::thread::Thread;
 
 static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
 static SMP_REQUEST: LimineSmpRequest = LimineSmpRequest::new(0);
@@ -152,10 +156,17 @@ extern "C" fn kernel_main() -> ! {
         }
     }
 
+    KERNEL_PROCESS.set_once(Arc::new(Spinlock::new(Process::new(None, true))));
+
     SCHEDULER.wait_until_cpus_registered();
     SCHEDULER.init(|| SpinlockIRQ::new(Scheduler::new()));
 
-    let user_task = Task::new_user_task(VirtAddr::new(0x200000));
+    let process = Arc::new(Spinlock::new(Process::new(
+        Some(KERNEL_PROCESS.clone()),
+        false,
+    )));
+
+    let _user_task = Thread::new_user_thread(process.clone(), VirtAddr::new(0x200000));
 
     let page = FRAME_ALLOCATOR.lock().allocate_frame::<Size2MiB>().unwrap();
     KERNEL_PAGE_MAPPER.lock().map(
@@ -164,7 +175,7 @@ extern "C" fn kernel_main() -> ! {
         PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::PRESENT,
         true,
     );
-    user_task.get_page_table().unwrap().map(
+    process.lock().get_page_table().unwrap().map(
         page,
         Page::from_start_address(VirtAddr::new(0x200000)).unwrap(),
         PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::PRESENT,
@@ -183,20 +194,20 @@ extern "C" fn kernel_main() -> ! {
         }
     }
 
-    let main_task = Task::kernel_task_from_fn(kernel_main_task);
+    let main_task = Thread::kernel_thread_from_fn(kernel_main_task);
 
-    let kernel_task = Task::kernel_task_from_fn(task1);
+    let kernel_task = Thread::kernel_thread_from_fn(task1);
 
-    let kernel_task2 = Task::kernel_task_from_fn(task2);
+    let kernel_task2 = Thread::kernel_thread_from_fn(task2);
 
-    Scheduler::add_task_balanced(main_task);
-    //Scheduler::add_task_balanced(user_task);
-    Scheduler::add_task_balanced(kernel_task);
-    Scheduler::add_task_balanced(kernel_task2);
+    Scheduler::add_thread_balanced(Arc::new(Spinlock::new(main_task)));
+    //Scheduler::add_task_balanced(Arc::new(Spinlock::new(user_task)));
+    Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task)));
+    Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task2)));
 
     unsafe {
         for (i, sched) in SCHEDULER.get_all().iter().enumerate() {
-            println!("cpu {} has {} tasks", i, sched.lock().tasks.len());
+            println!("cpu {} has {} tasks", i, sched.lock().threads.len());
         }
     }
 
