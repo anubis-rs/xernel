@@ -67,7 +67,7 @@ pub struct Thread {
 
 impl Thread {
     pub fn new_kernel_thread(entry_point: VirtAddr) -> Self {
-        let thread_stack = KERNEL_PROCESS.lock().new_kernel_thread_stack();
+        let thread_stack = KERNEL_PROCESS.lock().new_kernel_stack();
 
         let mut ctx = ThreadContext::new();
 
@@ -93,7 +93,7 @@ impl Thread {
     }
 
     pub fn kernel_thread_from_fn(entry: fn()) -> Self {
-        let thread_stack = KERNEL_PROCESS.lock().new_kernel_thread_stack();
+        let thread_stack = KERNEL_PROCESS.lock().new_kernel_stack();
 
         let mut ctx = ThreadContext::new();
 
@@ -119,8 +119,8 @@ impl Thread {
     }
 
     pub fn new_user_thread(parent_process: Arc<Spinlock<Process>>, entry_point: VirtAddr) -> Self {
-        let thread_stack = parent_process.lock().new_user_thread_stack();
-        let kernel_stack_end = parent_process.lock().new_kernel_thread_stack();
+        let thread_stack = parent_process.lock().new_user_stack();
+        let kernel_stack_end = parent_process.lock().new_kernel_stack();
 
         let mut ctx = ThreadContext::new();
 

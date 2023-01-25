@@ -60,7 +60,7 @@ impl Process {
         }
     }
 
-    pub fn new_kernel_thread_stack(&mut self) -> usize {
+    pub fn new_kernel_stack(&mut self) -> usize {
         let stack_top = self.kernel_thread_stack_top;
         self.kernel_thread_stack_top -= STACK_SIZE as usize;
         let stack_bottom = self.kernel_thread_stack_top;
@@ -83,7 +83,7 @@ impl Process {
         stack_top
     }
 
-    pub fn new_user_thread_stack(&mut self) -> usize {
+    pub fn new_user_stack(&mut self) -> usize {
         let stack_top = self.user_thread_stack_top;
         self.user_thread_stack_top -= STACK_SIZE as usize;
         let stack_bottom = self.user_thread_stack_top;
