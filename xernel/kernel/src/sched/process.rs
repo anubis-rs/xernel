@@ -2,6 +2,7 @@ use alloc::sync::Weak;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::fs::file::FileHandle;
+use crate::mem::{KERNEL_THREAD_STACK_TOP, USER_THREAD_STACK_TOP};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -41,6 +42,11 @@ impl Process {
             None => Weak::new(),
         };
 
+        let thread_stack_top = match is_kernel_process {
+            true => KERNEL_THREAD_STACK_TOP,
+            false => USER_THREAD_STACK_TOP,
+        };
+
         Self {
             pid: PROCESS_ID_COUNTER.fetch_add(1, Ordering::AcqRel),
             page_table: Some(page_map),
@@ -49,7 +55,7 @@ impl Process {
             threads: Vec::new(),
             fds: BTreeMap::new(),
             is_kernel_process,
-            thread_stack_top: 0, // TODO: set thread stack top depending on `is_kernel_process`
+            thread_stack_top: thread_stack_top as usize,
             thread_id_counter: 0,
         }
     }

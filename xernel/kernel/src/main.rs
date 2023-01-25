@@ -161,7 +161,10 @@ extern "C" fn kernel_main() -> ! {
     SCHEDULER.wait_until_cpus_registered();
     SCHEDULER.init(|| SpinlockIRQ::new(Scheduler::new()));
 
-    let process = Arc::new(Spinlock::new(Process::new(Some(KERNEL_PROCESS.clone()), false)));
+    let process = Arc::new(Spinlock::new(Process::new(
+        Some(KERNEL_PROCESS.clone()),
+        false,
+    )));
 
     let _user_task = Thread::new_user_thread(process.clone(), VirtAddr::new(0x200000));
 
