@@ -4,16 +4,11 @@ use libxernel::sync::Spinlock;
 use super::context::ThreadContext;
 use super::process::{Process, KERNEL_PROCESS};
 
-use core::alloc::Layout;
 use core::pin::Pin;
 
-use alloc::alloc::alloc_zeroed;
 use alloc::boxed::Box;
 use alloc::sync::Weak;
 use x86_64::VirtAddr;
-
-use crate::mem::vmm::Pagemap;
-use crate::mem::STACK_SIZE;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Current status of the thread
@@ -72,10 +67,7 @@ pub struct Thread {
 
 impl Thread {
     pub fn new_kernel_thread(entry_point: VirtAddr) -> Self {
-        let thread_stack = unsafe {
-            let layout = Layout::from_size_align_unchecked(STACK_SIZE as usize, 0x1000);
-            alloc_zeroed(layout).add(layout.size())
-        };
+        let thread_stack = KERNEL_PROCESS.lock().new_kernel_thread_stack();
 
         let mut ctx = ThreadContext::new();
 
@@ -95,16 +87,13 @@ impl Thread {
             status: ThreadStatus::Ready,
             priority: ThreadPriority::Normal,
             context: ctx,
-            thread_stack: thread_stack as usize,
+            thread_stack,
             kernel_stack: None,
         }
     }
 
     pub fn kernel_thread_from_fn(entry: fn()) -> Self {
-        let thread_stack = unsafe {
-            let layout = Layout::from_size_align_unchecked(STACK_SIZE as usize, 0x1000);
-            alloc_zeroed(layout).add(layout.size())
-        };
+        let thread_stack = KERNEL_PROCESS.lock().new_kernel_thread_stack();
 
         let mut ctx = ThreadContext::new();
 
@@ -124,31 +113,14 @@ impl Thread {
             status: ThreadStatus::Ready,
             priority: ThreadPriority::Normal,
             context: ctx,
-            thread_stack: thread_stack as usize,
+            thread_stack,
             kernel_stack: None,
         }
     }
 
     pub fn new_user_thread(parent_process: Arc<Spinlock<Process>>, entry_point: VirtAddr) -> Self {
-        // TODO: Alloc user stack via vmm, don't use kernel heap
-
-        let thread_stack = {
-            //let layout = Layout::from_size_align_unchecked(4096, 0x1000);
-            //alloc_zeroed(layout).add(layout.size());
-            (entry_point.as_u64() + 2 * 1024 * 1024) as *mut u8 // FIXME: hardcoded stack size somewhere after start address!!!!!!
-        };
-
-        // TODO: don't allocate kernel stack on the heap as their is no protection against overflows
-        let (_, kernel_stack_end) = unsafe {
-            const STACK_SIZE: u64 = 128 * 1024; // TODO: figure out which stack size is needed
-            let layout = Layout::from_size_align_unchecked(STACK_SIZE as usize, 0x1000);
-            let ptr = alloc_zeroed(layout).add(layout.size());
-            (ptr as u64, ptr as u64 + STACK_SIZE)
-        };
-
-        let mut page_map = Pagemap::new(None);
-        page_map.fill_with_kernel_entries();
-        // TODO: access page map of parent
+        let thread_stack = parent_process.lock().new_user_thread_stack();
+        let kernel_stack_end = parent_process.lock().new_kernel_thread_stack();
 
         let mut ctx = ThreadContext::new();
 
@@ -162,14 +134,14 @@ impl Thread {
 
         Self {
             id: parent.next_tid(),
-            thread_stack: thread_stack as usize,
+            thread_stack,
             process: Arc::downgrade(&parent_process),
             status: ThreadStatus::Ready,
             priority: ThreadPriority::Normal,
             context: ctx,
             kernel_stack: Some(Box::pin(KernelStack {
                 user_space_stack: 0,
-                kernel_stack_top: kernel_stack_end as usize,
+                kernel_stack_top: kernel_stack_end,
             })),
         }
     }

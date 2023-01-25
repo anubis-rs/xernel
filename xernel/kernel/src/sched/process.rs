@@ -1,15 +1,18 @@
 use alloc::sync::Weak;
 use core::sync::atomic::{AtomicUsize, Ordering};
+use x86_64::structures::paging::{Page, PageSize, PageTableFlags, Size4KiB};
+use x86_64::VirtAddr;
 
 use crate::fs::file::FileHandle;
-use crate::mem::{KERNEL_THREAD_STACK_TOP, USER_THREAD_STACK_TOP};
+use crate::mem::pmm::FRAME_ALLOCATOR;
+use crate::mem::{KERNEL_THREAD_STACK_TOP, STACK_SIZE, USER_THREAD_STACK_TOP};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
 use libxernel::sync::{Once, Spinlock};
 
-use crate::mem::vmm::Pagemap;
+use crate::mem::vmm::{Pagemap, KERNEL_PAGE_MAPPER};
 use crate::sched::thread::Thread;
 
 /// Ongoing counter for the ProcessID
@@ -26,7 +29,8 @@ pub struct Process {
     pub threads: Vec<Arc<Spinlock<Thread>>>,
     pub fds: BTreeMap<usize, FileHandle>,
     pub is_kernel_process: bool,
-    pub thread_stack_top: usize,
+    pub kernel_thread_stack_top: usize,
+    pub user_thread_stack_top: usize,
     pub thread_id_counter: usize,
     // TODO: add cwd here
     // TODO: list of memory maps (look at mmap)
@@ -42,11 +46,6 @@ impl Process {
             None => Weak::new(),
         };
 
-        let thread_stack_top = match is_kernel_process {
-            true => KERNEL_THREAD_STACK_TOP,
-            false => USER_THREAD_STACK_TOP,
-        };
-
         Self {
             pid: PROCESS_ID_COUNTER.fetch_add(1, Ordering::AcqRel),
             page_table: Some(page_map),
@@ -55,9 +54,59 @@ impl Process {
             threads: Vec::new(),
             fds: BTreeMap::new(),
             is_kernel_process,
-            thread_stack_top: thread_stack_top as usize,
+            kernel_thread_stack_top: KERNEL_THREAD_STACK_TOP as usize,
+            user_thread_stack_top: USER_THREAD_STACK_TOP as usize,
             thread_id_counter: 0,
         }
+    }
+
+    pub fn new_kernel_thread_stack(&mut self) -> usize {
+        let stack_top = self.kernel_thread_stack_top;
+        self.kernel_thread_stack_top -= STACK_SIZE as usize;
+        let stack_bottom = self.kernel_thread_stack_top;
+
+        // create guard page
+        self.kernel_thread_stack_top -= Size4KiB::SIZE as usize;
+
+        for addr in (stack_bottom..stack_top).step_by(Size4KiB::SIZE as usize) {
+            let phys_page = FRAME_ALLOCATOR.lock().allocate_frame::<Size4KiB>().unwrap();
+            let virt_page = Page::from_start_address(VirtAddr::new(addr as u64)).unwrap();
+
+            KERNEL_PAGE_MAPPER.lock().map(
+                phys_page,
+                virt_page,
+                PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE,
+                true,
+            );
+        }
+
+        stack_top
+    }
+
+    pub fn new_user_thread_stack(&mut self) -> usize {
+        let stack_top = self.user_thread_stack_top;
+        self.user_thread_stack_top -= STACK_SIZE as usize;
+        let stack_bottom = self.user_thread_stack_top;
+
+        // create guard page
+        self.user_thread_stack_top -= Size4KiB::SIZE as usize;
+
+        for addr in (stack_bottom..stack_top).step_by(Size4KiB::SIZE as usize) {
+            let phys_page = FRAME_ALLOCATOR.lock().allocate_frame::<Size4KiB>().unwrap();
+            let virt_page = Page::from_start_address(VirtAddr::new(addr as u64)).unwrap();
+
+            self.page_table.clone().unwrap().map(
+                phys_page,
+                virt_page,
+                PageTableFlags::PRESENT
+                    | PageTableFlags::WRITABLE
+                    | PageTableFlags::USER_ACCESSIBLE
+                    | PageTableFlags::NO_EXECUTE,
+                false,
+            );
+        }
+
+        stack_top
     }
 
     pub fn next_tid(&mut self) -> usize {
