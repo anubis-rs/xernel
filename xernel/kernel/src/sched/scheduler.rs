@@ -116,7 +116,7 @@ impl Scheduler {
                         continue;
                     }
 
-                    drop(task);
+                    task.unlock();
 
                     let task = schedulers[j].threads.pop_back().unwrap();
 
