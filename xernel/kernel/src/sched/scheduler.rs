@@ -151,6 +151,17 @@ impl Scheduler {
     }
 
     fn executing_thread(&mut self) -> Arc<Spinlock<Thread>> {
+        {
+            let task = self.threads.front();
+
+            if let Some(task) = task {
+                if task.lock().status != ThreadStatus::Running {
+                    panic!("current task not running");
+                }
+            } else {
+                panic!("no task executed");
+            }
+        }
         self.threads.front_mut().unwrap().clone()
     }
 
