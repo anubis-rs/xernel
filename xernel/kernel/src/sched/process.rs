@@ -5,7 +5,7 @@ use x86_64::VirtAddr;
 
 use crate::fs::file::FileHandle;
 use crate::mem::frame::FRAME_ALLOCATOR;
-use crate::mem::vm::Vm;
+use crate::mem::vm::{ProtFlags, Vm};
 use crate::mem::{KERNEL_THREAD_STACK_TOP, STACK_SIZE, USER_THREAD_STACK_TOP};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -82,6 +82,12 @@ impl Process {
             );
         }
 
+        self.vm.add_entry(
+            VirtAddr::new(stack_bottom as u64),
+            STACK_SIZE as usize,
+            ProtFlags::READ | ProtFlags::WRITE,
+        );
+
         stack_top
     }
 
@@ -107,6 +113,12 @@ impl Process {
                 false,
             );
         }
+
+        self.vm.add_entry(
+            VirtAddr::new(stack_bottom as u64),
+            STACK_SIZE as usize,
+            ProtFlags::READ | ProtFlags::WRITE,
+        );
 
         stack_top
     }
@@ -141,5 +153,11 @@ impl Process {
 
     pub fn get_page_table(&self) -> Option<Pagemap> {
         self.page_table.clone()
+    }
+}
+
+impl Drop for Process {
+    fn drop(&mut self) {
+        self.vm.clean_up();
     }
 }
