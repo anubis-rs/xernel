@@ -9,7 +9,7 @@ use x86_64::VirtAddr;
 use crate::allocator::align_up;
 
 use super::HEAP_START_ADDR;
-use super::{pmm::FRAME_ALLOCATOR, vmm::KERNEL_PAGE_MAPPER};
+use super::{frame::FRAME_ALLOCATOR, paging::KERNEL_PAGE_MAPPER};
 
 // TODO: Replace heap by Buddy Allocator
 static HEAP: Spinlock<Heap> = Spinlock::new(Heap::empty());

@@ -8,7 +8,7 @@ use x86_64::{
 };
 
 use crate::acpi::{hpet, ACPI};
-use crate::mem::{vmm::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};
+use crate::mem::{paging::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};
 
 pub struct LocalAPIC {
     address: u64,

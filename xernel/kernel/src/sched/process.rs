@@ -4,7 +4,8 @@ use x86_64::structures::paging::{Page, PageSize, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
 
 use crate::fs::file::FileHandle;
-use crate::mem::pmm::FRAME_ALLOCATOR;
+use crate::mem::frame::FRAME_ALLOCATOR;
+use crate::mem::vm::Vm;
 use crate::mem::{KERNEL_THREAD_STACK_TOP, STACK_SIZE, USER_THREAD_STACK_TOP};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -12,7 +13,7 @@ use alloc::vec::Vec;
 
 use libxernel::sync::{Once, Spinlock};
 
-use crate::mem::vmm::{Pagemap, KERNEL_PAGE_MAPPER};
+use crate::mem::paging::{Pagemap, KERNEL_PAGE_MAPPER};
 use crate::sched::thread::Thread;
 
 /// Ongoing counter for the ProcessID
@@ -32,8 +33,8 @@ pub struct Process {
     pub kernel_thread_stack_top: usize,
     pub user_thread_stack_top: usize,
     pub thread_id_counter: usize,
+    pub vm: Vm,
     // TODO: add cwd here
-    // TODO: list of memory maps (look at mmap)
 }
 
 impl Process {
@@ -57,6 +58,7 @@ impl Process {
             kernel_thread_stack_top: KERNEL_THREAD_STACK_TOP as usize,
             user_thread_stack_top: USER_THREAD_STACK_TOP as usize,
             thread_id_counter: 0,
+            vm: Vm::new(),
         }
     }
 

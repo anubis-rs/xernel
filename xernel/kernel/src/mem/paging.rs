@@ -1,7 +1,7 @@
-use super::{pmm::FRAME_ALLOCATOR, HIGHER_HALF_OFFSET};
+use super::{frame::FRAME_ALLOCATOR, HIGHER_HALF_OFFSET};
 use crate::{
     allocator::align_up,
-    mem::{pmm::MEMORY_MAP, KERNEL_OFFSET},
+    mem::{frame::MEMORY_MAP, KERNEL_OFFSET},
 };
 use libxernel::boot::InitAtBoot;
 use libxernel::sync::Spinlock;

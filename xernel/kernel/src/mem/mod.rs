@@ -1,6 +1,7 @@
+pub mod frame;
 pub mod heap;
-pub mod pmm;
-pub mod vmm;
+pub mod paging;
+pub mod vm;
 
 use libxernel::sync::Once;
 use limine::LimineHhdmRequest;
@@ -21,10 +22,10 @@ pub const FRAME_SIZE: u64 = 4096;
 pub fn init() {
     HIGHER_HALF_OFFSET.set_once(HHDM_REQUEST.get_response().get().unwrap().offset);
 
-    pmm::init();
+    frame::init();
     info!("pm initialized");
 
-    vmm::init();
+    paging::init();
     info!("vm initialized");
 
     heap::init();
