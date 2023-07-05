@@ -13,7 +13,7 @@ See `cargo kernel help` for a list of subcommands and available flags.
 You can simply use `cargo kernel build` or `cargo kernel run`, it is going to use x64 as the default target.
 
 ## Contact
-Feel free to reach out to `Lockna#5599` or `mp#2453` on Discord
+Feel free to reach out to `lockna` or `mp1310` on Discord
 
 ## TODO
 Things that are still to do:
