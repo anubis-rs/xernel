@@ -21,7 +21,7 @@ Things that are still to do:
 - [ ] Rewrite mem module
     - [x] Rewrite the page frame allocator so it uses a buddy allocator
     - [ ] Rewrite the virtual memory manager, just make it better
-    - [ ] Switch from linked_list_allocator to a slap allocator for heap
+    - [ ] Switch from linked_list_allocator to a slab allocator for heap
 - [ ] Implement a virtual file system
 - [ ] Implement a driver system
 - [ ] Implement a proper syscall interface
