@@ -153,13 +153,14 @@ fn syscall_arg_to_reference<'a, T>(ptr: usize) -> &'a mut T {
     unsafe { &mut *(ptr as *mut T) }
 }
 
-// FIXME: Dont use plain unwrap, return syscall error
-fn syscall_arg_to_string(ptr: usize) -> String {
+fn syscall_arg_to_string(ptr: usize) -> Option<String> {
     unsafe {
-        CString::from_raw(ptr as *mut c_char)
-            .to_str()
-            .unwrap()
-            .to_string()
+        Some(
+            CString::from_raw(ptr as *mut c_char)
+                .to_str()
+                .ok()?
+                .to_string(),
+        )
     }
 }
 
@@ -170,7 +171,14 @@ extern "sysv64" fn general_syscall_handler(data: SyscallData) -> i64 {
     let result = match data.syscall_number {
         SYS_READ => vfs_syscalls::sys_read(data.arg0, syscall_arg_to_slice(data.arg1, data.arg2)),
         SYS_WRITE => vfs_syscalls::sys_write(data.arg0, syscall_arg_to_slice(data.arg1, data.arg2)),
-        SYS_OPEN => vfs_syscalls::sys_open(syscall_arg_to_string(data.arg0), data.arg1 as u64),
+        SYS_OPEN => {
+            let path = syscall_arg_to_string(data.arg0);
+
+            match path {
+                Some(path) => vfs_syscalls::sys_open(path, data.arg1 as u64),
+                None => Err(SyscallError::MalformedPath),
+            }
+        }
         SYS_CLOSE => vfs_syscalls::sys_close(data.arg0),
         _ => {
             unimplemented!("unknown syscall: {:x?}", data);

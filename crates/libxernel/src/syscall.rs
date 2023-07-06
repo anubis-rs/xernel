@@ -17,4 +17,5 @@ pub enum SyscallError {
     EntryNotFound = -7,
     MountPointNotFound = -8,
     FileSystemNotFound = -9,
+    MalformedPath = -10,
 }
