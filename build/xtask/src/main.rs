@@ -42,7 +42,7 @@ fn main() -> Result<()> {
     // cd into the root folder of this workspace
     let sh = Shell::new().unwrap();
 
-    sh.set_var("RUSTFLAGS", "-Cforce-frame-pointers=yes");
+    sh.set_var("RUSTFLAGS", "-Cforce-frame-pointers=yes -Ctarget-feature=+crt-static");
 
     let _cwd = sh.push_dir(root());
 
@@ -197,6 +197,7 @@ fn run(sh: &Shell, gdb: bool, mut args: Arguments) -> Result<()> {
                 -debugcon stdio
                 -d int 
                 -D qemu.log
+                -enable-kvm  -cpu qemu64,+ssse3,+sse4.1,+sse4.2
                 {kvm...}
                 -s {gdb_debug...}"
     )

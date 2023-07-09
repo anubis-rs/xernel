@@ -2,6 +2,7 @@
 name = "xernel"
 version = "0.1.0"
 authors = ["Raphael O. <raphael.ob@protonmail.com"]
+build = "build.rs"
 description = ""
 edition = "2021"
 repository = "https://github.com/anubis-rs/xernel"

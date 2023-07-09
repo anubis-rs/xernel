@@ -1,0 +1,12 @@
+=> 0xffffffff8009f040 <start_game@plt>:	jmp    *0x1974a(%rip)        # 0xffffffff800b8790 <start_game@got.plt>
+0xffffffff8009f046 in start_game@plt ()
+=> 0xffffffff8009f046 <start_game@plt+6>:	push   $0x0
+0xffffffff8009f04b in start_game@plt ()
+=> 0xffffffff8009f04b <start_game@plt+11>:	jmp    0xffffffff8009f030
+0xffffffff8009f030 in ?? ()
+=> 0xffffffff8009f030:	push   0x1974a(%rip)        # 0xffffffff800b8780
+0xffffffff8009f036 in ?? ()
+=> 0xffffffff8009f036:	jmp    *0x1974c(%rip)        # 0xffffffff800b8788
+0x0000000000000000 in ?? ()
+=> 0x0:	Cannot access memory at address 0x0
+[Inferior 1 (process 1) detached]

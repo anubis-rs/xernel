@@ -34,6 +34,8 @@ use alloc::string::ToString;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
+use x86_64::registers::control::Cr4;
+use x86_64::registers::xcontrol::XCr0;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use libxernel::sync::Spinlock;
@@ -93,6 +95,41 @@ extern "C" fn kernel_main() -> ! {
     idt::init();
     info!("IDT loaded");
     idt::disable_pic();
+
+    // enable sse using x86_64 crate
+    /*
+    unsafe {
+        /*
+        let cr4 = Cr4::read() | x86_64::registers::control::Cr4Flags::OSXSAVE;
+        use x86_64::registers::control::Cr4Flags;
+        let a = cr4.bits() & !(Cr4Flags::all().bits());
+
+        println!("before write");
+        asm!("mov cr4, {}", in(reg) a, options(nostack, preserves_flags));
+        println!("after write");
+
+        println!("cr4: {:#x}", cr4);
+        Cr4::write(cr4);
+        */
+
+        asm!(
+            "mov rax, cr0",
+            "and ax, 0xFFFB",
+            "or ax, 0x2",
+            "mov cr0, rax",
+            "mov rax, cr4",
+            "or ax, 3 << 9",
+            "mov cr4, rax",
+            options(nostack)
+        );
+
+        let sse = XCr0::read() | x86_64::registers::xcontrol::XCr0Flags::SSE;
+
+        println!("before write");
+        XCr0::write(sse);
+        println!("after write");
+    }
+    */
 
     mem::init();
 
@@ -202,8 +239,8 @@ extern "C" fn kernel_main() -> ! {
 
     Scheduler::add_thread_balanced(Arc::new(Spinlock::new(main_task)));
     //Scheduler::add_task_balanced(Arc::new(Spinlock::new(user_task)));
-    Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task)));
-    Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task2)));
+    //Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task)));
+    //Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task2)));
 
     unsafe {
         for (i, sched) in SCHEDULER.get_all().iter().enumerate() {
@@ -216,19 +253,26 @@ extern "C" fn kernel_main() -> ! {
     unreachable!();
 }
 
+#[no_mangle]
+pub extern "C" fn clear_screen() {
+    todo!()
+}
+
+#[no_mangle]
+pub extern "C" fn draw_line(x1: i32, y1: i32, x2: i32, y2: i32, r: i32, g: i32, b: i32) {
+    todo!()
+}
+
+extern "C" { fn start_game(width: i32, height: i32) -> i32; }
+
 pub fn kernel_main_task() {
-    let mut var = 1;
+    println!("starting flying balls");
 
-    loop {
-        for _ in 0..i16::MAX {
-            unsafe {
-                asm!("nop");
-            }
-        }
-
-        dbg!("hello from main {}", var);
-        var += 1;
+    unsafe {
+        start_game(400, 300);
     }
+
+    println!("flying balls finished");
 }
 
 #[naked]
