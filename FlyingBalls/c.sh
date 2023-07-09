@@ -1,4 +1,4 @@
-g++ -c *.cpp \
+g++ -c *.cpp -O3 \
 	-ffreestanding        \
 	-fpic              \
 	-mno-red-zone		  \

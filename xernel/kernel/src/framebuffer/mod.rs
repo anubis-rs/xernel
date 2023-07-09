@@ -1,10 +1,11 @@
 mod font;
 
-use core::ptr::{copy, write_bytes};
+use core::ptr::{copy, write_bytes, copy_nonoverlapping};
 
-use crate::{framebuffer::font::FONT, limine_module::get_limine_module};
+use crate::{framebuffer::font::FONT, limine_module::get_limine_module, mem::frame};
 use libxernel::sync::{Once, Spinlock};
 use limine::{LimineFile, LimineFramebuffer, LimineFramebufferRequest};
+use alloc::vec::Vec;
 
 /// A struct providing information about the framebuffer
 pub struct Framebuffer {
@@ -16,6 +17,7 @@ pub struct Framebuffer {
     color: Color,
     /// Address where the framebuffer should print
     address: *mut u8,
+    double_buffer: Vec<u8>,
 }
 
 /// Type to represent a RGB color value
@@ -37,6 +39,7 @@ pub static FRAMEBUFFER: Spinlock<Framebuffer> = Spinlock::new(Framebuffer {
         b: 0xff,
     },
     address: core::ptr::null_mut(),
+    double_buffer: Vec::new(),
 });
 
 pub static FRAMEBUFFER_DATA: Once<&'static LimineFramebuffer> = Once::new();
@@ -68,6 +71,15 @@ pub fn init() {
     }
 }
 
+pub fn late_init() {
+    let mut framebuffer = FRAMEBUFFER.lock();
+
+    framebuffer.double_buffer = Vec::with_capacity(framebuffer.length() as usize);
+
+    for _ in 0..framebuffer.length() {
+        framebuffer.double_buffer.push(0);
+    }
+}
 impl Framebuffer {
     /// Prints a single character to the framebuffer
     ///
@@ -167,21 +179,19 @@ impl Framebuffer {
         FRAMEBUFFER_DATA.height * FRAMEBUFFER_DATA.pitch
     }
 
-    pub fn clear_screen(&self) {
+    pub fn clear_screen(&mut self) {
         unsafe {
-            write_bytes(
-                self.address,
-                0x00,
-                self.length() as usize,
-            );
+            copy_nonoverlapping(self.double_buffer.as_ptr(), self.address, self.length() as usize);
         }
+
+        self.double_buffer.fill(0);
     }
 
     pub fn dimensions(&self) -> (u16, u16) {
         (FRAMEBUFFER_DATA.width as u16, FRAMEBUFFER_DATA.height as u16)
     }
 
-    pub fn draw_line(&self, x1: i32, y1: i32, x2: i32, y2: i32, r: i32, g: i32, b: i32) {
+    pub fn draw_line(&mut self, x1: i32, y1: i32, x2: i32, y2: i32, r: i32, g: i32, b: i32) {
         assert!(y1 == y2);
 
         if (y1 < 0) || (y1 >= FRAMEBUFFER_DATA.height as i32) {
@@ -198,15 +208,12 @@ impl Framebuffer {
 
         for x in x1..(x2 + 1) {
             // draw pixel
-            let pixelCount = (y1 as u64 * FRAMEBUFFER_DATA.width) + x as u64;
-            let pixelCount = pixelCount * (FRAMEBUFFER_DATA.bpp / 8) as u64;
-            let pixelAddress = FRAMEBUFFER_DATA.address.as_ptr().unwrap().cast::<u8>();
+            let pixel_count = (y1 as u64 * FRAMEBUFFER_DATA.width) + x as u64;
+            let pixel_count = pixel_count * (FRAMEBUFFER_DATA.bpp / 8) as u64;
 
-            unsafe {
-                pixelAddress.add(pixelCount as usize).write_volatile(b as u8);
-                pixelAddress.add((pixelCount + 1) as usize).write_volatile(g as u8);
-                pixelAddress.add((pixelCount + 2) as usize).write_volatile(r as u8);
-            }
+            self.double_buffer[pixel_count as usize] = b as u8;
+            self.double_buffer[(pixel_count + 1) as usize] = g as u8;
+            self.double_buffer[(pixel_count + 2) as usize] = r as u8;
         }
     }
 

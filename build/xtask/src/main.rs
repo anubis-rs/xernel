@@ -197,7 +197,6 @@ fn run(sh: &Shell, gdb: bool, mut args: Arguments) -> Result<()> {
                 -debugcon stdio
                 -d int 
                 -D qemu.log
-                -enable-kvm  -cpu qemu64,+ssse3,+sse4.1,+sse4.2
                 {kvm...}
                 -s {gdb_debug...}"
     )

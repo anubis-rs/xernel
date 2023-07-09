@@ -134,6 +134,8 @@ extern "C" fn kernel_main() -> ! {
 
     mem::init();
 
+    framebuffer::late_init();
+
     acpi::init();
     info!("acpi initialized");
 
@@ -256,7 +258,6 @@ extern "C" fn kernel_main() -> ! {
 
 #[no_mangle]
 pub extern "C" fn clear_screen() {
-    info!("clear screen");
     FRAMEBUFFER.lock().clear_screen();
 }
 
