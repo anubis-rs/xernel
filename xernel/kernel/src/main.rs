@@ -55,6 +55,7 @@ use crate::acpi::hpet;
 use crate::arch::x64::apic;
 use crate::cpu::register_cpu;
 use crate::cpu::CPU_COUNT;
+use crate::framebuffer::FRAMEBUFFER;
 use crate::fs::vfs;
 use crate::fs::vfs::VFS;
 use crate::mem::frame::FRAME_ALLOCATOR;
@@ -255,12 +256,17 @@ extern "C" fn kernel_main() -> ! {
 
 #[no_mangle]
 pub extern "C" fn clear_screen() {
-    todo!()
+    info!("clear screen");
+    FRAMEBUFFER.lock().clear_screen();
 }
 
 #[no_mangle]
 pub extern "C" fn draw_line(x1: i32, y1: i32, x2: i32, y2: i32, r: i32, g: i32, b: i32) {
-    todo!()
+    if y1 != y2 {
+        return;
+    }
+
+    FRAMEBUFFER.lock().draw_line(x1, y1, x2, y2, r, g, b);
 }
 
 extern "C" { fn start_game(width: i32, height: i32) -> i32; }
@@ -268,8 +274,9 @@ extern "C" { fn start_game(width: i32, height: i32) -> i32; }
 pub fn kernel_main_task() {
     println!("starting flying balls");
 
+    let (width, height) = FRAMEBUFFER.lock().dimensions();
     unsafe {
-        start_game(400, 300);
+        start_game(width as i32, height as i32);
     }
 
     println!("flying balls finished");

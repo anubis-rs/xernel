@@ -9,11 +9,9 @@
 #define MAXBALLS 100
 #define MAXRADIUS 20
 #define MINRADIUS 2
-#define MAXVELOCITY 20
-#define MINVELOCITY 2
-#define GAMESPEED 10
-#define WIDTH 1200
-#define HEIGHT 800
+#define MAXVELOCITY 2
+#define MINVELOCITY 1
+#define GAMESPEED 1
 
 extern "C" void clear_screen();
 extern "C" void draw_line(int x1, int y1, int x2, int y2, int r, int g, int b);
@@ -39,7 +37,7 @@ public:
 
     static bool isRunning;
 
-    const float PI = 3.14159265358979;
+    const int PI = 3;
 
 private:
     void RenderFillCircle(int x, int y, int radius, int r, int g, int b);

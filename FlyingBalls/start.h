@@ -1,13 +1,14 @@
 #pragma once
 
-char heap[10000];
+char heap[1000000];
 
 void *malloc(unsigned long size) {
     // Implement your custom allocation logic here with alignment to 16 bytes
     // For simplicity, we'll use a static array as the heap
     static int heapPointer = 0;
     void *ptr = &heap[heapPointer];
-    heapPointer += (size & !0xF) + 0x10;
+    heapPointer += size;
+    heapPointer += 16 - (heapPointer % 16);
     return ptr;
 }
 

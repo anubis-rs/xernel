@@ -9,10 +9,10 @@ enum BallColor {
 
 class Ball {
 public:
-    void init(float x, float y, BallColor color, Vector2D *velocity, int radius = 15);
+    void init(int x, int y, BallColor color, Vector2D *velocity, int radius = 15);
 
-    float x;
-    float y;
+    int x;
+    int y;
     int radius;
     BallColor color;
 

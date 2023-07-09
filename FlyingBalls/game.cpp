@@ -12,16 +12,21 @@ unsigned int rand()
 	return a = x;
 }
 
-float sqrt(float x) {
-    float xhalf = 0.5f * x;
-    int i = *(int *) &x; // get bits for floating value
-    i = 0x5f375a86 - (i >> 1); // gives initial guess y0
-    x = *(float *) &i; // convert bits back to float
-    x = x * (1.5f - xhalf * x * x); // Newton step, repeating increases accuracy
-    return 1 / x;
+int sqrt(int num) {
+    return 0;
+    if (num <= 0)
+        return 0;
+
+    int x = num;
+    int y = (x + 1) / 2;
+    while (y < x) {
+        x = y;
+        y = (x + num / x) / 2;
+    }
+    return x;
 }
 
-float hypot(float x, float y) {
+int hypot(int x, int y) {
     return sqrt(x * x + y * y);
 }
 
@@ -31,8 +36,8 @@ void Game::init() {
     isRunning = true;
 
     for (int i = 0; i < MAXBALLS; i++) {
-        int x = rand() % width;
-        int y = rand() % height;
+        int x = rand() % this->width;
+        int y = rand() % this->height;
 
         int x_vel = rand() % (MAXVELOCITY -  MINVELOCITY + 1) + MINVELOCITY;
         int y_vel = rand() % (MAXVELOCITY -  MINVELOCITY + 1) + MINVELOCITY;
@@ -68,8 +73,8 @@ void Game::update() {
 
     for (int i = 0; i < MAXBALLS; i++) {
         Ball *ball = &balls[i];
-        ball->x = ball->x + ball->velocity->x * (float) GAMESPEED;
-        ball->y = ball->y + ball->velocity->y * (float) GAMESPEED;
+        ball->x = ball->x + ball->velocity->x * GAMESPEED;
+        ball->y = ball->y + ball->velocity->y * GAMESPEED;
 
         checkBorderCollision(ball);
     }
@@ -82,52 +87,86 @@ void Game::checkBallCollision() {
             Ball *ball1 = &balls[i];
             Ball *ball2 = &balls[k];
 
-            float distance = hypot(ball1->x - ball2->x, ball1->y - ball2->y);
+            int distance = hypot(ball1->x - ball2->x, ball1->y - ball2->y);
 
             if (distance <= ball1->radius + ball2->radius) {
                 // ball1 and ball2 are colliding
                 // update the velocity of both balls
-
+/*
                 while (distance <= ball1->radius + ball2->radius) { // balls go back until they are not overlapping any more
-                    ball1->x = ball1->x - ball1->velocity->x * (float) 1 / 100;
-                    ball1->y = ball1->y - ball1->velocity->y * (float) 1 / 100;
+                    ball1->x = ball1->x - ball1->velocity->x; // / 100;
+                    ball1->y = ball1->y - ball1->velocity->y; // / 100;
 
-                    ball2->x = ball2->x - ball2->velocity->x * (float) 1 / 100;
-                    ball2->y = ball2->y - ball2->velocity->y * (float) 1 / 100;
+                    ball2->x = ball2->x - ball2->velocity->x; // / 100;
+                    ball2->y = ball2->y - ball2->velocity->y; // / 100;
 
                     distance = hypot(ball1->x - ball2->x, ball1->y - ball2->y);
                 }
+*/
+                if (distance == 0) {
+                    distance = 1;
+                }
 
-                float m1 = ball1->radius * ball1->radius * PI;
-                float m2 = ball2->radius * ball2->radius * PI;
+                int m1 = ball1->radius * ball1->radius * PI;
+                int m2 = ball2->radius * ball2->radius * PI;
 
                 Vector2D v1 = Vector2D(ball1->velocity->x, ball1->velocity->y);
                 Vector2D v2 = Vector2D(ball2->velocity->x, ball2->velocity->y);
 
                 // first ball
-                Vector2D tmp1 = v1 - v2;
+                Vector2D tmp1 = Vector2D(v1.x, v1.y);
+                tmp1 -= v2;
                 Vector2D tmp2 = Vector2D(ball1->x - ball2->x, ball1->y - ball2->y);
 
-                float dot = tmp1.x * tmp2.x + tmp1.y * tmp2.y;
+                int dot = tmp1.x * tmp2.x + tmp1.y * tmp2.y;
                 dot /= (distance * distance);
 
-                float first = (2 * m2 / (m1 + m2));
-                float second = dot;
-                float third = (ball1->x - ball2->x);
+                int m = m1 + m2;
+
+                m = m < 1 ? 1 : m;
+
+                int first = (2 * m2 / m);
+                int second = dot;
+                int third = (ball1->x - ball2->x);
 
                 ball1->velocity->x -= (first * second * third);
                 third = (ball1->y - ball2->y);
                 ball1->velocity->y -= first * second * third;
 
+                if (ball1->velocity->x > MAXVELOCITY) {
+                    ball1->velocity->x = MAXVELOCITY;
+                } else if (ball1->velocity->x < -MAXVELOCITY) {
+                    ball1->velocity->x = -MAXVELOCITY;
+                }
+
+                if (ball1->velocity->y > MAXVELOCITY) {
+                    ball1->velocity->y = MAXVELOCITY;
+                } else if (ball1->velocity->y < -MAXVELOCITY) {
+                    ball1->velocity->y = -MAXVELOCITY;
+                }
+
                 // second ball
-                tmp1 = v2 - v1;
+                tmp1 = Vector2D(v1.x, v1.y);
+                tmp1 -= v2;
                 tmp2 = Vector2D(ball2->x - ball1->x, ball2->y - ball1->y);
 
                 dot = tmp1.x * tmp2.x + tmp1.y * tmp2.y;
                 dot /= (distance * distance);
 
-                ball2->velocity->x = v2.x - (2 * m1 / (m1 + m2)) * dot * (ball2->x - ball1->x);
-                ball2->velocity->y = v2.y - (2 * m1 / (m1 + m2)) * dot * (ball2->y - ball1->y);
+                ball2->velocity->x = v2.x - (2 * m1 / (m)) * dot * (ball2->x - ball1->x);
+                ball2->velocity->y = v2.y - (2 * m1 / (m)) * dot * (ball2->y - ball1->y);
+
+                if (ball2->velocity->x > MAXVELOCITY) {
+                    ball2->velocity->x = MAXVELOCITY;
+                } else if (ball2->velocity->x < -MAXVELOCITY) {
+                    ball2->velocity->x = -MAXVELOCITY;
+                }
+
+                if (ball2->velocity->y > MAXVELOCITY) {
+                    ball2->velocity->y = MAXVELOCITY;
+                } else if (ball2->velocity->y < -MAXVELOCITY) {
+                    ball2->velocity->y = -MAXVELOCITY;
+                }
             }
         }
     }

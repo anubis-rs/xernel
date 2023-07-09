@@ -1,6 +1,6 @@
 #include "ball.h"
 
-void Ball::init(float x, float y, BallColor color, Vector2D *velocity, int radius) {
+void Ball::init(int x, int y, BallColor color, Vector2D *velocity, int radius) {
     this->x = x;
     this->y = y;
     this->color = color;

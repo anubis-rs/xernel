@@ -1,6 +1,6 @@
 mod font;
 
-use core::ptr::copy;
+use core::ptr::{copy, write_bytes};
 
 use crate::{framebuffer::font::FONT, limine_module::get_limine_module};
 use libxernel::sync::{Once, Spinlock};
@@ -165,6 +165,49 @@ impl Framebuffer {
     /// Returns the framebuffer size in bytes
     pub fn length(&self) -> u64 {
         FRAMEBUFFER_DATA.height * FRAMEBUFFER_DATA.pitch
+    }
+
+    pub fn clear_screen(&self) {
+        unsafe {
+            write_bytes(
+                self.address,
+                0x00,
+                self.length() as usize,
+            );
+        }
+    }
+
+    pub fn dimensions(&self) -> (u16, u16) {
+        (FRAMEBUFFER_DATA.width as u16, FRAMEBUFFER_DATA.height as u16)
+    }
+
+    pub fn draw_line(&self, x1: i32, y1: i32, x2: i32, y2: i32, r: i32, g: i32, b: i32) {
+        assert!(y1 == y2);
+
+        if (y1 < 0) || (y1 >= FRAMEBUFFER_DATA.height as i32) {
+            return;
+        }
+
+        if (x1 < 0 || x1 >= FRAMEBUFFER_DATA.width as i32)
+            || (x2 < 0 || x2 >= FRAMEBUFFER_DATA.width as i32)
+        {
+            return;
+        }
+
+        dbg!("({},{}) -> ({},{})", x1, y1, x2, y2);
+
+        for x in x1..(x2 + 1) {
+            // draw pixel
+            let pixelCount = (y1 as u64 * FRAMEBUFFER_DATA.width) + x as u64;
+            let pixelCount = pixelCount * (FRAMEBUFFER_DATA.bpp / 8) as u64;
+            let pixelAddress = FRAMEBUFFER_DATA.address.as_ptr().unwrap().cast::<u8>();
+
+            unsafe {
+                pixelAddress.add(pixelCount as usize).write_volatile(b as u8);
+                pixelAddress.add((pixelCount + 1) as usize).write_volatile(g as u8);
+                pixelAddress.add((pixelCount + 2) as usize).write_volatile(r as u8);
+            }
+        }
     }
 
     /// Sets the color which the framebuffer uses for writing
