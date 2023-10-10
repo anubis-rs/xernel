@@ -1,8 +1,8 @@
-use limine::{LimineFile, LimineModuleRequest};
+use limine::{File, ModuleRequest};
 
-static MODULE_REQUEST: LimineModuleRequest = LimineModuleRequest::new(0);
+static MODULE_REQUEST: ModuleRequest = ModuleRequest::new(0);
 
-pub fn get_limine_module(name: &str) -> Option<&LimineFile> {
+pub fn get_limine_module(name: &str) -> Option<&File> {
     let modules = MODULE_REQUEST.get_response().get().unwrap().modules();
 
     for m in modules {

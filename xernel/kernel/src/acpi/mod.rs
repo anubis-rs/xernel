@@ -6,12 +6,12 @@ use crate::mem::HIGHER_HALF_OFFSET;
 use acpi_parsing::platform::interrupt::Apic;
 use acpi_parsing::{AcpiHandler, AcpiTables, InterruptModel, PhysicalMapping};
 use libxernel::sync::Once;
-use limine::LimineRsdpRequest;
+use limine::RsdpRequest;
 
 #[derive(Clone)]
 struct AcpiMapper;
 
-static RSDP_REQUEST: LimineRsdpRequest = LimineRsdpRequest::new(0);
+static RSDP_REQUEST: RsdpRequest = RsdpRequest::new(0);
 
 pub static ACPI: Once<Acpi> = Once::new();
 

@@ -4,9 +4,9 @@ pub mod paging;
 pub mod vm;
 
 use libxernel::sync::Once;
-use limine::LimineHhdmRequest;
+use limine::HhdmRequest;
 
-static HHDM_REQUEST: LimineHhdmRequest = LimineHhdmRequest::new(0);
+static HHDM_REQUEST: HhdmRequest = HhdmRequest::new(0);
 
 pub static HIGHER_HALF_OFFSET: Once<u64> = Once::new();
 

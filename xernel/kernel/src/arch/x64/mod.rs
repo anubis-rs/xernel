@@ -7,10 +7,10 @@ use crate::arch::x64::apic::APIC;
 use crate::cpu::register_cpu;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
 use crate::KERNEL_PAGE_MAPPER;
-use limine::LimineSmpInfo;
+use limine::SmpInfo;
 
 #[no_mangle]
-pub extern "C" fn x86_64_ap_main(boot_info: *const LimineSmpInfo) -> ! {
+pub extern "C" fn x86_64_ap_main(boot_info: *const SmpInfo) -> ! {
     let boot_info = unsafe { &*boot_info };
     let ap_id = boot_info.processor_id as usize;
 

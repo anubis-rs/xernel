@@ -2,15 +2,15 @@ use core::ptr::NonNull;
 
 use crate::{allocator::buddy::BuddyAllocator, mem::HIGHER_HALF_OFFSET};
 use libxernel::sync::{Once, Spinlock};
-use limine::{LimineMemmapEntry, LimineMemmapRequest, LimineMemoryMapEntryType, NonNullPtr};
+use limine::{MemmapEntry, MemmapRequest, MemoryMapEntryType, NonNullPtr};
 use x86_64::{
     structures::paging::{PageSize, PhysFrame},
     PhysAddr,
 };
 
-static MMAP_REQUEST: LimineMemmapRequest = LimineMemmapRequest::new(0);
+static MMAP_REQUEST: MemmapRequest = MemmapRequest::new(0);
 
-pub static MEMORY_MAP: Once<&'static [NonNullPtr<LimineMemmapEntry>]> = Once::new();
+pub static MEMORY_MAP: Once<&'static [NonNullPtr<MemmapEntry>]> = Once::new();
 
 pub struct PhysFrameAllocator(BuddyAllocator<{ super::FRAME_SIZE as usize }, 12>); // maximum allocation size is 16mb
 
@@ -52,7 +52,7 @@ pub fn init() {
     );
 
     for entry in *MEMORY_MAP {
-        if entry.typ == LimineMemoryMapEntryType::Usable {
+        if entry.typ == MemoryMapEntryType::Usable {
             unsafe {
                 buddy
                     .0

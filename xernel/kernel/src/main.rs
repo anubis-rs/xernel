@@ -62,8 +62,8 @@ use crate::sched::process::KERNEL_PROCESS;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
 use crate::sched::thread::Thread;
 
-static BOOTLOADER_INFO: LimineBootInfoRequest = LimineBootInfoRequest::new(0);
-static SMP_REQUEST: LimineSmpRequest = LimineSmpRequest::new(0);
+static BOOTLOADER_INFO: BootInfoRequest = BootInfoRequest::new(0);
+static SMP_REQUEST: SmpRequest = SmpRequest::new(0);
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {

@@ -4,7 +4,9 @@ use core::ptr::copy;
 
 use crate::{framebuffer::font::FONT, limine_module::get_limine_module};
 use libxernel::sync::{Once, Spinlock};
-use limine::{LimineFile, LimineFramebuffer, LimineFramebufferRequest};
+use limine::{File, FramebufferRequest};
+
+use limine::Framebuffer as LimineFramebuffer;
 
 /// A struct providing information about the framebuffer
 pub struct Framebuffer {
@@ -25,7 +27,7 @@ pub struct Color {
     b: u8,
 }
 
-static FRAMEBUFFER_REQUEST: LimineFramebufferRequest = LimineFramebufferRequest::new(0);
+static FRAMEBUFFER_REQUEST: FramebufferRequest = FramebufferRequest::new(0);
 
 /// [`Framebuffer`] wrapped in a [`Spinlock`] for static usage
 pub static FRAMEBUFFER: Spinlock<Framebuffer> = Spinlock::new(Framebuffer {
@@ -183,7 +185,7 @@ impl Framebuffer {
     }
 
     /// Displays a given bitmap image on the framebuffer
-    pub unsafe fn show_bitmap_image(&mut self, image_data: &LimineFile) {
+    pub unsafe fn show_bitmap_image(&mut self, image_data: &File) {
         let address = FRAMEBUFFER_DATA.address.as_ptr().unwrap().cast::<u8>();
 
         let file_base = image_data.base.as_ptr().unwrap();

@@ -5,7 +5,7 @@ use crate::{
 };
 use libxernel::boot::InitAtBoot;
 use libxernel::sync::Spinlock;
-use limine::LimineKernelAddressRequest;
+use limine::KernelAddressRequest;
 use x86_64::{
     align_down,
     registers::control::{Cr3, Cr3Flags},
@@ -16,7 +16,7 @@ use x86_64::{
     PhysAddr, VirtAddr,
 };
 
-static KERNEL_ADDRESS_REQUEST: LimineKernelAddressRequest = LimineKernelAddressRequest::new(0);
+static KERNEL_ADDRESS_REQUEST: KernelAddressRequest = KernelAddressRequest::new(0);
 
 pub static KERNEL_PAGE_MAPPER: Spinlock<InitAtBoot<Pagemap>> =
     Spinlock::new(InitAtBoot::Uninitialized);
