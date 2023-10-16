@@ -12,7 +12,7 @@ Therefore the command `cargo kernel` is used.
 
 See `cargo kernel help` for a list of subcommands and available flags.
 
-You can simply use `cargo kernel build` or `cargo kernel run`, it is going to use x64 as the default target.
+You can simply use `cargo kernel build` or `cargo kernel run`, it is going to use x86_64 as the default target.
 
 ## Contact
 Feel free to reach out to `lockna` or `mp1310` on Discord
