@@ -52,6 +52,7 @@ use x86_64::VirtAddr;
 use crate::acpi::hpet;
 use crate::arch::x64::apic;
 use crate::cpu::register_cpu;
+use crate::cpu::wait_until_cpus_registered;
 use crate::cpu::CPU_COUNT;
 use crate::fs::vfs;
 use crate::fs::vfs::VFS;
@@ -158,8 +159,9 @@ extern "C" fn kernel_main() -> ! {
 
     KERNEL_PROCESS.set_once(Arc::new(Spinlock::new(Process::new(None, true))));
 
-    SCHEDULER.wait_until_cpus_registered();
+    wait_until_cpus_registered();
     SCHEDULER.init(|| SpinlockIRQ::new(Scheduler::new()));
+    SCHEDULER.wait_until_initialized();
 
     let process = Arc::new(Spinlock::new(Process::new(
         Some(KERNEL_PROCESS.clone()),

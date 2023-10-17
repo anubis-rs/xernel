@@ -26,12 +26,6 @@ impl<T> PerCpu<T> {
         }
     }
 
-    pub fn wait_until_cpus_registered(&self) {
-        while CPU_ID_COUNTER.load(Ordering::SeqCst) != *CPU_COUNT {
-            core::hint::spin_loop();
-        }
-    }
-
     pub fn init(&self, init_fn: fn() -> T) {
         assert_eq!(*CPU_COUNT, CPU_ID_COUNTER.load(Ordering::SeqCst));
 
@@ -39,6 +33,18 @@ impl<T> PerCpu<T> {
 
         for _ in 0..*CPU_COUNT {
             vec.push(init_fn());
+        }
+    }
+
+    pub fn wait_until_initialized(&self) {
+        loop {
+            let vec = unsafe { &*self.data.get() };
+
+            if vec.len() == *CPU_COUNT {
+                break;
+            }
+
+            core::hint::spin_loop();
         }
     }
 
@@ -132,4 +138,10 @@ pub fn register_cpu() {
 pub fn get_per_cpu_data() -> &'static mut PerCpuData {
     let cpu_data = KernelGsBase::read().as_u64() as *mut PerCpuData;
     unsafe { &mut *cpu_data }
+}
+
+pub fn wait_until_cpus_registered() {
+    while CPU_ID_COUNTER.load(Ordering::SeqCst) != *CPU_COUNT {
+        core::hint::spin_loop();
+    }
 }

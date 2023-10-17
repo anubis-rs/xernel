@@ -33,7 +33,7 @@ pub extern "C" fn x86_64_ap_main(boot_info: *const SmpInfo) -> ! {
     info!("CPU{}: cpu registered", ap_id);
 
     // wait until all CPUs are registered before scheduling
-    SCHEDULER.wait_until_cpus_registered();
+    SCHEDULER.wait_until_initialized();
 
     APIC.enable_apic();
     info!("CPU{}: apic initialized", ap_id);
