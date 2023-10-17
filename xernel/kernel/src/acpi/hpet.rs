@@ -66,7 +66,7 @@ fn write(offset: u64, val: u64) {
     let hpet_ptr = *HPET_BASE_ADDRESS as *mut u64;
 
     unsafe {
-        core::ptr::write_volatile(hpet_ptr.byte_offset(offset as isize) as *mut u64, val);
+        core::ptr::write_volatile(hpet_ptr.byte_offset(offset as isize), val);
     }
 }
 
