@@ -4,3 +4,4 @@ members = [
   "xernel/kernel",
   "crates/libxernel",
 ]
+resolver = "2"
