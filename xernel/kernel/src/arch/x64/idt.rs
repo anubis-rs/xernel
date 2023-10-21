@@ -2,40 +2,138 @@ use crate::arch::x64::apic::apic_spurious_interrupt;
 use crate::arch::x64::gdt::DOUBLE_FAULT_IST_INDEX;
 use crate::arch::x64::ports::outb;
 use crate::drivers::ps2::keyboard::keyboard;
+use crate::sched::context::ThreadContext;
 use crate::sched::scheduler::scheduler_irq_handler;
-use core::arch::asm;
+use core::arch::{asm, global_asm};
 use libxernel::boot::InitAtBoot;
+use libxernel::sync::Spinlock;
+use x86_64::instructions::tables::lidt;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::PageFaultErrorCode;
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
+use x86_64::structures::idt::{InterruptStackFrame};
 use x86_64::{set_general_handler, VirtAddr};
 
 use crate::backtrace;
 
-pub static mut IDT: InitAtBoot<InterruptDescriptorTable> = InitAtBoot::Uninitialized;
+const IDT_ENTRIES: usize = 256;
+
+global_asm!(include_str!("int_thunks.S"));
+
+#[derive(Copy, Clone)]
+pub(super) enum Handler {
+    ErrorHandler(fn(u8, &mut ThreadContext)),
+    Handler(fn(&mut ThreadContext)),
+
+    None,
+}
+
+static INTERRUPT_HANDLERS: Spinlock<[Handler; IDT_ENTRIES]> = Spinlock::new([Handler::None; IDT_ENTRIES]);
+
+#[repr(C, packed)]
+pub struct IDTEntry {
+    offset_low: u16,
+    selector: u16,
+    ist: u8,
+    flags: u8,
+    offset_mid: u16,
+    offset_hi: u32,
+    reserved: u32,
+}
+
+impl IDTEntry {
+    const NULL: Self = Self {
+        offset_low: 0x00,
+        selector: 0x00,
+        ist: 0x00,
+        flags: 0x00,
+        offset_mid: 0x00,
+        offset_hi: 0x00,
+        reserved: 0x00,
+    };
+
+    fn set_offset(&mut self, selector: u16, base: usize) {
+        self.selector = selector;
+        self.offset_low = base as u16;
+        self.offset_mid = (base >> 16) as u16;
+        self.offset_hi = (base >> 32) as u32;
+    }
+
+    /// Set the handler function of the IDT entry.
+    pub(crate) fn set_handler(&mut self, handler: *const u8) {
+        self.set_offset(8, handler as usize);
+        self.flags = 0x8e;
+    }
+}
+
+#[repr(C, packed)]
+pub struct IDT {
+    entries: [IDTEntry; IDT_ENTRIES]
+}
+
+static mut IDT: [IDTEntry; IDT_ENTRIES] = [IDTEntry::NULL; IDT_ENTRIES];
+
+//pub static mut IDT: InitAtBoot<InterruptDescriptorTable> = InitAtBoot::Uninitialized;
 
 pub fn init() {
-    let mut idt = InterruptDescriptorTable::new();
+    // let mut idt = IDT::new();
 
-    set_general_handler!(&mut idt, interrupt_handler);
-    unsafe {
-        idt.double_fault
-            .set_handler_fn(double_fault_handler)
-            .set_stack_index(DOUBLE_FAULT_IST_INDEX);
+    // set_general_handler!(&mut idt, interrupt_handler);
+    // unsafe {
+    //     idt.double_fault
+    //         .set_handler_fn(double_fault_handler)
+    //         .set_stack_index(DOUBLE_FAULT_IST_INDEX);
+    // }
+    // idt.page_fault.set_handler_fn(page_fault_handler);
+    // idt.general_protection_fault
+    //     .set_handler_fn(general_fault_handler);
+
+    // unsafe {
+    //     idt[0x40].set_handler_addr(VirtAddr::new(scheduler_irq_handler as u64));
+    // }
+    // idt[0x47].set_handler_fn(keyboard);
+    // idt[0xff].set_handler_fn(apic_spurious_interrupt);
+
+    // unsafe {
+    //     IDT = InitAtBoot::Initialized(idt);
+    //     IDT.load();
+    // }
+
+    extern "C" {
+        // defined in `handlers.asm`
+        static interrupt_handlers: [*const u8; IDT_ENTRIES];
     }
-    idt.page_fault.set_handler_fn(page_fault_handler);
-    idt.general_protection_fault
-        .set_handler_fn(general_fault_handler);
 
     unsafe {
-        idt[0x40].set_handler_addr(VirtAddr::new(scheduler_irq_handler as u64));
+        for (index, &handler) in interrupt_handlers.iter().enumerate() {
+            // skip handler insertion if handler is null.
+            if handler.is_null() {
+                continue;
+            }
+
+            IDT[index].set_handler(handler);
+        }
     }
-    idt[0x47].set_handler_fn(keyboard);
-    idt[0xff].set_handler_fn(apic_spurious_interrupt);
 
-    unsafe {
-        IDT = InitAtBoot::Initialized(idt);
-        IDT.load();
+
+}
+
+extern "C" fn generic_interrupt_handler(isr: usize, ctx: &mut ThreadContext) {
+    let handlers = INTERRUPT_HANDLERS.lock();
+
+    match &handlers[isr] {
+        Handler::Handler(handler) => {
+            let handler = *handler;
+            core::mem::drop(handlers);
+            handler(ctx);
+        }
+
+        Handler::ErrorHandler(handler) => {
+            let handler = *handler;
+            core::mem::drop(handlers);
+            handler(0, ctx);
+        }
+
+        Handler::None => warning!("unhandled interrupt {}", isr),
     }
 }
 
