@@ -16,3 +16,5 @@ limine
 *.hdd
 
 .env
+
+.idea
