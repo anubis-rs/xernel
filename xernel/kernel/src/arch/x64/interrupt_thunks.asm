@@ -7,7 +7,7 @@ interrupt_handler_\isr:
 
 .if \error == 0
     push 0
-    .endif
+.endif
 
     push r15
     push r14
@@ -30,10 +30,10 @@ interrupt_handler_\isr:
     mov rdi, \isr
     mov rsi, rsp
 
-    ; call the generic interrupt handler
+    #; call the generic interrupt handler
     call generic_interrupt_handler
 
-    ; pop the error code
+    #; pop the error code
     add rsp, 8
 
     mov rsp, rdi

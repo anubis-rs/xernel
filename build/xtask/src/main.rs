@@ -42,7 +42,7 @@ fn main() -> Result<()> {
     // cd into the root folder of this workspace
     let sh = Shell::new().unwrap();
 
-    sh.set_var("RUSTFLAGS", "-Cforce-frame-pointers=yes");
+    sh.set_var("RUSTFLAGS", "-Cforce-frame-pointers=yes -Z macro-backtrace");
 
     let _cwd = sh.push_dir(root());
 

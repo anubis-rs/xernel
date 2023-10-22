@@ -1,35 +1,117 @@
-use crate::arch::x64::apic::apic_spurious_interrupt;
-use crate::arch::x64::gdt::DOUBLE_FAULT_IST_INDEX;
 use crate::arch::x64::ports::outb;
-use crate::drivers::ps2::keyboard::keyboard;
 use crate::sched::context::ThreadContext;
-use crate::sched::scheduler::scheduler_irq_handler;
-use core::arch::{asm, global_asm};
-use libxernel::boot::InitAtBoot;
+use core::arch::asm;
 use libxernel::sync::Spinlock;
-use x86_64::instructions::tables::lidt;
 use x86_64::registers::control::Cr2;
+use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::structures::idt::PageFaultErrorCode;
-use x86_64::structures::idt::{InterruptStackFrame};
-use x86_64::{set_general_handler, VirtAddr};
+
+use paste::paste;
+use seq_macro::seq;
 
 use crate::backtrace;
 
 const IDT_ENTRIES: usize = 256;
 
-global_asm!(include_str!("int_thunks.S"));
+macro_rules! has_error_code_macro {
+    (true) => {
+        "nop"
+    };
+    (false) => {
+        "push 0"
+    };
+}
+
+macro_rules! interrupt_handler {
+    ($interrupt_number:expr, $has_error_code:expr) => {
+        paste! {
+            #[naked]
+            extern "C" fn [<interrupt_handler $interrupt_number>]() {
+                unsafe {
+                    asm!(
+                        has_error_code_macro!($has_error_code),
+                        "push r15",
+                        "push r14",
+                        "push r13",
+                        "push r12",
+                        "push r11",
+                        "push r10",
+                        "push r9",
+                        "push r8",
+                        "push rdi",
+                        "push rsi",
+                        "push rdx",
+                        "push rcx",
+                        "push rbx",
+                        "push rax",
+                        "push rbp",
+                        "push rax",
+                        concat!("mov rdi, ", $interrupt_number),
+                        "mov rsi, rsp",
+                        "call generic_interrupt_handler",
+                        "add rsp, 0x8",
+                        "mov rsp, rdi",
+                        "pop rbp",
+                        "pop rax",
+                        "pop rbx",
+                        "pop rcx",
+                        "pop rdx",
+                        "pop rsi",
+                        "pop rdi",
+                        "pop r8",
+                        "pop r9",
+                        "pop r10",
+                        "pop r11",
+                        "pop r12",
+                        "pop r13",
+                        "pop r14",
+                        "pop r15",
+                        "iretq",
+                        options(noreturn)
+                    )
+                }
+            }
+        }
+    };
+}
+
+seq!(N in 0..=7 { interrupt_handler!(N, false); });
+
+interrupt_handler!(8, true);
+interrupt_handler!(9, false);
+
+seq!(N in 10..=14 { interrupt_handler!(N, true); });
+
+interrupt_handler!(15, false);
+interrupt_handler!(16, true);
+interrupt_handler!(17, true);
+interrupt_handler!(18, false);
+interrupt_handler!(19, false);
+interrupt_handler!(20, false);
+interrupt_handler!(21, true);
+interrupt_handler!(22, false);
+interrupt_handler!(23, false);
+interrupt_handler!(24, false);
+interrupt_handler!(25, false);
+interrupt_handler!(26, false);
+interrupt_handler!(27, false);
+interrupt_handler!(28, false);
+interrupt_handler!(29, true);
+interrupt_handler!(30, true);
+
+seq!(N in 31..256 { interrupt_handler!(N, false); });
 
 #[derive(Copy, Clone)]
 pub(super) enum Handler {
     ErrorHandler(fn(u8, &mut ThreadContext)),
     Handler(fn(&mut ThreadContext)),
-
     None,
 }
 
-static INTERRUPT_HANDLERS: Spinlock<[Handler; IDT_ENTRIES]> = Spinlock::new([Handler::None; IDT_ENTRIES]);
+static INTERRUPT_HANDLERS: Spinlock<[Handler; IDT_ENTRIES]> =
+    Spinlock::new([Handler::None; IDT_ENTRIES]);
 
-#[repr(C, packed)]
+#[repr(packed)]
 pub struct IDTEntry {
     offset_low: u16,
     selector: u16,
@@ -65,16 +147,17 @@ impl IDTEntry {
     }
 }
 
-#[repr(C, packed)]
-pub struct IDT {
-    entries: [IDTEntry; IDT_ENTRIES]
-}
-
 static mut IDT: [IDTEntry; IDT_ENTRIES] = [IDTEntry::NULL; IDT_ENTRIES];
 
-//pub static mut IDT: InitAtBoot<InterruptDescriptorTable> = InitAtBoot::Uninitialized;
-
 pub fn init() {
+    unsafe {
+        seq!(N in 0..256 {
+                #(
+                    IDT[N].set_handler(interrupt_handler~N as *const u8);
+                )*
+        });
+    }
+
     // let mut idt = IDT::new();
 
     // set_general_handler!(&mut idt, interrupt_handler);
@@ -113,10 +196,9 @@ pub fn init() {
             IDT[index].set_handler(handler);
         }
     }
-
-
 }
 
+#[no_mangle]
 extern "C" fn generic_interrupt_handler(isr: usize, ctx: &mut ThreadContext) {
     let handlers = INTERRUPT_HANDLERS.lock();
 
