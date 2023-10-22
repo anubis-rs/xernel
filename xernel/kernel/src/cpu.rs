@@ -100,7 +100,7 @@ impl<T> PerCpu<T> {
     }
 }
 
-#[repr(packed)]
+#[repr(C, packed)]
 pub struct PerCpuData {
     // NOTE: don't move these variables as we need to access them from assembly
     user_space_stack: usize,

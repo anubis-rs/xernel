@@ -40,7 +40,7 @@ impl ThreadPriority {
 }
 
 #[derive(Debug, Copy, Clone)]
-#[repr(packed)]
+#[repr(C, packed)]
 pub struct KernelStack {
     pub user_space_stack: usize,
     pub kernel_stack_top: usize,
