@@ -9,11 +9,12 @@ use alloc::vec::Vec;
 use core::arch::asm;
 use core::sync::atomic::AtomicU64;
 use core::sync::atomic::Ordering;
-use libxernel::sync::{Spinlock, SpinlockIRQ};
+use libxernel::sync::{Once, Spinlock, SpinlockIRQ};
 use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
 use x86_64::structures::idt::InterruptStackFrame;
+use crate::arch::{allocate_vector, register_handler};
 
 use super::context::ThreadContext;
 use super::process::Process;
@@ -26,8 +27,17 @@ pub struct Scheduler {
 
 pub static SCHEDULER: PerCpu<SpinlockIRQ<Scheduler>> = PerCpu::new();
 
+pub static SCHEDULER_VECTOR: Once<u8> = Once::new();
+
 impl Scheduler {
     pub fn new() -> Self {
+
+        let isr = allocate_vector();
+
+        register_handler(isr, schedule_handle);
+
+        SCHEDULER_VECTOR.set_once(isr);
+
         Self {
             threads: VecDeque::new(),
             idle_thread: Arc::new(Spinlock::new(Thread::new_idle_thread())),
@@ -168,7 +178,7 @@ impl Scheduler {
     pub fn hand_over() {
         interrupts::disable();
 
-        APIC.create_oneshot_timer(0x40, 1);
+        APIC.create_oneshot_timer(*SCHEDULER_VECTOR, 1);
 
         interrupts::enable();
 
@@ -204,7 +214,7 @@ pub extern "C" fn scheduler_irq_handler(_stack_frame: InterruptStackFrame) {
 }
 
 #[no_mangle]
-pub extern "sysv64" fn schedule_handle(ctx: ThreadContext) {
+pub fn schedule_handle(ctx: ThreadContext) {
     let mut sched = SCHEDULER.get().lock();
     if let Some(task) = sched.threads.get(0) && task.lock().status == ThreadStatus::Running {
         sched.save_ctx(ctx);
@@ -246,7 +256,7 @@ pub extern "sysv64" fn schedule_handle(ctx: ThreadContext) {
     let context = &thread.context as *const ThreadContext;
 
     APIC.eoi();
-    APIC.create_oneshot_timer(0x40, thread.priority.ms() * 1000);
+    APIC.create_oneshot_timer(*SCHEDULER_VECTOR, thread.priority.ms() * 1000);
 
     thread.unlock();
     sched.unlock();

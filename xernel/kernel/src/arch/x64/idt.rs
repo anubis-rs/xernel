@@ -1,15 +1,13 @@
 use crate::arch::x64::ports::outb;
 use crate::sched::context::ThreadContext;
 use core::arch::asm;
-use libxernel::sync::Spinlock;
+use core::mem::size_of;
+use core::ops::Add;
+use libxernel::sync::{Spinlock, SpinlockIRQ};
 use x86_64::registers::control::Cr2;
-use x86_64::structures::idt::InterruptStackFrame;
-use x86_64::structures::idt::PageFaultErrorCode;
 
 use paste::paste;
 use seq_macro::seq;
-
-use crate::backtrace;
 
 const IDT_ENTRIES: usize = 256;
 
@@ -101,15 +99,33 @@ interrupt_handler!(30, true);
 
 seq!(N in 31..256 { interrupt_handler!(N, false); });
 
+#[repr(C, packed)]
+struct Idtr {
+    size: u16,
+    offset: u64,
+}
+
+impl Idtr {
+    #[inline]
+    const fn new(size: u16, offset: u64) -> Self {
+        Self { size, offset }
+    }
+
+    #[inline(always)]
+    unsafe fn load(&self) {
+        asm!("lidt [{}]", in(reg) self, options(nostack));
+    }
+}
+
 #[derive(Copy, Clone)]
-pub(super) enum Handler {
-    ErrorHandler(fn(u8, &mut ThreadContext)),
-    Handler(fn(&mut ThreadContext)),
+pub(super) enum IRQHandler {
+    ErrorHandler(fn(u8, ThreadContext)),
+    Handler(fn(ThreadContext)),
     None,
 }
 
-static INTERRUPT_HANDLERS: Spinlock<[Handler; IDT_ENTRIES]> =
-    Spinlock::new([Handler::None; IDT_ENTRIES]);
+static INTERRUPT_HANDLERS: SpinlockIRQ<[IRQHandler; IDT_ENTRIES]> =
+    SpinlockIRQ::new([IRQHandler::None; IDT_ENTRIES]);
 
 #[repr(packed)]
 pub struct IDTEntry {
@@ -133,17 +149,12 @@ impl IDTEntry {
         reserved: 0x00,
     };
 
-    fn set_offset(&mut self, selector: u16, base: usize) {
-        self.selector = selector;
-        self.offset_low = base as u16;
-        self.offset_mid = (base >> 16) as u16;
-        self.offset_hi = (base >> 32) as u32;
-    }
-
-    /// Set the handler function of the IDT entry.
     pub(crate) fn set_handler(&mut self, handler: *const u8) {
-        self.set_offset(8, handler as usize);
+        self.offset_low = handler as u16;
+        self.offset_mid = (handler as usize >> 16) as u16;
+        self.offset_hi = (handler as usize >> 32) as u32;
         self.flags = 0x8e;
+        self.selector = 8;
     }
 }
 
@@ -156,134 +167,62 @@ pub fn init() {
                     IDT[N].set_handler(interrupt_handler~N as *const u8);
                 )*
         });
-    }
 
-    // let mut idt = IDT::new();
+        let idtr = Idtr::new(
+            ((IDT.len() * size_of::<IDTEntry>()) - 1) as u16,
+            (&IDT as *const _) as u64,
+        );
 
-    // set_general_handler!(&mut idt, interrupt_handler);
-    // unsafe {
-    //     idt.double_fault
-    //         .set_handler_fn(double_fault_handler)
-    //         .set_stack_index(DOUBLE_FAULT_IST_INDEX);
-    // }
-    // idt.page_fault.set_handler_fn(page_fault_handler);
-    // idt.general_protection_fault
-    //     .set_handler_fn(general_fault_handler);
-
-    // unsafe {
-    //     idt[0x40].set_handler_addr(VirtAddr::new(scheduler_irq_handler as u64));
-    // }
-    // idt[0x47].set_handler_fn(keyboard);
-    // idt[0xff].set_handler_fn(apic_spurious_interrupt);
-
-    // unsafe {
-    //     IDT = InitAtBoot::Initialized(idt);
-    //     IDT.load();
-    // }
-
-    extern "C" {
-        // defined in `handlers.asm`
-        static interrupt_handlers: [*const u8; IDT_ENTRIES];
-    }
-
-    unsafe {
-        for (index, &handler) in interrupt_handlers.iter().enumerate() {
-            // skip handler insertion if handler is null.
-            if handler.is_null() {
-                continue;
-            }
-
-            IDT[index].set_handler(handler);
-        }
+        idtr.load();
     }
 }
 
 #[no_mangle]
-extern "C" fn generic_interrupt_handler(isr: usize, ctx: &mut ThreadContext) {
+extern "C" fn generic_interrupt_handler(isr: usize, error_code: u8, ctx: ThreadContext) {
     let handlers = INTERRUPT_HANDLERS.lock();
 
     match &handlers[isr] {
-        Handler::Handler(handler) => {
+        IRQHandler::Handler(handler) => {
             let handler = *handler;
-            core::mem::drop(handlers);
+            handlers.unlock();
             handler(ctx);
         }
 
-        Handler::ErrorHandler(handler) => {
+        IRQHandler::ErrorHandler(handler) => {
             let handler = *handler;
-            core::mem::drop(handlers);
-            handler(0, ctx);
+            handlers.unlock();
+            handler(error_code, ctx);
         }
 
-        Handler::None => warning!("unhandled interrupt {}", isr),
+        IRQHandler::None => panic!("unhandled interrupt {}", isr),
     }
 }
 
-fn interrupt_handler(stack_frame: InterruptStackFrame, index: u8, error_code: Option<u64>) {
-    let mut rbp: usize;
-    unsafe {
-        asm!("mov {}, rbp", out(reg) rbp);
+pub fn allocate_vector() -> u8 {
+    static FREE_VECTOR: Spinlock<u8> = Spinlock::new(32);
+
+    let mut free_vector = FREE_VECTOR.lock();
+
+    if *free_vector == 0xf0 {
+        panic!("IDT exhausted");
     }
 
-    dbg!("EXCEPTION: {}", index);
-    dbg!("{:x?}", stack_frame);
+    let ret = *free_vector;
 
-    backtrace::log_backtrace(rbp);
+    *free_vector += 1;
 
-    println!("IP: {:?}", stack_frame.instruction_pointer);
-    println!("index: {}", index);
-    println!("error_code: {}", error_code.unwrap_or(0));
-    unsafe {
-        asm!("hlt");
-    }
+    return ret;
 }
 
-extern "x86-interrupt" fn double_fault_handler(
-    stack_frame: InterruptStackFrame,
-    error_code: u64,
-) -> ! {
-    dbg!("EXCEPTION: DOUBLE FAULT");
-    dbg!("{:#?}", stack_frame);
-    dbg!("{}", error_code);
-    println!("EXCEPTION: DOUBLE FAULT");
-    println!("{:#?}", stack_frame);
-    println!("{}", error_code);
-    loop {
-        unsafe {
-            asm!("hlt");
-        }
-    }
-}
+pub fn register_handler(vector: u8, handler: fn(ThreadContext)) {
+    let mut handlers = INTERRUPT_HANDLERS.lock();
 
-extern "x86-interrupt" fn page_fault_handler(
-    stack_frame: InterruptStackFrame,
-    error_code: PageFaultErrorCode,
-) {
-    dbg!("EXCEPTION: PAGE FAULT");
-    dbg!("Accessed Address: {:?}", Cr2::read());
-    dbg!("Error Code: {:?}", error_code);
-    dbg!("{:#?}", stack_frame);
-    println!("EXCEPTION: PAGE FAULT");
-    println!("Accessed Address: {:?}", Cr2::read());
-    println!("Error Code: {:?}", error_code);
-    println!("{:#?}", stack_frame);
-    loop {
-        unsafe {
-            asm!("hlt");
-        }
+    match handlers[vector as usize] {
+        IRQHandler::None => {}
+        _ => unreachable!("register_handler: handler has already been registered"),
     }
-}
 
-extern "x86-interrupt" fn general_fault_handler(stack_frame: InterruptStackFrame, error_code: u64) {
-    dbg!("EXCEPTION: GENERAL PROTECTION FAULT");
-    dbg!("{:?}", stack_frame);
-    dbg!("{:b}", error_code);
-    println!("EXCEPTION: GENERAL PROTECTION FAULT");
-    println!("{:?}", stack_frame);
-    println!("{}", error_code);
-    unsafe {
-        asm!("hlt");
-    }
+    handlers[vector as usize] = IRQHandler::Handler(handler);
 }
 
 /// Disable Programmable Interrupt Controller.
