@@ -7,7 +7,6 @@ use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::arch::asm;
-use core::cell::OnceCell;
 use core::sync::atomic::AtomicU64;
 use core::sync::atomic::Ordering;
 use libxernel::sync::{Once, Spinlock, SpinlockIRQ};
@@ -15,7 +14,6 @@ use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
 use x86_64::structures::idt::InterruptStackFrame;
-use libxernel::boot::InitAtBoot;
 use crate::arch::{allocate_vector, register_handler};
 
 use super::context::ThreadContext;
@@ -33,12 +31,6 @@ pub static SCHEDULER_VECTOR: Once<u8> = Once::new();
 
 impl Scheduler {
     pub fn new() -> Self {
-
-        if !SCHEDULER_VECTOR.is_completed() {
-            let vector = allocate_vector();
-            SCHEDULER_VECTOR.set_once(vector);
-            register_handler(vector, schedule_handle);
-        }
 
         Self {
             threads: VecDeque::new(),
@@ -264,4 +256,15 @@ pub fn schedule_handle(ctx: ThreadContext) {
     sched.unlock();
 
     restore_context(context);
+}
+
+pub fn init() {
+    if !SCHEDULER_VECTOR.is_completed() {
+        let vector = allocate_vector();
+        SCHEDULER_VECTOR.set_once(vector);
+        register_handler(vector, schedule_handle);
+    }
+
+    SCHEDULER.init(|| SpinlockIRQ::new(Scheduler::new()));
+    SCHEDULER.wait_until_initialized();
 }

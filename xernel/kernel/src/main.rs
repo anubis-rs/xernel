@@ -38,7 +38,6 @@ use alloc::vec::Vec;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use libxernel::sync::Spinlock;
-use libxernel::sync::SpinlockIRQ;
 use limine::*;
 use x86_64::instructions::interrupts;
 
@@ -61,6 +60,7 @@ use crate::mem::frame::FRAME_ALLOCATOR;
 use crate::mem::paging::KERNEL_PAGE_MAPPER;
 use crate::sched::process::Process;
 use crate::sched::process::KERNEL_PROCESS;
+use crate::sched::scheduler;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
 use crate::sched::thread::Thread;
 
@@ -161,8 +161,8 @@ extern "C" fn kernel_main() -> ! {
     KERNEL_PROCESS.set_once(Arc::new(Spinlock::new(Process::new(None, true))));
 
     wait_until_cpus_registered();
-    SCHEDULER.init(|| SpinlockIRQ::new(Scheduler::new()));
-    SCHEDULER.wait_until_initialized();
+
+    scheduler::init();
 
     let process = Arc::new(Spinlock::new(Process::new(
         Some(KERNEL_PROCESS.clone()),

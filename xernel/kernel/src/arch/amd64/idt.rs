@@ -2,9 +2,7 @@ use crate::arch::amd64::ports::outb;
 use crate::sched::context::ThreadContext;
 use core::arch::asm;
 use core::mem::size_of;
-use core::ops::Add;
 use libxernel::sync::{Spinlock, SpinlockIRQ};
-use x86_64::registers::control::Cr2;
 
 use paste::paste;
 use seq_macro::seq;
@@ -227,23 +225,25 @@ pub fn register_handler(vector: u8, handler: fn(ThreadContext)) {
 
 /// Disable Programmable Interrupt Controller.
 pub fn disable_pic() {
-    // Set ICW1
-    outb(0x20, 0x11);
-    outb(0xa0, 0x11);
+    unsafe {
+        // Set ICW1
+        outb(0x20, 0x11);
+        outb(0xa0, 0x11);
 
-    // Set IWC2 (IRQ base offsets)
-    outb(0x21, 0x20);
-    outb(0xa1, 0x28);
+        // Set IWC2 (IRQ base offsets)
+        outb(0x21, 0x20);
+        outb(0xa1, 0x28);
 
-    // Set ICW3
-    outb(0x21, 4);
-    outb(0xa1, 2);
+        // Set ICW3
+        outb(0x21, 4);
+        outb(0xa1, 2);
 
-    // Set ICW4
-    outb(0x21, 1);
-    outb(0xa1, 1);
+        // Set ICW4
+        outb(0x21, 1);
+        outb(0xa1, 1);
 
-    // Set OCW1 (interrupt masks)
-    outb(0x21, 0xff);
-    outb(0xa1, 0xff);
+        // Set OCW1 (interrupt masks)
+        outb(0x21, 0xff);
+        outb(0xa1, 0xff);
+    }
 }
