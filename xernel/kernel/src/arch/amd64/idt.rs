@@ -43,9 +43,10 @@ macro_rules! interrupt_handler {
                         "push rbp",
                         concat!("mov rdi, ", $interrupt_number),
                         "mov rdx, rsp",
+                        "mov rbx, rsp" // rbx is callee-saved
                         "call generic_interrupt_handler",
                         "add rsp, 0x8",
-                        "mov rsp, rdi",
+                        "mov rsp, rbx",
                         "pop rbp",
                         "pop rax",
                         "pop rbx",
@@ -61,6 +62,7 @@ macro_rules! interrupt_handler {
                         "pop r13",
                         "pop r14",
                         "pop r15",
+                        "add rsp, 0x8", // skip error code
                         "iretq",
                         options(noreturn)
                     )
