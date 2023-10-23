@@ -77,6 +77,7 @@ pub extern "C" fn restore_context(ctx: *const ThreadContext) -> ! {
             pop r13;
             pop r14;
             pop r15;
+            add rsp, 0x8; # skip error code
             iretq;",
             options(noreturn)
         );
