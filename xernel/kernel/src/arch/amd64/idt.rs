@@ -41,9 +41,8 @@ macro_rules! interrupt_handler {
                         "push rbx",
                         "push rax",
                         "push rbp",
-                        "push rax",
                         concat!("mov rdi, ", $interrupt_number),
-                        "mov rsi, rsp",
+                        "mov rdx, rsp",
                         "call generic_interrupt_handler",
                         "add rsp, 0x8",
                         "mov rsp, rdi",
@@ -176,7 +175,7 @@ pub fn init() {
 }
 
 #[no_mangle]
-extern "C" fn generic_interrupt_handler(isr: usize, error_code: u8, ctx: ThreadContext) {
+extern "sysv64" fn generic_interrupt_handler(isr: usize, error_code: u8, ctx: ThreadContext) {
     let handlers = INTERRUPT_HANDLERS.lock();
 
     match &handlers[isr] {

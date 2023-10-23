@@ -1,7 +1,7 @@
 use core::arch::asm;
 
 #[derive(Debug, Clone)]
-#[repr(C)]
+#[repr(C, packed)]
 /// Represents a Thread Context which gets saved on a context switch
 pub struct ThreadContext {
     pub rbp: u64,
@@ -19,6 +19,7 @@ pub struct ThreadContext {
     pub r13: u64,
     pub r14: u64,
     pub r15: u64,
+    pub error_code: u64,
     pub rip: u64,
     pub cs: u64,
     pub rflags: u64,
@@ -45,6 +46,7 @@ impl ThreadContext {
             r13: 0,
             r14: 0,
             r15: 0,
+            error_code: 0,
             rip: 0,
             cs: 0,
             rflags: 0,
