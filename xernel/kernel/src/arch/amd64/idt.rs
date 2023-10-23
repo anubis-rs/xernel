@@ -1,4 +1,4 @@
-use crate::arch::x64::ports::outb;
+use crate::arch::amd64::ports::outb;
 use crate::sched::context::ThreadContext;
 use core::arch::asm;
 use core::mem::size_of;

@@ -1,6 +1,6 @@
 use crate::acpi::hpet;
-use crate::arch::x64::apic::APIC;
-use crate::arch::x64::gdt::GDT_BSP;
+use crate::arch::amd64::apic::APIC;
+use crate::arch::amd64::gdt::GDT_BSP;
 use crate::cpu::{get_per_cpu_data, PerCpu, CPU_COUNT};
 use crate::sched::context::restore_context;
 use alloc::collections::VecDeque;

@@ -42,8 +42,8 @@ use libxernel::sync::SpinlockIRQ;
 use limine::*;
 use x86_64::instructions::interrupts;
 
-use arch::x64::gdt;
-use arch::x64::idt;
+use arch::amd64::gdt;
+use arch::amd64::idt;
 
 use x86_64::structures::paging::Page;
 use x86_64::structures::paging::PageTableFlags;
@@ -51,7 +51,7 @@ use x86_64::structures::paging::Size2MiB;
 use x86_64::VirtAddr;
 
 use crate::acpi::hpet;
-use crate::arch::x64::apic;
+use crate::arch::amd64::apic;
 use crate::cpu::register_cpu;
 use crate::cpu::wait_until_cpus_registered;
 use crate::cpu::CPU_COUNT;
@@ -154,7 +154,7 @@ extern "C" fn kernel_main() -> ! {
 
     for cpu in smp_response.cpus().iter_mut() {
         if cpu.lapic_id != bsp_lapic_id {
-            cpu.goto_address = arch::x64::x86_64_ap_main;
+            cpu.goto_address = arch::amd64::x86_64_ap_main;
         }
     }
 

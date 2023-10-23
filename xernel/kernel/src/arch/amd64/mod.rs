@@ -3,7 +3,7 @@ pub mod gdt;
 pub mod idt;
 pub mod ports;
 
-use crate::arch::x64::apic::APIC;
+use crate::arch::amd64::apic::APIC;
 use crate::cpu::register_cpu;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
 use crate::KERNEL_PAGE_MAPPER;
