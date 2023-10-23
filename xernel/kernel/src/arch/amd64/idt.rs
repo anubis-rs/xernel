@@ -43,10 +43,7 @@ macro_rules! interrupt_handler {
                         "push rbp",
                         concat!("mov rdi, ", $interrupt_number),
                         "mov rdx, rsp",
-                        "mov rbx, rsp" // rbx is callee-saved
                         "call generic_interrupt_handler",
-                        "add rsp, 0x8",
-                        "mov rsp, rbx",
                         "pop rbp",
                         "pop rax",
                         "pop rbx",
