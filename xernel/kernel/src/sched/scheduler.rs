@@ -1,6 +1,7 @@
 use crate::acpi::hpet;
 use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::gdt::GDT_BSP;
+use crate::arch::{allocate_vector, register_handler};
 use crate::cpu::{get_per_cpu_data, PerCpu, CPU_COUNT};
 use crate::sched::context::restore_context;
 use alloc::collections::VecDeque;
@@ -14,7 +15,6 @@ use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
 use x86_64::structures::idt::InterruptStackFrame;
-use crate::arch::{allocate_vector, register_handler};
 
 use super::context::ThreadContext;
 use super::process::Process;
@@ -31,7 +31,6 @@ pub static SCHEDULER_VECTOR: Once<u8> = Once::new();
 
 impl Scheduler {
     pub fn new() -> Self {
-
         Self {
             threads: VecDeque::new(),
             idle_thread: Arc::new(Spinlock::new(Thread::new_idle_thread())),

@@ -114,9 +114,35 @@ impl Idtr {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+#[repr(C)]
+pub struct ExceptionContext {
+    pub rbp: u64,
+    pub rax: u64,
+    pub rbx: u64,
+    pub rcx: u64,
+    pub rdx: u64,
+    pub rsi: u64,
+    pub rdi: u64,
+    pub r8: u64,
+    pub r9: u64,
+    pub r10: u64,
+    pub r11: u64,
+    pub r12: u64,
+    pub r13: u64,
+    pub r14: u64,
+    pub r15: u64,
+    pub error_code: u64,
+    pub rip: u64,
+    pub cs: u64,
+    pub rflags: u64,
+    pub rsp: u64,
+    pub ss: u64,
+}
+
 #[derive(Copy, Clone)]
 pub(super) enum IRQHandler {
-    ErrorHandler(fn(u8, ThreadContext)),
+    ErrorHandler(fn(ExceptionContext)),
     Handler(fn(ThreadContext)),
     None,
 }
@@ -172,23 +198,31 @@ pub fn init() {
 
         idtr.load();
     }
+
+    let mut handlers = INTERRUPT_HANDLERS.lock();
+
+    handlers[0xD] = IRQHandler::ErrorHandler(general_fault_handler);
+    handlers[0xE] = IRQHandler::ErrorHandler(page_fault_handler);
+    handlers[0x8] = IRQHandler::ErrorHandler(double_fault_handler);
 }
 
+// TODO: Test if restore_context in scheduler can be removed, since the post handling from generic_interrupt_handler
+// restores a context. Scheduler would need to modify stack according to new selected context
 #[no_mangle]
-extern "sysv64" fn generic_interrupt_handler(isr: usize, error_code: u8, ctx: ThreadContext) {
+extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: ExceptionContext) {
     let handlers = INTERRUPT_HANDLERS.lock();
 
     match &handlers[isr] {
         IRQHandler::Handler(handler) => {
             let handler = *handler;
             handlers.unlock();
-            handler(ctx);
+            handler(ThreadContext::from(ctx));
         }
 
         IRQHandler::ErrorHandler(handler) => {
             let handler = *handler;
             handlers.unlock();
-            handler(error_code, ctx);
+            handler(ctx);
         }
 
         IRQHandler::None => panic!("unhandled interrupt {}", isr),
@@ -211,6 +245,8 @@ pub fn allocate_vector() -> u8 {
     return ret;
 }
 
+// Exception handlers should only be registered in idt::init
+// From outside only normal handlers are allowed to be registered
 pub fn register_handler(vector: u8, handler: fn(ThreadContext)) {
     let mut handlers = INTERRUPT_HANDLERS.lock();
 
@@ -220,6 +256,52 @@ pub fn register_handler(vector: u8, handler: fn(ThreadContext)) {
     }
 
     handlers[vector as usize] = IRQHandler::Handler(handler);
+}
+
+fn double_fault_handler(
+    frame: ExceptionContext
+) -> ! {
+    dbg!("EXCEPTION: DOUBLE FAULT");
+    dbg!("{:#?}", frame);
+    dbg!("{}", frame.error_code);
+    println!("EXCEPTION: DOUBLE FAULT");
+    println!("{:#?}", frame);
+    println!("{}", frame.error_code);
+    loop {
+        unsafe {
+            asm!("hlt");
+        }
+    }
+}
+
+fn page_fault_handler(
+    frame: ExceptionContext
+) {
+    dbg!("EXCEPTION: PAGE FAULT");
+    dbg!("Accessed Address: {:?}", read_cr2());
+    dbg!("Error Code: {:?}", frame.error_code);
+    dbg!("{:#?}", frame);
+    println!("EXCEPTION: PAGE FAULT");
+    println!("Accessed Address: {:?}", read_cr2());
+    println!("Error Code: {:?}", frame.error_code);
+    println!("{:#?}", frame);
+    loop {
+        unsafe {
+            asm!("hlt");
+        }
+    }
+}
+
+fn general_fault_handler(frame: ExceptionContext) {
+    dbg!("EXCEPTION: GENERAL PROTECTION FAULT");
+    dbg!("{:?}", frame);
+    dbg!("{:b}", frame.error_code);
+    println!("EXCEPTION: GENERAL PROTECTION FAULT");
+    println!("{:?}", frame);
+    println!("{}", frame.error_code);
+    unsafe {
+        asm!("hlt");
+    }
 }
 
 /// Disable Programmable Interrupt Controller.
