@@ -6,6 +6,7 @@ use libxernel::sync::{Spinlock, SpinlockIRQ};
 
 use paste::paste;
 use seq_macro::seq;
+use crate::arch::amd64::read_cr2;
 
 const IDT_ENTRIES: usize = 256;
 

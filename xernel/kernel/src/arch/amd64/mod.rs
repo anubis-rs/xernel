@@ -3,11 +3,13 @@ pub mod gdt;
 pub mod idt;
 pub mod ports;
 
+use core::arch::asm;
 use crate::arch::amd64::apic::APIC;
 use crate::cpu::register_cpu;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
 use crate::KERNEL_PAGE_MAPPER;
 use limine::SmpInfo;
+use x86_64::VirtAddr;
 
 #[no_mangle]
 pub extern "C" fn x86_64_ap_main(boot_info: *const SmpInfo) -> ! {
@@ -41,4 +43,15 @@ pub extern "C" fn x86_64_ap_main(boot_info: *const SmpInfo) -> ! {
     Scheduler::hand_over();
 
     unreachable!()
+}
+
+#[inline]
+pub fn read_cr2() -> VirtAddr {
+    let value: u64;
+
+    unsafe {
+        asm!("mov {}, cr2", out(reg) value, options(nomem, nostack, preserves_flags));
+
+        VirtAddr::new(value)
+    }
 }
