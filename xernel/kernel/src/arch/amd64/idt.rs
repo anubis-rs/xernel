@@ -207,7 +207,6 @@ pub fn init() {
 }
 
 // TODO: Test if restore_context in scheduler can be removed, since the post handling from generic_interrupt_handler
-// restores a context. Scheduler would need to modify stack according to new selected context
 #[no_mangle]
 extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: ExceptionContext) {
     let handlers = INTERRUPT_HANDLERS.lock();
@@ -260,7 +259,7 @@ pub fn register_handler(vector: u8, handler: fn(ThreadContext)) {
 
 fn double_fault_handler(
     frame: ExceptionContext
-) -> ! {
+) {
     dbg!("EXCEPTION: DOUBLE FAULT");
     dbg!("{:#?}", frame);
     dbg!("{}", frame.error_code);
