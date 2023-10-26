@@ -2,9 +2,7 @@ use crate::arch::amd64::ports::outb;
 use crate::sched::context::CpuContext;
 use core::arch::asm;
 use core::mem::size_of;
-use libxernel::sync::SpinlockIRQ;
-use core::sync::atomic::AtomicU8;
-use core::sync::atomic::Ordering;
+use libxernel::sync::{Spinlock, SpinlockIRQ};
 
 use paste::paste;
 use seq_macro::seq;
@@ -199,13 +197,17 @@ extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: CpuContext) {
 }
 
 pub fn allocate_vector() -> u8 {
-    static FREE_VECTOR: AtomicU8 = AtomicU8::new(32);
+    static FREE_VECTOR: Spinlock<u8> = Spinlock::new(32);
 
-    if FREE_VECTOR.load(Ordering::Acquire) == 0xf0 {
+    let mut free_vector = FREE_VECTOR.lock();
+
+    if *free_vector == 0xf0 {
         panic!("IDT exhausted");
     }
 
-    let ret = FREE_VECTOR.fetch_add(1, Ordering::Acquire);
+    let ret = *free_vector;
+
+    *free_vector += 1;
 
     return ret;
 }
