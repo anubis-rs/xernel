@@ -14,9 +14,7 @@ pub struct BuddyAllocator<const MIN_ORDER_SIZE: usize, const MAX_ORDER: usize> {
     pub stats: AllocStats,
 }
 
-impl<const MIN_ORDER_SIZE: usize, const MAX_ORDER: usize>
-    BuddyAllocator<MIN_ORDER_SIZE, MAX_ORDER>
-{
+impl<const MIN_ORDER_SIZE: usize, const MAX_ORDER: usize> BuddyAllocator<MIN_ORDER_SIZE, MAX_ORDER> {
     /// Create a empty and uninitialized buddy allocator.
     pub const fn new() -> Self {
         Self {
@@ -111,9 +109,7 @@ impl<const MIN_ORDER_SIZE: usize, const MAX_ORDER: usize>
             return NonNull::new(block.as_ptr().cast()).ok_or(Error::NullPointer);
         }
 
-        let block = self
-            .allocate(order + 1)
-            .map_err(|_| Error::NoMemoryAvailable)?;
+        let block = self.allocate(order + 1).map_err(|_| Error::NoMemoryAvailable)?;
 
         let buddy = self.buddy_of(block.cast(), order)?;
 

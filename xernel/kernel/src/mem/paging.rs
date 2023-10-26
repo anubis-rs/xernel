@@ -18,8 +18,7 @@ use x86_64::{
 
 static KERNEL_ADDRESS_REQUEST: KernelAddressRequest = KernelAddressRequest::new(0);
 
-pub static KERNEL_PAGE_MAPPER: Spinlock<InitAtBoot<Pagemap>> =
-    Spinlock::new(InitAtBoot::Uninitialized);
+pub static KERNEL_PAGE_MAPPER: Spinlock<InitAtBoot<Pagemap>> = Spinlock::new(InitAtBoot::Uninitialized);
 
 #[derive(Debug, Clone)]
 pub struct Pagemap {
@@ -53,9 +52,7 @@ impl Pagemap {
             ptr
         };
 
-        Self {
-            page_table: pt_address,
-        }
+        Self { page_table: pt_address }
     }
 
     pub fn pml4(&self) -> PhysAddr {
@@ -73,13 +70,7 @@ impl Pagemap {
         }
     }
 
-    pub fn map<P: PageSize>(
-        &mut self,
-        phys: PhysFrame<P>,
-        virt: Page<P>,
-        flags: PageTableFlags,
-        flush_tlb: bool,
-    ) {
+    pub fn map<P: PageSize>(&mut self, phys: PhysFrame<P>, virt: Page<P>, flags: PageTableFlags, flush_tlb: bool) {
         let pml4 = self.page_table;
 
         let mut frame_allocator = FRAME_ALLOCATOR.lock();
@@ -183,14 +174,7 @@ impl Pagemap {
         }
     }
 
-    pub fn map_range(
-        &mut self,
-        phys: PhysAddr,
-        virt: VirtAddr,
-        amount: usize,
-        flags: PageTableFlags,
-        flush_tlb: bool,
-    ) {
+    pub fn map_range(&mut self, phys: PhysAddr, virt: VirtAddr, amount: usize, flags: PageTableFlags, flush_tlb: bool) {
         assert!(u16::from(virt.page_offset()) == 0);
         assert!(phys.is_aligned(Size4KiB::SIZE));
 
@@ -231,8 +215,7 @@ impl Pagemap {
         }
 
         // map 4kib pages till the end
-        let pages_4kb = align_up(aligned_amount - offset as usize, Size4KiB::SIZE as usize)
-            / Size4KiB::SIZE as usize;
+        let pages_4kb = align_up(aligned_amount - offset as usize, Size4KiB::SIZE as usize) / Size4KiB::SIZE as usize;
 
         for _ in 0..pages_4kb {
             self.map::<Size4KiB>(
@@ -259,16 +242,8 @@ impl Pagemap {
     pub fn map_kernel(&mut self) {
         debug!("higher half offset: {:x}", *HIGHER_HALF_OFFSET);
 
-        let kernel_base_address = KERNEL_ADDRESS_REQUEST
-            .get_response()
-            .get()
-            .unwrap()
-            .physical_base;
-        let kernel_virt_address = KERNEL_ADDRESS_REQUEST
-            .get_response()
-            .get()
-            .unwrap()
-            .virtual_base;
+        let kernel_base_address = KERNEL_ADDRESS_REQUEST.get_response().get().unwrap().physical_base;
+        let kernel_virt_address = KERNEL_ADDRESS_REQUEST.get_response().get().unwrap().virtual_base;
 
         debug!("Kernel Base Address: {:x}", kernel_base_address);
         debug!("Kernel Virt Address: {:x}", kernel_virt_address);
@@ -293,37 +268,25 @@ impl Pagemap {
         let pml4 = self.page_table;
 
         unsafe {
-            if !(*pml4)[virt.p4_index()]
-                .flags()
-                .contains(PageTableFlags::PRESENT)
-            {
+            if !(*pml4)[virt.p4_index()].flags().contains(PageTableFlags::PRESENT) {
                 return;
             }
 
             let pml3 = (*pml4)[virt.p4_index()].addr().as_u64() as *mut PageTable;
 
-            if !(*pml3)[virt.p3_index()]
-                .flags()
-                .contains(PageTableFlags::PRESENT)
-            {
+            if !(*pml3)[virt.p3_index()].flags().contains(PageTableFlags::PRESENT) {
                 return;
             }
 
             let pml2 = (*pml3)[virt.p3_index()].addr().as_u64() as *mut PageTable;
 
-            if !(*pml2)[virt.p2_index()]
-                .flags()
-                .contains(PageTableFlags::PRESENT)
-            {
+            if !(*pml2)[virt.p2_index()].flags().contains(PageTableFlags::PRESENT) {
                 return;
             }
 
             let pml1 = (*pml2)[virt.p2_index()].addr().as_u64() as *mut PageTable;
 
-            if !(*pml1)[virt.p1_index()]
-                .flags()
-                .contains(PageTableFlags::PRESENT)
-            {
+            if !(*pml1)[virt.p1_index()].flags().contains(PageTableFlags::PRESENT) {
                 return;
             }
 

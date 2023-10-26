@@ -35,9 +35,7 @@ unsafe impl GlobalAlloc for Allocator {
 
             let current_top = align_up(heap.top() as usize, Size2MiB::SIZE as usize);
 
-            for start_address in
-                (current_top..current_top + expansion_size).step_by(Size2MiB::SIZE as usize)
-            {
+            for start_address in (current_top..current_top + expansion_size).step_by(Size2MiB::SIZE as usize) {
                 let page = {
                     let mut allocator = FRAME_ALLOCATOR.lock();
                     allocator.allocate_frame::<Size2MiB>().unwrap()
@@ -75,8 +73,7 @@ pub fn init() {
     let mut heap = HEAP.lock();
     let mut page_mapper = KERNEL_PAGE_MAPPER.lock();
 
-    for start_address in (HEAP_START_ADDR
-        ..HEAP_START_ADDR + (HEAP_INITIAL_PAGE_COUNT * Size2MiB::SIZE) as usize)
+    for start_address in (HEAP_START_ADDR..HEAP_START_ADDR + (HEAP_INITIAL_PAGE_COUNT * Size2MiB::SIZE) as usize)
         .step_by(Size2MiB::SIZE as usize)
     {
         let page = {

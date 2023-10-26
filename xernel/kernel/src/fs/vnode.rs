@@ -66,9 +66,7 @@ impl VNode {
     }
 
     pub fn create(&mut self, path: String, v_type: VType) -> Result<Arc<Spinlock<VNode>>> {
-        self.v_data_op
-            .lock()
-            .create(path, v_type, self.vfsp.clone())
+        self.v_data_op.lock().create(path, v_type, self.vfsp.clone())
     }
 
     pub fn fsync(&self) {
@@ -186,12 +184,7 @@ pub trait VNodeOperations {
     fn close(&self);
 
     /// Creates a new file.
-    fn create(
-        &mut self,
-        path: String,
-        v_type: VType,
-        mount: Weak<Spinlock<Mount>>,
-    ) -> Result<Arc<Spinlock<VNode>>>;
+    fn create(&mut self, path: String, v_type: VType, mount: Weak<Spinlock<Mount>>) -> Result<Arc<Spinlock<VNode>>>;
 
     /// Synchronizes the file with on-disk contents.
     fn fsync(&self) {

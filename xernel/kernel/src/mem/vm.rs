@@ -24,9 +24,7 @@ pub struct Vm {
 
 impl Vm {
     pub const fn new() -> Self {
-        Self {
-            entries: Vec::new(),
-        }
+        Self { entries: Vec::new() }
     }
 
     pub fn add_entry(&mut self, start: VirtAddr, length: usize, prot: ProtFlags) {

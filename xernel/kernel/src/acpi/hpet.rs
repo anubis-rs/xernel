@@ -25,9 +25,7 @@ pub fn init() {
 
     mapper.map::<Size4KiB>(
         PhysFrame::containing_address(PhysAddr::new(hpet_info.base_address as u64)),
-        Page::containing_address(VirtAddr::new(
-            hpet_info.base_address as u64 + *HIGHER_HALF_OFFSET,
-        )),
+        Page::containing_address(VirtAddr::new(hpet_info.base_address as u64 + *HIGHER_HALF_OFFSET)),
         PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE,
         true,
     );

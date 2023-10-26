@@ -20,11 +20,7 @@ pub fn init() {
 }
 
 impl AcpiHandler for AcpiMapper {
-    unsafe fn map_physical_region<T>(
-        &self,
-        physical_address: usize,
-        size: usize,
-    ) -> PhysicalMapping<Self, T> {
+    unsafe fn map_physical_region<T>(&self, physical_address: usize, size: usize) -> PhysicalMapping<Self, T> {
         PhysicalMapping::new(
             physical_address,
             NonNull::new_unchecked((physical_address + *HIGHER_HALF_OFFSET as usize) as *mut _),
@@ -48,16 +44,11 @@ impl Acpi {
         let address = RSDP_REQUEST.get_response().get().unwrap().address.as_ptr();
 
         let acpi_tables = unsafe {
-            AcpiTables::from_rsdp(
-                AcpiMapper,
-                address.unwrap() as usize - *HIGHER_HALF_OFFSET as usize,
-            )
-            .expect("failed to get acpi tables")
+            AcpiTables::from_rsdp(AcpiMapper, address.unwrap() as usize - *HIGHER_HALF_OFFSET as usize)
+                .expect("failed to get acpi tables")
         };
 
-        Self {
-            tables: acpi_tables,
-        }
+        Self { tables: acpi_tables }
     }
 
     pub fn get_apic(&self) -> Apic {

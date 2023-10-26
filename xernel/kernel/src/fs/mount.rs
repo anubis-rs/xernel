@@ -14,10 +14,7 @@ pub struct Mount {
 }
 
 impl Mount {
-    pub fn new(
-        driver: Arc<Spinlock<dyn VfsOps>>,
-        vnode_covered: Option<Arc<Spinlock<VNode>>>,
-    ) -> Self {
+    pub fn new(driver: Arc<Spinlock<dyn VfsOps>>, vnode_covered: Option<Arc<Spinlock<VNode>>>) -> Self {
         Mount {
             mnt_op_data: driver,
             vnode_covered,

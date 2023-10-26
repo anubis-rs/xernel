@@ -154,14 +154,7 @@ fn syscall_arg_to_reference<'a, T>(ptr: usize) -> &'a mut T {
 }
 
 fn syscall_arg_to_string(ptr: usize) -> Option<String> {
-    unsafe {
-        Some(
-            CString::from_raw(ptr as *mut c_char)
-                .to_str()
-                .ok()?
-                .to_string(),
-        )
-    }
+    unsafe { Some(CString::from_raw(ptr as *mut c_char).to_str().ok()?.to_string()) }
 }
 
 #[no_mangle]

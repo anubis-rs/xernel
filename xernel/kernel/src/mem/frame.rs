@@ -14,8 +14,7 @@ pub static MEMORY_MAP: Once<&'static [NonNullPtr<MemmapEntry>]> = Once::new();
 
 pub struct PhysFrameAllocator(BuddyAllocator<{ super::FRAME_SIZE as usize }, 12>); // maximum allocation size is 16mb
 
-pub static FRAME_ALLOCATOR: Spinlock<PhysFrameAllocator> =
-    Spinlock::new(PhysFrameAllocator(BuddyAllocator::new()));
+pub static FRAME_ALLOCATOR: Spinlock<PhysFrameAllocator> = Spinlock::new(PhysFrameAllocator(BuddyAllocator::new()));
 
 impl PhysFrameAllocator {
     pub fn allocate_frame<P: PageSize>(&mut self) -> Option<PhysFrame<P>> {
@@ -32,8 +31,7 @@ impl PhysFrameAllocator {
 
         self.0
             .deallocate(
-                NonNull::new((frame.start_address().as_u64() + *HIGHER_HALF_OFFSET) as *mut u8)
-                    .unwrap(),
+                NonNull::new((frame.start_address().as_u64() + *HIGHER_HALF_OFFSET) as *mut u8).unwrap(),
                 order,
             )
             .unwrap();
@@ -58,8 +56,7 @@ pub fn init() {
                     .0
                     .add_region(
                         NonNull::new((entry.base + *HIGHER_HALF_OFFSET) as *mut u8).unwrap(),
-                        NonNull::new((entry.base + *HIGHER_HALF_OFFSET + entry.len) as *mut u8)
-                            .unwrap(),
+                        NonNull::new((entry.base + *HIGHER_HALF_OFFSET + entry.len) as *mut u8).unwrap(),
                     )
                     .unwrap();
             }

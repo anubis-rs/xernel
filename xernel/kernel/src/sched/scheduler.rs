@@ -84,13 +84,7 @@ impl Scheduler {
 
         // TODO: currently we lock all schedulers during the load balancing procedure
         //       find a way to avoid locking all schedulers
-        let mut schedulers = unsafe {
-            SCHEDULER
-                .get_all()
-                .iter()
-                .map(|s| s.lock())
-                .collect::<Vec<_>>()
-        };
+        let mut schedulers = unsafe { SCHEDULER.get_all().iter().map(|s| s.lock()).collect::<Vec<_>>() };
 
         let mut total_tasks = 0;
 
@@ -109,10 +103,7 @@ impl Scheduler {
                     continue;
                 }
 
-                while tasks_needed > 0
-                    && !schedulers[j].threads.is_empty()
-                    && schedulers[j].threads.len() > avg_tasks
-                {
+                while tasks_needed > 0 && !schedulers[j].threads.is_empty() && schedulers[j].threads.len() > avg_tasks {
                     let task = schedulers[j].threads.back().unwrap().lock();
 
                     if task.status == ThreadStatus::Running {
@@ -225,13 +216,7 @@ pub fn schedule_handle(ctx: CpuContext) {
     if !thread.is_kernel_thread() {
         unsafe {
             // SAFETY: a user thread always has a page table
-            let pt = thread
-                .process
-                .upgrade()
-                .unwrap()
-                .lock()
-                .get_page_table()
-                .unwrap();
+            let pt = thread.process.upgrade().unwrap().lock().get_page_table().unwrap();
 
             let cr3 = Cr3::read_raw();
             let cr3 = cr3.0.start_address().as_u64() | cr3.1 as u64;
@@ -243,8 +228,7 @@ pub fn schedule_handle(ctx: CpuContext) {
 
             DS::set_reg(GDT_BSP.1.user_data_selector);
 
-            get_per_cpu_data()
-                .set_kernel_stack(thread.kernel_stack.as_ref().unwrap().kernel_stack_top);
+            get_per_cpu_data().set_kernel_stack(thread.kernel_stack.as_ref().unwrap().kernel_stack_top);
         }
     }
 

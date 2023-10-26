@@ -99,9 +99,7 @@ impl Framebuffer {
             );
 
             for i in 0..FRAMEBUFFER_DATA.pitch * 17 {
-                self.address
-                    .add((self.cursor + i) as usize)
-                    .write_volatile(0x00);
+                self.address.add((self.cursor + i) as usize).write_volatile(0x00);
             }
         }
 
@@ -131,9 +129,7 @@ impl Framebuffer {
 
             for j in 0..8 {
                 if (bitmap & (1 << (7 - j))) >= 1 {
-                    self.address
-                        .add(self.cursor as usize)
-                        .write_volatile(self.color.b);
+                    self.address.add(self.cursor as usize).write_volatile(self.color.b);
                     self.address
                         .add((self.cursor + 1) as usize)
                         .write_volatile(self.color.g);

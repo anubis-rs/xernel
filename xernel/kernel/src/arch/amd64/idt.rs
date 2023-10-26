@@ -120,8 +120,7 @@ pub(super) enum IRQHandler {
     None,
 }
 
-static INTERRUPT_HANDLERS: SpinlockIRQ<[IRQHandler; IDT_ENTRIES]> =
-    SpinlockIRQ::new([IRQHandler::None; IDT_ENTRIES]);
+static INTERRUPT_HANDLERS: SpinlockIRQ<[IRQHandler; IDT_ENTRIES]> = SpinlockIRQ::new([IRQHandler::None; IDT_ENTRIES]);
 
 #[repr(packed)]
 pub struct IDTEntry {

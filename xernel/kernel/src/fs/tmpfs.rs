@@ -196,11 +196,7 @@ impl VNodeOperations for TmpfsNode {
 
     fn read(&self, buf: &mut [u8]) -> Result<usize> {
         if let TmpfsNodeData::Data(data) = &self.data {
-            let max_read = if buf.len() > data.len() {
-                data.len()
-            } else {
-                buf.len()
-            };
+            let max_read = if buf.len() > data.len() { data.len() } else { buf.len() };
 
             buf[..max_read].copy_from_slice(&data[..max_read]);
 
@@ -214,11 +210,7 @@ impl VNodeOperations for TmpfsNode {
         if let TmpfsNodeData::Data(ref mut data) = &mut self.data {
             data.resize(data.len() + buf.len(), 0);
 
-            let max_write = if buf.len() > data.len() {
-                data.len()
-            } else {
-                buf.len()
-            };
+            let max_write = if buf.len() > data.len() { data.len() } else { buf.len() };
 
             data.reserve(max_write);
 

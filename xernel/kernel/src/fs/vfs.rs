@@ -74,8 +74,7 @@ impl Vfs {
 
         mount.lock().vfs_start();
 
-        self.mount_point_list
-            .push((PathBuf::from(where_to_mount), mount));
+        self.mount_point_list.push((PathBuf::from(where_to_mount), mount));
 
         Ok(())
     }
@@ -145,6 +144,5 @@ pub fn init() {
 
     vfs.register_filesystem(String::from("tmpfs"), tmpfs);
 
-    vfs.vn_mount("tmpfs", "/")
-        .expect("Mounting tmpfs on / failed");
+    vfs.vn_mount("tmpfs", "/").expect("Mounting tmpfs on / failed");
 }

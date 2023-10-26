@@ -14,9 +14,7 @@ pub struct PathBuf {
 
 impl PathBuf {
     pub fn new() -> PathBuf {
-        PathBuf {
-            inner: String::new(),
-        }
+        PathBuf { inner: String::new() }
     }
 
     pub fn with_capacity(capacity: usize) -> PathBuf {
@@ -26,10 +24,7 @@ impl PathBuf {
     }
 
     pub fn components(&self) -> Vec<String> {
-        self.inner
-            .split_inclusive('/')
-            .map(|s| s.to_string())
-            .collect()
+        self.inner.split_inclusive('/').map(|s| s.to_string()).collect()
     }
 
     pub fn into_string(self) -> String {
@@ -95,9 +90,7 @@ impl From<&str> for PathBuf {
 
 impl From<&String> for PathBuf {
     fn from(path: &String) -> Self {
-        PathBuf {
-            inner: path.clone(),
-        }
+        PathBuf { inner: path.clone() }
     }
 }
 
