@@ -6,7 +6,7 @@ use libxernel::sync::Once;
 use x86_64::registers::model_specific::KernelGsBase;
 use x86_64::VirtAddr;
 
-use crate::arch::x64::apic::APIC;
+use crate::arch::amd64::apic::APIC;
 
 static CPU_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 

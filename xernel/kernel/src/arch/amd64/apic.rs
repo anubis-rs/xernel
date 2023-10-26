@@ -68,7 +68,6 @@ impl LocalAPIC {
 
         lapic.enable_apic();
         lapic.init_timer_frequency();
-        lapic.create_oneshot_timer(0x40, 10_000);
 
         lapic
     }

@@ -13,7 +13,7 @@ use x86_64::{
 };
 
 use crate::{
-    arch::x64::gdt::GDT_BSP,
+    arch::amd64::gdt::GDT_BSP,
     fs::{self, vfs_syscalls},
 };
 

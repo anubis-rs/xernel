@@ -1,6 +1,7 @@
 use crate::acpi::hpet;
-use crate::arch::x64::apic::APIC;
-use crate::arch::x64::gdt::GDT_BSP;
+use crate::arch::amd64::apic::APIC;
+use crate::arch::amd64::gdt::GDT_BSP;
+use crate::arch::{allocate_vector, register_handler};
 use crate::cpu::{get_per_cpu_data, PerCpu, CPU_COUNT};
 use crate::sched::context::restore_context;
 use alloc::collections::VecDeque;
@@ -9,13 +10,13 @@ use alloc::vec::Vec;
 use core::arch::asm;
 use core::sync::atomic::AtomicU64;
 use core::sync::atomic::Ordering;
-use libxernel::sync::{Spinlock, SpinlockIRQ};
+use libxernel::sync::{Once, Spinlock, SpinlockIRQ};
 use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
 use x86_64::structures::idt::InterruptStackFrame;
 
-use super::context::ThreadContext;
+use super::context::CpuContext;
 use super::process::Process;
 use super::thread::{Thread, ThreadStatus};
 
@@ -25,6 +26,8 @@ pub struct Scheduler {
 }
 
 pub static SCHEDULER: PerCpu<SpinlockIRQ<Scheduler>> = PerCpu::new();
+
+pub static SCHEDULER_VECTOR: Once<u8> = Once::new();
 
 impl Scheduler {
     pub fn new() -> Self {
@@ -127,7 +130,7 @@ impl Scheduler {
         }
     }
 
-    pub fn save_ctx(&mut self, ctx: ThreadContext) {
+    pub fn save_ctx(&mut self, ctx: CpuContext) {
         let mut task = self.threads.get_mut(0).unwrap().lock();
         task.context = ctx;
     }
@@ -168,7 +171,7 @@ impl Scheduler {
     pub fn hand_over() {
         interrupts::disable();
 
-        APIC.create_oneshot_timer(0x40, 1);
+        APIC.create_oneshot_timer(*SCHEDULER_VECTOR, 1);
 
         interrupts::enable();
 
@@ -204,9 +207,11 @@ pub extern "C" fn scheduler_irq_handler(_stack_frame: InterruptStackFrame) {
 }
 
 #[no_mangle]
-pub extern "sysv64" fn schedule_handle(ctx: ThreadContext) {
+pub fn schedule_handle(ctx: CpuContext) {
     let mut sched = SCHEDULER.get().lock();
-    if let Some(task) = sched.threads.get(0) && task.lock().status == ThreadStatus::Running {
+    if let Some(task) = sched.threads.get(0)
+        && task.lock().status == ThreadStatus::Running
+    {
         sched.save_ctx(ctx);
 
         sched.set_current_thread_status(ThreadStatus::Ready);
@@ -243,13 +248,24 @@ pub extern "sysv64" fn schedule_handle(ctx: ThreadContext) {
         }
     }
 
-    let context = &thread.context as *const ThreadContext;
+    let context = &thread.context as *const CpuContext;
 
     APIC.eoi();
-    APIC.create_oneshot_timer(0x40, thread.priority.ms() * 1000);
+    APIC.create_oneshot_timer(*SCHEDULER_VECTOR, thread.priority.ms() * 1000);
 
     thread.unlock();
     sched.unlock();
 
     restore_context(context);
+}
+
+pub fn init() {
+    if !SCHEDULER_VECTOR.is_completed() {
+        let vector = allocate_vector();
+        SCHEDULER_VECTOR.set_once(vector);
+        register_handler(vector, schedule_handle);
+    }
+
+    SCHEDULER.init(|| SpinlockIRQ::new(Scheduler::new()));
+    SCHEDULER.wait_until_initialized();
 }
