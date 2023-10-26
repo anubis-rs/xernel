@@ -6,7 +6,6 @@
 #![feature(naked_functions)]
 #![feature(exclusive_range_pattern)]
 #![feature(let_chains)]
-#![feature(concat_idents)]
 #![allow(dead_code)]
 #![allow(clippy::fn_to_numeric_cast)]
 extern crate alloc;
