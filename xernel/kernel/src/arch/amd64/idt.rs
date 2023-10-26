@@ -4,9 +4,9 @@ use core::arch::asm;
 use core::mem::size_of;
 use libxernel::sync::{Spinlock, SpinlockIRQ};
 
+use crate::arch::amd64::read_cr2;
 use paste::paste;
 use seq_macro::seq;
-use crate::arch::amd64::read_cr2;
 
 const IDT_ENTRIES: usize = 256;
 
@@ -114,7 +114,6 @@ impl Idtr {
     }
 }
 
-
 #[derive(Copy, Clone)]
 pub(super) enum IRQHandler {
     Handler(fn(CpuContext)),
@@ -209,7 +208,7 @@ pub fn allocate_vector() -> u8 {
 
     *free_vector += 1;
 
-    return ret;
+    ret
 }
 
 // Exception handlers should only be registered in idt::init
@@ -225,9 +224,7 @@ pub fn register_handler(vector: u8, handler: fn(CpuContext)) {
     handlers[vector as usize] = IRQHandler::Handler(handler);
 }
 
-fn double_fault_handler(
-    frame: CpuContext
-) {
+fn double_fault_handler(frame: CpuContext) {
     dbg!("EXCEPTION: DOUBLE FAULT");
     dbg!("{:#?}", frame);
     dbg!("{}", frame.error_code);
@@ -241,9 +238,7 @@ fn double_fault_handler(
     }
 }
 
-fn page_fault_handler(
-    frame: CpuContext
-) {
+fn page_fault_handler(frame: CpuContext) {
     dbg!("EXCEPTION: PAGE FAULT");
     dbg!("Accessed Address: {:?}", read_cr2());
     dbg!("Error Code: {:?}", frame.error_code);

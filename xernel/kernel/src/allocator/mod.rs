@@ -3,7 +3,6 @@
 
 pub mod buddy;
 pub mod unit;
-pub use buddy::BuddyAllocator;
 
 use core::fmt;
 
