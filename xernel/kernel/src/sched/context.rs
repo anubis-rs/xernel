@@ -1,10 +1,9 @@
 use core::arch::asm;
-use crate::arch::ExceptionContext;
 
 #[derive(Debug, Clone, Copy, Default)]
-#[repr(C, packed)]
-/// Represents a Thread Context which gets saved on a context switch
-pub struct ThreadContext {
+#[repr(C)]
+/// Represents a Cpu Context which gets saved on a context switch
+pub struct CpuContext {
     pub rbp: u64,
     pub rax: u64,
     pub rbx: u64,
@@ -20,6 +19,7 @@ pub struct ThreadContext {
     pub r13: u64,
     pub r14: u64,
     pub r15: u64,
+    pub error_code: u64, // might be fake
     pub rip: u64,
     pub cs: u64,
     pub rflags: u64,
@@ -27,7 +27,7 @@ pub struct ThreadContext {
     pub ss: u64,
 }
 
-impl ThreadContext {
+impl CpuContext {
     /// Creates a new, zero-initialized context
     pub const fn new() -> Self {
         Self {
@@ -46,6 +46,7 @@ impl ThreadContext {
             r13: 0,
             r14: 0,
             r15: 0,
+            error_code: 0,
             rip: 0,
             cs: 0,
             rflags: 0,
@@ -55,36 +56,9 @@ impl ThreadContext {
     }
 }
 
-impl From<ExceptionContext> for ThreadContext {
-    fn from(value: ExceptionContext) -> Self {
-        Self {
-            rbp: value.rbp,
-            rax: value.rax,
-            rbx: value.rbx,
-            rcx: value.rcx,
-            rdx: value.rdx,
-            rsi: value.rsi,
-            rdi: value.rdi,
-            r8: value.r8,
-            r9: value.r9,
-            r10: value.r10,
-            r11: value.r11,
-            r12: value.r12,
-            r13: value.r13,
-            r14: value.r14,
-            r15: value.r15,
-            rip: value.rip,
-            cs: value.cs,
-            rflags: value.rflags,
-            rsp: value.rsp,
-            ss: value.ss,
-        }
-    }
-}
-
 #[naked]
 /// Restores the gives context and jumps to new RIP via iretq
-pub extern "C" fn restore_context(ctx: *const ThreadContext) -> ! {
+pub extern "C" fn restore_context(ctx: *const CpuContext) -> ! {
     unsafe {
         asm!(
             "mov rsp, rdi;
@@ -103,6 +77,7 @@ pub extern "C" fn restore_context(ctx: *const ThreadContext) -> ! {
             pop r13;
             pop r14;
             pop r15;
+            add rsp, 0x8;
             iretq;",
             options(noreturn)
         );

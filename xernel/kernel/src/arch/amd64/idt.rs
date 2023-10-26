@@ -1,5 +1,5 @@
 use crate::arch::amd64::ports::outb;
-use crate::sched::context::ThreadContext;
+use crate::sched::context::CpuContext;
 use core::arch::asm;
 use core::mem::size_of;
 use libxernel::sync::{Spinlock, SpinlockIRQ};
@@ -114,36 +114,10 @@ impl Idtr {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
-#[repr(C)]
-pub struct ExceptionContext {
-    pub rbp: u64,
-    pub rax: u64,
-    pub rbx: u64,
-    pub rcx: u64,
-    pub rdx: u64,
-    pub rsi: u64,
-    pub rdi: u64,
-    pub r8: u64,
-    pub r9: u64,
-    pub r10: u64,
-    pub r11: u64,
-    pub r12: u64,
-    pub r13: u64,
-    pub r14: u64,
-    pub r15: u64,
-    pub error_code: u64,
-    pub rip: u64,
-    pub cs: u64,
-    pub rflags: u64,
-    pub rsp: u64,
-    pub ss: u64,
-}
 
 #[derive(Copy, Clone)]
 pub(super) enum IRQHandler {
-    ErrorHandler(fn(ExceptionContext)),
-    Handler(fn(ThreadContext)),
+    Handler(fn(CpuContext)),
     None,
 }
 
@@ -201,24 +175,18 @@ pub fn init() {
 
     let mut handlers = INTERRUPT_HANDLERS.lock();
 
-    handlers[0xD] = IRQHandler::ErrorHandler(general_fault_handler);
-    handlers[0xE] = IRQHandler::ErrorHandler(page_fault_handler);
-    handlers[0x8] = IRQHandler::ErrorHandler(double_fault_handler);
+    handlers[0xD] = IRQHandler::Handler(general_fault_handler);
+    handlers[0xE] = IRQHandler::Handler(page_fault_handler);
+    handlers[0x8] = IRQHandler::Handler(double_fault_handler);
 }
 
 // TODO: Test if restore_context in scheduler can be removed, since the post handling from generic_interrupt_handler
 #[no_mangle]
-extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: ExceptionContext) {
+extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: CpuContext) {
     let handlers = INTERRUPT_HANDLERS.lock();
 
     match &handlers[isr] {
         IRQHandler::Handler(handler) => {
-            let handler = *handler;
-            handlers.unlock();
-            handler(ThreadContext::from(ctx));
-        }
-
-        IRQHandler::ErrorHandler(handler) => {
             let handler = *handler;
             handlers.unlock();
             handler(ctx);
@@ -246,7 +214,7 @@ pub fn allocate_vector() -> u8 {
 
 // Exception handlers should only be registered in idt::init
 // From outside only normal handlers are allowed to be registered
-pub fn register_handler(vector: u8, handler: fn(ThreadContext)) {
+pub fn register_handler(vector: u8, handler: fn(CpuContext)) {
     let mut handlers = INTERRUPT_HANDLERS.lock();
 
     match handlers[vector as usize] {
@@ -258,7 +226,7 @@ pub fn register_handler(vector: u8, handler: fn(ThreadContext)) {
 }
 
 fn double_fault_handler(
-    frame: ExceptionContext
+    frame: CpuContext
 ) {
     dbg!("EXCEPTION: DOUBLE FAULT");
     dbg!("{:#?}", frame);
@@ -274,7 +242,7 @@ fn double_fault_handler(
 }
 
 fn page_fault_handler(
-    frame: ExceptionContext
+    frame: CpuContext
 ) {
     dbg!("EXCEPTION: PAGE FAULT");
     dbg!("Accessed Address: {:?}", read_cr2());
@@ -291,7 +259,7 @@ fn page_fault_handler(
     }
 }
 
-fn general_fault_handler(frame: ExceptionContext) {
+fn general_fault_handler(frame: CpuContext) {
     dbg!("EXCEPTION: GENERAL PROTECTION FAULT");
     dbg!("{:?}", frame);
     dbg!("{:b}", frame.error_code);
