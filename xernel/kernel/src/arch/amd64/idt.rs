@@ -43,7 +43,7 @@ macro_rules! interrupt_handler {
                         "push rax",
                         "push rbp",
                         concat!("mov rdi, ", $interrupt_number),
-                        "mov rdx, rsp",
+                        "mov rsi, rsp",
                         "call generic_interrupt_handler",
                         "pop rbp",
                         "pop rax",
