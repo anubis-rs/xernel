@@ -3,7 +3,9 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use x86_64::structures::paging::{Page, PageSize, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
 
-use crate::fs::file::FileHandle;
+use crate::fs::file::File;
+use crate::fs::vnode::VNode;
+use crate::VFS;
 use crate::mem::frame::FRAME_ALLOCATOR;
 use crate::mem::vm::{ProtFlags, Vm};
 use crate::mem::{KERNEL_THREAD_STACK_TOP, STACK_SIZE, USER_THREAD_STACK_TOP};
@@ -28,13 +30,13 @@ pub struct Process {
     pub parent: Weak<Spinlock<Process>>,
     pub children: Vec<Arc<Spinlock<Process>>>,
     pub threads: Vec<Arc<Spinlock<Thread>>>,
-    pub fds: BTreeMap<usize, FileHandle>,
+    pub fds: BTreeMap<usize, File>,
     pub is_kernel_process: bool,
     pub kernel_thread_stack_top: usize,
     pub user_thread_stack_top: usize,
     pub thread_id_counter: usize,
     pub vm: Vm,
-    // TODO: add cwd here
+    pub cwd: Arc<Spinlock<VNode>>,
 }
 
 impl Process {
@@ -130,7 +132,7 @@ impl Process {
         tid
     }
 
-    pub fn append_fd(&mut self, file_handle: FileHandle) -> u32 {
+    pub fn append_fd(&mut self, file_handle: File) -> u32 {
         let mut counter = 0;
 
         let fd = loop {
@@ -145,7 +147,7 @@ impl Process {
         fd as u32
     }
 
-    pub fn get_filehandle_from_fd(&self, fd: usize) -> &FileHandle {
+    pub fn get_filehandle_from_fd(&self, fd: usize) -> &File {
         let handle = self.fds.get(&fd).expect("Failed to get FileHandle for fd");
 
         handle

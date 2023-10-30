@@ -3,12 +3,11 @@ use libxernel::sync::Spinlock;
 
 use super::vnode::VNode;
 
-// FileDescriptor
-pub struct FileHandle {
+pub struct File {
     node: Arc<Spinlock<VNode>>,
 }
 
-impl FileHandle {
+impl File {
     pub fn new(node: Arc<Spinlock<VNode>>) -> Self {
         Self { node }
     }
