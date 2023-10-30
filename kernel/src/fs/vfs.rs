@@ -12,7 +12,7 @@ use super::{
     mount::{Mount, VfsOps},
     pathbuf::PathBuf,
     tmpfs::Tmpfs,
-    vnode::VNode,
+    vnode::{VNode, VNodeOperations},
     {Error, Result},
 };
 
