@@ -61,6 +61,7 @@ impl Process {
             user_thread_stack_top: USER_THREAD_STACK_TOP as usize,
             thread_id_counter: 0,
             vm: Vm::new(),
+            cwd: VFS.lock().root_node(),
         }
     }
 
