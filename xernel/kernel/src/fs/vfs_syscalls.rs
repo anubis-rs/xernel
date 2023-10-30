@@ -2,14 +2,14 @@ use alloc::string::String;
 
 use crate::{sched::scheduler::Scheduler, syscall::Result};
 
-use super::{file::FileHandle, vfs::VFS};
+use super::{file::File, vfs::VFS};
 
 pub fn sys_open(path: String, mode: u64) -> Result<isize> {
     let vfs = VFS.lock();
 
     let node = vfs.vn_open(path, mode)?;
 
-    let file_handle = FileHandle::new(node);
+    let file_handle = File::new(node);
 
     let process = Scheduler::current_process();
     let mut process = process.lock();
