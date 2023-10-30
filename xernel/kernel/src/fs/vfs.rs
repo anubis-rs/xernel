@@ -4,6 +4,7 @@ use alloc::{
     vec::Vec,
 };
 use libxernel::sync::Spinlock;
+use libxernel::boot::InitAtBoot;
 
 use super::{
     mount::{Mount, VfsOps},
@@ -19,6 +20,7 @@ pub struct Vfs {
     mount_point_list: Vec<(PathBuf, Arc<Spinlock<Mount>>)>,
     drivers: Vec<(String, Arc<Spinlock<dyn VfsOps>>)>,
     free_vnodes: Vec<Arc<VNode>>,
+    root: InitAtBoot<Arc<Spinlock<VNode>>>,
 }
 
 impl Vfs {
@@ -29,7 +31,12 @@ impl Vfs {
             mount_point_list: Vec::new(),
             drivers: Vec::new(),
             free_vnodes: Vec::new(),
+            root: InitAtBoot::Uninitialized,
         }
+    }
+
+    pub fn root_node(&self) -> Arc<Spinlock<VNode>> {
+        self.root.clone()
     }
 
     pub fn get_mount(&self, mounted_on: &PathBuf) -> Result<Arc<Spinlock<Mount>>> {
@@ -142,7 +149,9 @@ pub fn init() {
 
     tmpfs.lock().vfs_init();
 
-    vfs.register_filesystem(String::from("tmpfs"), tmpfs);
+    vfs.register_filesystem(String::from("tmpfs"), tmpfs.clone());
+
+    vfs.root = InitAtBoot::Initialized(tmpfs.lock().vfs_root().unwrap());
 
     vfs.vn_mount("tmpfs", "/").expect("Mounting tmpfs on / failed");
 }
