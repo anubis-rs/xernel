@@ -21,6 +21,7 @@ pub enum SyscallError {
     MountPointNotFound = -8,
     FileSystemNotFound = -9,
     MalformedPath = -10,
+    InvalidArgument = -11,
 }
 
 bitflags! {

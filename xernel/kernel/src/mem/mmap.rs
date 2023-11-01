@@ -5,13 +5,17 @@ use crate::sched::scheduler::Scheduler;
 
 #[allow(unused_variables)]
 pub fn mmap(
-    addr: VirtAddr,
+    addr: usize,
     len: usize,
-    prot: ProtectionFlags,
-    flags: MapFlags,
+    prot: usize,
+    flags: usize,
     fd: usize,
     offset: usize,
 ) -> Result<isize, SyscallError> {
+    let addr = VirtAddr::new(addr as u64);
+    let prot = ProtectionFlags::from_bits(prot as u8).ok_or(SyscallError::InvalidArgument)?;
+    let flags = MapFlags::from_bits(flags as u8).ok_or(SyscallError::InvalidArgument)?;
+
     let process = Scheduler::current_process();
 
     todo!("mmap")
