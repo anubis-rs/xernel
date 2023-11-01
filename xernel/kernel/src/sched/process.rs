@@ -5,10 +5,10 @@ use x86_64::VirtAddr;
 
 use crate::fs::file::File;
 use crate::fs::vnode::VNode;
-use crate::VFS;
 use crate::mem::frame::FRAME_ALLOCATOR;
-use crate::mem::vm::{ProtFlags, Vm};
+use crate::mem::vm::Vm;
 use crate::mem::{KERNEL_THREAD_STACK_TOP, STACK_SIZE, USER_THREAD_STACK_TOP};
+use crate::VFS;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -17,6 +17,8 @@ use libxernel::sync::{Once, Spinlock};
 
 use crate::mem::paging::{Pagemap, KERNEL_PAGE_MAPPER};
 use crate::sched::thread::Thread;
+
+use libxernel::syscall::{MapFlags, ProtectionFlags};
 
 /// Ongoing counter for the ProcessID
 static PROCESS_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -86,7 +88,8 @@ impl Process {
         self.vm.add_entry(
             VirtAddr::new(stack_bottom as u64),
             STACK_SIZE as usize,
-            ProtFlags::READ | ProtFlags::WRITE,
+            ProtectionFlags::READ | ProtectionFlags::WRITE,
+            MapFlags::ANONYMOUS,
         );
 
         stack_top
@@ -118,7 +121,8 @@ impl Process {
         self.vm.add_entry(
             VirtAddr::new(stack_bottom as u64),
             STACK_SIZE as usize,
-            ProtFlags::READ | ProtFlags::WRITE,
+            ProtectionFlags::READ | ProtectionFlags::WRITE,
+            MapFlags::ANONYMOUS,
         );
 
         stack_top

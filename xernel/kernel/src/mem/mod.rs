@@ -1,5 +1,6 @@
 pub mod frame;
 pub mod heap;
+pub mod mmap;
 pub mod paging;
 pub mod vm;
 

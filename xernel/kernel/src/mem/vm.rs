@@ -1,21 +1,16 @@
 use alloc::vec::Vec;
-use bitflags::bitflags;
+use libxernel::syscall::{MapFlags, ProtectionFlags};
 use x86_64::VirtAddr;
-
-bitflags! {
-    pub struct ProtFlags: u8 {
-        const READ = 1 << 0;
-        const WRITE = 1 << 1;
-        const EXECUTE = 1 << 2;
-    }
-}
 
 pub struct VmEntry {
     start: VirtAddr,
     // TODO: should we remove one of these as it is reduntant?
     end: VirtAddr,
     length: usize,
-    prot: ProtFlags,
+    prot: ProtectionFlags,
+    flags: MapFlags,
+    // TODO: add something to represent to which file this entry belongs to
+    file: Option<()>,
 }
 
 pub struct Vm {
@@ -27,13 +22,15 @@ impl Vm {
         Self { entries: Vec::new() }
     }
 
-    pub fn add_entry(&mut self, start: VirtAddr, length: usize, prot: ProtFlags) {
+    pub fn add_entry(&mut self, start: VirtAddr, length: usize, prot: ProtectionFlags, flags: MapFlags) {
         let end = start + length;
         self.entries.push(VmEntry {
             start,
             end,
             length,
             prot,
+            flags,
+            file: None,
         });
     }
 
