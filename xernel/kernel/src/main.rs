@@ -154,13 +154,13 @@ extern "C" fn kernel_main() -> ! {
         }
     }
 
-    KERNEL_PROCESS.set_once(Arc::new(Spinlock::new(Process::new(None, true))));
+    KERNEL_PROCESS.set_once(Arc::new(Spinlock::new(Process::new(None))));
 
     wait_until_cpus_registered();
 
     scheduler::init();
 
-    let process = Arc::new(Spinlock::new(Process::new(Some(KERNEL_PROCESS.clone()), false)));
+    let process = Arc::new(Spinlock::new(Process::new(Some(KERNEL_PROCESS.clone()))));
 
     let _user_task = Thread::new_user_thread(process.clone(), VirtAddr::new(0x200000));
 

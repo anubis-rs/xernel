@@ -31,7 +31,6 @@ pub struct Process {
     pub children: Vec<Arc<Spinlock<Process>>>,
     pub threads: Vec<Arc<Spinlock<Thread>>>,
     pub fds: BTreeMap<usize, File>,
-    pub is_kernel_process: bool,
     pub kernel_thread_stack_top: usize,
     pub user_thread_stack_top: usize,
     pub thread_id_counter: usize,
@@ -40,7 +39,7 @@ pub struct Process {
 }
 
 impl Process {
-    pub fn new(parent_process: Option<Arc<Spinlock<Process>>>, is_kernel_process: bool) -> Self {
+    pub fn new(parent_process: Option<Arc<Spinlock<Process>>>) -> Self {
         let mut page_map = Pagemap::new(None);
         page_map.fill_with_kernel_entries();
 
@@ -56,7 +55,6 @@ impl Process {
             children: Vec::new(),
             threads: Vec::new(),
             fds: BTreeMap::new(),
-            is_kernel_process,
             kernel_thread_stack_top: KERNEL_THREAD_STACK_TOP as usize,
             user_thread_stack_top: USER_THREAD_STACK_TOP as usize,
             thread_id_counter: 0,
