@@ -159,6 +159,10 @@ impl Process {
     pub fn get_page_table(&self) -> Option<Pagemap> {
         self.page_table.clone()
     }
+
+    pub fn vm(&mut self) -> &mut Vm {
+        &mut self.vm
+    }
 }
 
 impl Drop for Process {

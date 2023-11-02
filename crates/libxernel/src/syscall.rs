@@ -33,6 +33,7 @@ bitflags! {
 }
 
 bitflags! {
+    #[derive(PartialEq, Eq)]
     pub struct MapFlags: u8 {
         const SHARED = 1 << 0;
         const PRIVATE = 1 << 1;
