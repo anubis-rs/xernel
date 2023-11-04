@@ -1,7 +1,7 @@
 use alloc::sync::Arc;
 use libxernel::sync::Spinlock;
 
-use super::context::CpuContext;
+use super::context::TrapFrame;
 use super::process::{Process, KERNEL_PROCESS};
 
 use core::pin::Pin;
@@ -59,7 +59,7 @@ pub struct Thread {
     pub process: Weak<Spinlock<Process>>,
     pub status: ThreadStatus,
     pub priority: ThreadPriority,
-    pub context: CpuContext,
+    pub context: TrapFrame,
     pub thread_stack: usize,
     /// Only a user space thread has a kernel stack
     pub kernel_stack: Option<Pin<Box<KernelStack>>>,
@@ -69,7 +69,7 @@ impl Thread {
     pub fn new_kernel_thread(entry_point: VirtAddr) -> Self {
         let thread_stack = KERNEL_PROCESS.lock().new_kernel_stack();
 
-        let mut ctx = CpuContext::new();
+        let mut ctx = TrapFrame::new();
 
         ctx.ss = 0x10; // kernel stack segment
         ctx.cs = 0x8; // kernel code segment
@@ -95,7 +95,7 @@ impl Thread {
     pub fn kernel_thread_from_fn(entry: fn()) -> Self {
         let thread_stack = KERNEL_PROCESS.lock().new_kernel_stack();
 
-        let mut ctx = CpuContext::new();
+        let mut ctx = TrapFrame::new();
 
         ctx.ss = 0x10; // kernel stack segment
         ctx.cs = 0x8; // kernel code segment
@@ -122,7 +122,7 @@ impl Thread {
         let thread_stack = parent_process.lock().new_user_stack();
         let kernel_stack_end = parent_process.lock().new_kernel_stack();
 
-        let mut ctx = CpuContext::new();
+        let mut ctx = TrapFrame::new();
 
         ctx.ss = 0x2b; // user stack segment
         ctx.cs = 0x33; // user code segment

@@ -16,7 +16,7 @@ use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
 use x86_64::structures::idt::InterruptStackFrame;
 
-use super::context::CpuContext;
+use super::context::{TrapFrame, Context};
 use super::process::Process;
 use super::thread::{Thread, ThreadStatus};
 
@@ -121,7 +121,7 @@ impl Scheduler {
         }
     }
 
-    pub fn save_ctx(&mut self, ctx: CpuContext) {
+    pub fn save_ctx(&mut self, ctx: TrapFrame) {
         let mut task = self.threads.get_mut(0).unwrap().lock();
         task.context = ctx;
     }
@@ -198,7 +198,7 @@ pub extern "C" fn scheduler_irq_handler(_stack_frame: InterruptStackFrame) {
 }
 
 #[no_mangle]
-pub fn schedule_handle(ctx: CpuContext) {
+pub fn schedule_handle(ctx: TrapFrame) {
     let mut sched = SCHEDULER.get().lock();
     if let Some(task) = sched.threads.front()
         && task.lock().status == ThreadStatus::Running
@@ -232,7 +232,7 @@ pub fn schedule_handle(ctx: CpuContext) {
         }
     }
 
-    let context = &thread.context as *const CpuContext;
+    let context = &thread.context as *const TrapFrame;
 
     APIC.eoi();
     APIC.create_oneshot_timer(*SCHEDULER_VECTOR, thread.priority.ms() * 1000);

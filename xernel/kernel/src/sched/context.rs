@@ -2,8 +2,19 @@ use core::arch::asm;
 
 #[derive(Debug, Clone, Copy, Default)]
 #[repr(C)]
-/// Represents a Cpu Context which gets saved on a context switch
-pub struct CpuContext {
+pub struct Context {
+    pub rbx: u64,
+    pub rbp: u64, 
+    pub r12: u64,
+    pub r13: u64,
+    pub r14: u64,
+    pub r15: u64,
+    pub rip: u64,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+#[repr(C)]
+pub struct TrapFrame {
     pub rbp: u64,
     pub rax: u64,
     pub rbx: u64,
@@ -27,7 +38,7 @@ pub struct CpuContext {
     pub ss: u64,
 }
 
-impl CpuContext {
+impl TrapFrame {
     /// Creates a new, zero-initialized context
     pub const fn new() -> Self {
         Self {
@@ -58,7 +69,7 @@ impl CpuContext {
 
 #[naked]
 /// Restores the gives context and jumps to new RIP via iretq
-pub extern "C" fn restore_context(ctx: *const CpuContext) -> ! {
+pub extern "C" fn restore_context(ctx: *const TrapFrame) -> ! {
     unsafe {
         asm!(
             "mov rsp, rdi;

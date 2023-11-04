@@ -1,5 +1,5 @@
-use crate::sched::context::CpuContext;
-use crate::{arch::amd64::ports::outb, mem::mmap::handle_page_fault};
+use crate::arch::amd64::ports::outb;
+use crate::sched::context::TrapFrame;
 use core::arch::asm;
 use core::mem::size_of;
 use core::ptr::addr_of;
@@ -118,7 +118,7 @@ impl Idtr {
 
 #[derive(Copy, Clone)]
 pub(super) enum IRQHandler {
-    Handler(fn(CpuContext)),
+    Handler(fn(TrapFrame)),
     None,
 }
 
@@ -180,9 +180,8 @@ pub fn init() {
     handlers[0x8] = IRQHandler::Handler(double_fault_handler);
 }
 
-// TODO: Test if restore_context in scheduler can be removed, since the post handling from generic_interrupt_handler
 #[no_mangle]
-extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: CpuContext) {
+extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: TrapFrame) {
     let handlers = INTERRUPT_HANDLERS.lock();
 
     match &handlers[isr] {
@@ -214,7 +213,7 @@ pub fn allocate_vector() -> u8 {
 
 // Exception handlers should only be registered in idt::init
 // From outside only normal handlers are allowed to be registered
-pub fn register_handler(vector: u8, handler: fn(CpuContext)) {
+pub fn register_handler(vector: u8, handler: fn(TrapFrame)) {
     let mut handlers = INTERRUPT_HANDLERS.lock();
 
     match handlers[vector as usize] {
@@ -225,7 +224,7 @@ pub fn register_handler(vector: u8, handler: fn(CpuContext)) {
     handlers[vector as usize] = IRQHandler::Handler(handler);
 }
 
-fn double_fault_handler(frame: CpuContext) {
+fn double_fault_handler(frame: TrapFrame) {
     dbg!("EXCEPTION: DOUBLE FAULT");
     dbg!("{:#?}", frame);
     dbg!("{}", frame.error_code);
@@ -239,32 +238,23 @@ fn double_fault_handler(frame: CpuContext) {
     }
 }
 
-fn page_fault_handler(frame: CpuContext) {
-    let addr = read_cr2();
-    let error_code = PageFaultErrorCode::from_bits_truncate(frame.error_code);
-
-    let handled_successfully = handle_page_fault(addr, error_code);
-
-    if !handled_successfully {
-        dbg!("EXCEPTION: PAGE FAULT");
-        dbg!("Accessed Address: {:?}", read_cr2());
-        dbg!("Error Code: {:?}", frame.error_code);
-        dbg!("{:#?}", frame);
-
-        error!("EXCEPTION: PAGE FAULT");
-        error!("Accessed Address: {:?}", read_cr2());
-        error!("Error Code: {:?}", error_code);
-        error!("{:#?}", frame);
-
-        loop {
-            unsafe {
-                asm!("hlt");
-            }
+fn page_fault_handler(frame: TrapFrame) {
+    dbg!("EXCEPTION: PAGE FAULT");
+    dbg!("Accessed Address: {:?}", read_cr2());
+    dbg!("Error Code: {:?}", frame.error_code);
+    dbg!("{:#?}", frame);
+    println!("EXCEPTION: PAGE FAULT");
+    println!("Accessed Address: {:?}", read_cr2());
+    println!("Error Code: {:?}", frame.error_code);
+    println!("{:#?}", frame);
+    loop {
+        unsafe {
+            asm!("hlt");
         }
     }
 }
 
-fn general_fault_handler(frame: CpuContext) {
+fn general_fault_handler(frame: TrapFrame) {
     dbg!("EXCEPTION: GENERAL PROTECTION FAULT");
     dbg!("{:?}", frame);
     dbg!("{:b}", frame.error_code);
