@@ -243,6 +243,13 @@ pub fn schedule_handle(ctx: CpuContext) {
     restore_context(context);
 }
 
+pub fn switch_context(old_ctx: *mut *mut Context, new_ctx: *mut Context) {
+    // TODO: Use inline assembly to perform context switch
+    // TODO: Rename CpuContext to TrapFrame
+    // TODO: Create struct Context which is a representation of the few registers needed for
+    // switching
+}
+
 pub fn init() {
     if !SCHEDULER_VECTOR.is_completed() {
         let vector = allocate_vector();
