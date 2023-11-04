@@ -60,6 +60,7 @@ use crate::sched::process::KERNEL_PROCESS;
 use crate::sched::scheduler;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
 use crate::sched::thread::Thread;
+use crate::arch::amd64::time;
 
 static BOOTLOADER_INFO: BootInfoRequest = BootInfoRequest::new(0);
 static SMP_REQUEST: SmpRequest = SmpRequest::new(0);
@@ -138,6 +139,8 @@ extern "C" fn kernel_main() -> ! {
         bootloader_info.name.to_str().unwrap(),
         bootloader_info.version.to_str().unwrap()
     );
+
+    println!("{:x}", time::rdtsc());
 
     let smp_response = SMP_REQUEST.get_response().get_mut().unwrap();
 
