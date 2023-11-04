@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 #![feature(abi_x86_interrupt)]
+#![feature(core_intrinsics)]
+#![feature(pointer_byte_offsets)]
 #![feature(naked_functions)]
 #![feature(exclusive_range_pattern)]
 #![feature(let_chains)]
