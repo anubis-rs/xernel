@@ -23,12 +23,13 @@ pub fn mmap(
     let process = Scheduler::current_process();
     let mut process = process.lock();
 
-    if flags == MapFlags::ANONYMOUS {
-        let start_address = process.vm().find_next_start_address();
-        process.vm().add_entry(start_address, len, prot, flags);
+    match flags {
+        MapFlags::ANONYMOUS => {
+            let start_address = process.vm().find_next_start_address();
+            process.vm().add_entry(start_address, len, prot, flags);
 
-        Ok(start_address.as_u64() as isize)
-    } else {
-        todo!("mmap: implement MAP_SHARED and MAP_PRIVATE");
+            Ok(start_address.as_u64() as isize)
+        }
+        _ => todo!("mmap: implement MAP_SHARED and MAP_PRIVATE"),
     }
 }
