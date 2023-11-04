@@ -2,6 +2,7 @@ pub mod apic;
 pub mod gdt;
 pub mod idt;
 pub mod ports;
+pub mod time;
 
 use crate::arch::amd64::apic::APIC;
 use crate::cpu::register_cpu;
