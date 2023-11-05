@@ -162,7 +162,7 @@ impl Scheduler {
     pub fn hand_over() {
         interrupts::disable();
 
-        APIC.create_oneshot_timer(*SCHEDULER_VECTOR, 1);
+        APIC.oneshot(*SCHEDULER_VECTOR, 1);
 
         interrupts::enable();
 
@@ -235,7 +235,7 @@ pub fn schedule_handle(ctx: TrapFrame) {
     let context = &thread.context as *const TrapFrame;
 
     APIC.eoi();
-    APIC.create_oneshot_timer(*SCHEDULER_VECTOR, thread.priority.ms() * 1000);
+    APIC.oneshot(*SCHEDULER_VECTOR, thread.priority.ms() * 1000);
 
     thread.unlock();
     sched.unlock();

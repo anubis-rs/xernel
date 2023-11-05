@@ -9,6 +9,7 @@ use x86_64::structures::idt::PageFaultErrorCode;
 use crate::arch::amd64::read_cr2;
 use paste::paste;
 use seq_macro::seq;
+use crate::arch::amd64::apic::apic_spurious_interrupt;
 
 const IDT_ENTRIES: usize = 256;
 
@@ -178,6 +179,7 @@ pub fn init() {
     handlers[0xD] = IRQHandler::Handler(general_fault_handler);
     handlers[0xE] = IRQHandler::Handler(page_fault_handler);
     handlers[0x8] = IRQHandler::Handler(double_fault_handler);
+    handlers[0xF0] = IRQHandler::Handler(apic_spurious_interrupt);
 }
 
 #[no_mangle]
@@ -200,7 +202,7 @@ pub fn allocate_vector() -> u8 {
 
     let mut free_vector = FREE_VECTOR.lock();
 
-    if *free_vector == 0xf0 {
+    if *free_vector >= 0xf0 {
         panic!("IDT exhausted");
     }
 

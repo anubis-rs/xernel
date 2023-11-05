@@ -3,6 +3,9 @@ pub mod gdt;
 pub mod idt;
 pub mod ports;
 pub mod time;
+mod lapic;
+mod ioapic;
+pub mod cpuid;
 
 use crate::arch::amd64::apic::APIC;
 use crate::cpu::register_cpu;
@@ -67,6 +70,8 @@ pub unsafe fn wrmsr(msr: u32, value: u64) {
 #[inline]
 pub unsafe fn rdmsr(msr: u32) -> u64 {
     let (high, low): (u32, u32);
-    asm!("rdmsr", out("eax") low, out("edx") high, in("ecx") msr);
+    unsafe {
+        asm!("rdmsr", out("eax") low, out("edx") high, in("ecx") msr);
+    }
     ((high as u64) << 32) | (low as u64)
 }
