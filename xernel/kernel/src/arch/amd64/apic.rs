@@ -7,11 +7,6 @@ use crate::arch::amd64::ioapic::IOApic;
 use crate::arch::amd64::lapic::LocalApic;
 use crate::sched::context::TrapFrame;
 
-pub struct LocalAPIC {
-    address: u64,
-    frequency: u64,
-}
-
 pub static IOAPICS: Spinlock<Vec<IOApic>> = Spinlock::new(Vec::new());
 
 pub static APIC: Once<LocalApic> = Once::new();
