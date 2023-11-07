@@ -9,6 +9,15 @@ use crate::debug;
 const IA32_APIC_BASE_MSR: u32 = 0x1B;
 const IA32_TSC_DEADLINE_MSR: u32 = 0x6E0;
 
+const LAPICRegID: u64 = 0x20;
+const LAPICRegTPR: u64 = 0x80; // Task Priority Register
+const LAPICRegEOI: u64 = 0xB0;
+const LAPICRegSpurious: u64 = 0xF0;
+const LAPICRegTimer: u64 = 0x320;
+const LAPICRegTimerInitial: u64 = 0x380;
+const LAPICRegTimerCurrentCount: u64 = 0x390;
+const LAPICRegTimerDivider: u64 = 0x3e0;
+
 pub struct LocalApic {
     address: u64,
     frequency: u64,
@@ -58,20 +67,20 @@ impl LocalApic {
     }
 
     pub fn lapic_id(&self) -> u32 {
-        unsafe { self.read(0x20) }
+        unsafe { self.read(LAPICRegID) }
     }
 
     pub fn eoi(&self) {
-        unsafe { self.write(0xB0, 0) }
+        unsafe { self.write(LAPICRegEOI, 0) }
     }
 
     // Spurious interrupt vector
     pub fn siv(&self) -> u32 {
-        unsafe { self.read(0xF0) }
+        unsafe { self.read(LAPICRegSpurious) }
     }
 
     pub fn set_siv(&self, value: u32) {
-        unsafe { self.write(0xF0, value) }
+        unsafe { self.write(LAPICRegSpurious, value) }
     }
 
     pub fn enable_apic(&self) {
@@ -79,7 +88,7 @@ impl LocalApic {
             self.set_siv(0x1ff);
 
             // set the task priority to 0
-            self.write(0x80, 0);
+            self.write(LAPICRegTPR, 0);
         }
     }
 
@@ -89,13 +98,13 @@ impl LocalApic {
 
         unsafe {
             // set divider to 16
-            self.write(0x3e0, 3);
+            self.write(LAPICRegTimerDivider, 3);
 
             // set the interrupt vector & oneshot mode
-            self.write(0x320, (1 << 17) | int_no as u32);
+            self.write(LAPICRegTimer, (1 << 17) | int_no as u32);
 
             // set the counter to the calculated value
-            self.write(0x380, apic_ticks as u32);
+            self.write(LAPICRegTimerInitial, apic_ticks as u32);
         }
     }
 
@@ -105,20 +114,20 @@ impl LocalApic {
 
         unsafe {
             // set divider to 16
-            self.write(0x3e0, 3);
+            self.write(LAPICRegTimerDivider, 3);
 
             // set the interrupt vector & periodic mode
-            self.write(0x320, int_no as u32);
+            self.write(LAPICRegTimer, int_no as u32);
 
             // set the counter to the calculated value
-            self.write(0x380, apic_ticks as u32);
+            self.write(LAPICRegTimerInitial, apic_ticks as u32);
         }
     }
 
     pub fn deadline(&self, int_no: u8, nano_seconds: u64) {
         unsafe {
             // set the interrupt vector & deadline mode
-            self.write(0x320, (2 << 17) | int_no as u32);
+            self.write(LAPICRegTimer, (2 << 17) | int_no as u32);
 
             // https://xem.github.io/minix86/manual/intel-x86-and-64-manual-vol3/o_fe12b1e2a880e0ce-379.html
             // IA32_TSC_DEADLINE_MSR
@@ -127,26 +136,26 @@ impl LocalApic {
 
     pub fn stop(&self) {
         unsafe {
-            self.write(0x380, 0);
+            self.write(LAPICRegTimerInitial, 0);
         }
     }
 
     pub fn init_timer_frequency(&mut self) {
         unsafe {
             // set the divisor to 1
-            self.write(0x3e0, 0b1011);
+            self.write(LAPICRegTimerDivider, 0b1011);
 
             let hpet_cycles_to_wait = hpet::frequency() / 100;
 
             let hpet_start_counter = hpet::read_main_counter();
 
             // set the initial count to 0xffffffff
-            self.write(0x380, 0xffffffff);
+            self.write(LAPICRegTimerInitial, 0xffffffff);
 
             // wait for 10 ms
             while hpet::read_main_counter() - hpet_start_counter < hpet_cycles_to_wait {}
 
-            let apic_ticks = 0xffffffff - self.read(0x390);
+            let apic_ticks = 0xffffffff - self.read(LAPICRegTimerCurrentCount);
 
             let hpet_end_counter = hpet::read_main_counter();
 
