@@ -17,7 +17,7 @@ pub enum ThreadStatus {
     Ready,
     Sleeping,
     BlockingOnIo, // TODO: better name
-                  // Zombie,
+    Done,
 }
 
 #[derive(Debug, Clone, Copy)]
