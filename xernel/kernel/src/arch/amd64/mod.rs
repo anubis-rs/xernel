@@ -15,6 +15,15 @@ use core::arch::asm;
 use limine::SmpInfo;
 use x86_64::VirtAddr;
 
+pub enum IPL {
+    IPL0,
+    IPLAPC,
+    IPLDPC,
+    IPLDevice,
+    IPLClock,
+    IPLHigh
+}
+
 #[no_mangle]
 pub extern "C" fn x86_64_ap_main(boot_info: *const SmpInfo) -> ! {
     let boot_info = unsafe { &*boot_info };
