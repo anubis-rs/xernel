@@ -1,2 +1,2 @@
 pub mod event;
-mod dispatcher;
+pub mod dispatcher;
