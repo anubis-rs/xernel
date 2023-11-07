@@ -217,11 +217,16 @@ pub fn schedule_handle(ctx: TrapFrame) {
     restore_context(context);
 }
 
+pub fn schedule() {
+
+    // Search for new task
+    // switch_context
+    // Add new event to EventQueue
+
+}
+
 pub fn switch_context(old_ctx: *mut *mut Context, new_ctx: *mut Context) {
     // TODO: Use inline assembly to perform context switch
-    // TODO: Rename CpuContext to TrapFrame
-    // TODO: Create struct Context which is a representation of the few registers needed for
-    // switching
 }
 
 pub fn init() {
