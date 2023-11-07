@@ -14,7 +14,6 @@ use libxernel::sync::{Once, Spinlock, SpinlockIRQ};
 use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
-use x86_64::structures::idt::InterruptStackFrame;
 
 use super::context::{TrapFrame, Context};
 use super::process::Process;
@@ -169,31 +168,6 @@ impl Scheduler {
         unsafe {
             asm!("hlt");
         }
-    }
-}
-
-#[naked]
-pub extern "C" fn scheduler_irq_handler(_stack_frame: InterruptStackFrame) {
-    unsafe {
-        asm!(
-            "push r15;
-            push r14; 
-            push r13;
-            push r12;
-            push r11;
-            push r10;
-            push r9;
-            push r8;
-            push rdi;
-            push rsi;
-            push rdx;
-            push rcx;
-            push rbx;
-            push rax;
-            push rbp;
-            call schedule_handle",
-            options(noreturn)
-        );
     }
 }
 
