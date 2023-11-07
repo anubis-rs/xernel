@@ -8,6 +8,7 @@
 #![feature(let_chains)]
 #![allow(dead_code)]
 #![allow(clippy::fn_to_numeric_cast)]
+#![allow(non_upper_case_globals)]
 extern crate alloc;
 
 mod acpi;
