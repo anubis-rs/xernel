@@ -10,7 +10,7 @@ pub mod cpuid;
 use crate::arch::amd64::apic::APIC;
 use crate::cpu::register_cpu;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
-use crate::KERNEL_PAGE_MAPPER;
+use crate::{KERNEL_PAGE_MAPPER, info};
 use core::arch::asm;
 use limine::SmpInfo;
 use x86_64::VirtAddr;

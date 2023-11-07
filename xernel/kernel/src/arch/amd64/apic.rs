@@ -1,6 +1,5 @@
 use alloc::vec::Vec;
 use libxernel::sync::{Once, Spinlock};
-use x86_64::structures::idt::InterruptStackFrame;
 
 use crate::arch::amd64::{ioapic};
 use crate::arch::amd64::ioapic::IOApic;

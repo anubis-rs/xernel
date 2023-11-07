@@ -4,6 +4,7 @@ use crate::acpi::hpet;
 use crate::arch::amd64::rdmsr;
 use crate::mem::HIGHER_HALF_OFFSET;
 use crate::mem::paging::KERNEL_PAGE_MAPPER;
+use crate::debug;
 
 const IA32_APIC_BASE_MSR: u32 = 0x1B;
 const IA32_TSC_DEADLINE_MSR: u32 = 0x6E0;

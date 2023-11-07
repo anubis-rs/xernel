@@ -10,6 +10,7 @@ use crate::arch::amd64::read_cr2;
 use paste::paste;
 use seq_macro::seq;
 use crate::arch::amd64::apic::apic_spurious_interrupt;
+use crate::{println, dbg};
 
 const IDT_ENTRIES: usize = 256;
 

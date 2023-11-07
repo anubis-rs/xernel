@@ -1,3 +1,5 @@
+use crate::dbg;
+
 pub fn init() {}
 
 // TODO: print symbol names

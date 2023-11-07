@@ -2,6 +2,7 @@ use super::{frame::FRAME_ALLOCATOR, HIGHER_HALF_OFFSET};
 use crate::{
     allocator::align_up,
     mem::{frame::MEMORY_MAP, KERNEL_OFFSET},
+    debug,
 };
 use libxernel::boot::InitAtBoot;
 use libxernel::sync::Spinlock;

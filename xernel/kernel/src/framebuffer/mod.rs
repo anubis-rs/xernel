@@ -2,7 +2,7 @@ mod font;
 
 use core::ptr::copy;
 
-use crate::{framebuffer::font::FONT, limine_module::get_limine_module};
+use crate::{framebuffer::font::FONT, utils::limine_module};
 use libxernel::sync::{Once, Spinlock};
 use limine::{File, FramebufferRequest};
 
@@ -55,7 +55,7 @@ pub fn init() {
     );
 
     // show start image
-    let img_file = get_limine_module("logo").unwrap();
+    let img_file = limine_module::get_limine_module("logo").unwrap();
 
     unsafe {
         let mut framebuffer = FRAMEBUFFER.lock();

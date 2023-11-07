@@ -10,26 +10,18 @@
 #![allow(clippy::fn_to_numeric_cast)]
 extern crate alloc;
 
-#[macro_use]
-mod writer;
-
-#[macro_use]
-mod logger;
-
 mod acpi;
 mod allocator;
 mod arch;
-mod backtrace;
 mod cpu;
 mod drivers;
 mod framebuffer;
 mod fs;
-mod limine_module;
 mod sched;
 mod syscall;
 mod time;
-
 mod mem;
+mod utils;
 
 use alloc::string::ToString;
 use alloc::sync::Arc;
@@ -63,6 +55,9 @@ use crate::sched::process::KERNEL_PROCESS;
 use crate::sched::scheduler;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
 use crate::sched::thread::Thread;
+use crate::utils::writer;
+use crate::utils::logger;
+use crate::utils::backtrace;
 
 static BOOTLOADER_INFO: BootInfoRequest = BootInfoRequest::new(0);
 static SMP_REQUEST: SmpRequest = SmpRequest::new(0);

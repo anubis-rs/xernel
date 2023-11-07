@@ -6,6 +6,7 @@ pub mod vm;
 
 use libxernel::sync::Once;
 use limine::HhdmRequest;
+use crate::info;
 
 static HHDM_REQUEST: HhdmRequest = HhdmRequest::new(0);
 
