@@ -15,7 +15,7 @@ use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
 
-use super::context::{TrapFrame, Context};
+use super::context::TrapFrame;
 use super::process::Process;
 use super::thread::{Thread, ThreadStatus};
 
@@ -223,10 +223,6 @@ pub fn schedule() {
     // switch_context
     // Add new event to EventQueue
 
-}
-
-pub fn switch_context(old_ctx: *mut *mut Context, new_ctx: *mut Context) {
-    // TODO: Use inline assembly to perform context switch
 }
 
 pub fn init() {

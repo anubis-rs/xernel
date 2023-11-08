@@ -14,6 +14,7 @@ use crate::{KERNEL_PAGE_MAPPER, info};
 use core::arch::asm;
 use limine::SmpInfo;
 use x86_64::VirtAddr;
+use crate::sched::context::Context;
 
 pub enum IPL {
     IPL0,
@@ -83,4 +84,8 @@ pub unsafe fn rdmsr(msr: u32) -> u64 {
         asm!("rdmsr", out("eax") low, out("edx") high, in("ecx") msr);
     }
     ((high as u64) << 32) | (low as u64)
+}
+
+pub fn switch_context(old_ctx: *mut *mut Context, new_ctx: *mut Context) {
+    // TODO: Use inline assembly to perform context switch
 }
