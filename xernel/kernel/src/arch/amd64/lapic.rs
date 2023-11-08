@@ -31,7 +31,7 @@ impl LocalApic {
             rdmsr(IA32_APIC_BASE_MSR)
         };
 
-        // INFO: IA32_APIC_BASE_MSR contains to flags on bit 8 and bit 11
+        // INFO: IA32_APIC_BASE_MSR contains two flags on bit 8 and bit 11
         // BSP flag, bit 8 ⎯ Indicates if the processor is the bootstrap processor (BSP).
         // APIC Global Enable flag, bit 11 ⎯ Enables or disables the local APIC
         // To get the local apic base address, bit range 12 - 35, we set the flag bits to zero 
