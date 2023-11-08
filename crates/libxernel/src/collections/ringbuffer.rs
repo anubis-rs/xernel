@@ -1,5 +1,3 @@
-#![feature(inline_const)]
-
 use core::mem::MaybeUninit;
 use core::ptr;
 
