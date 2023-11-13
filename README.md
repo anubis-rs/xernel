@@ -16,6 +16,9 @@ You can simply use `cargo kernel build` or `cargo kernel run`, it is going to us
 
 ## Contact
 Feel free to reach out to `lockna` or `mp1310` on Discord
+or join our **Offical Discord Server:** https://discord.gg/e3gsmHX4w4
+
+Here you can talk to us in the `xernel-development` category.
 
 ## TODO
 Things that are still to do:
