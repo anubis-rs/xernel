@@ -13,6 +13,7 @@ use x86_64::VirtAddr;
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Current status of the thread
 pub enum ThreadStatus {
+    Initial,
     Running,
     Ready,
     Sleeping,

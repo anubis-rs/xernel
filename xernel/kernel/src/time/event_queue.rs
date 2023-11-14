@@ -1,6 +1,6 @@
 use alloc::collections::VecDeque;
-use crate::time::event::Event;
 use crate::time::event::EventExecutor;
+use alloc::sync::Arc;
 
 pub struct EventQueue {
     events: VecDeque<Arc<dyn EventExecutor>>,

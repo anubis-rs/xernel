@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 
-trait EventExecutor {
+pub trait EventExecutor {
     fn dispatch(&self);
 }
 
