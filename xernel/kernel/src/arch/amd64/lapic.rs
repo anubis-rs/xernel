@@ -13,6 +13,8 @@ const LAPICRegID: u64 = 0x20;
 const LAPICRegTPR: u64 = 0x80; // Task Priority Register
 const LAPICRegEOI: u64 = 0xB0;
 const LAPICRegSpurious: u64 = 0xF0;
+const LAPICRegICR0: u64 = 0x300; // Interrupt Command Register
+const LAPICRegICR1: u64 = 0x310;
 const LAPICRegTimer: u64 = 0x320;
 const LAPICRegTimerInitial: u64 = 0x380;
 const LAPICRegTimerCurrentCount: u64 = 0x390;
@@ -137,6 +139,13 @@ impl LocalApic {
     pub fn stop(&self) {
         unsafe {
             self.write(LAPICRegTimerInitial, 0);
+        }
+    }
+
+    pub fn send_ipi(&self, lapic_id: u32, vec: u32) {
+        unsafe {
+            self.write(LAPICRegICR1, lapic_id << 24);
+            self.write(LAPICRegICR0, vec);
         }
     }
 
