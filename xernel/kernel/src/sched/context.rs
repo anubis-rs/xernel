@@ -68,8 +68,9 @@ impl TrapFrame {
 }
 
 #[naked]
-/// Restores the gives context and jumps to new RIP via iretq
-pub extern "C" fn restore_context(ctx: *const TrapFrame) -> ! {
+/// Restores the gives TrapFrame and jumps to new RIP via iretq
+/// Is used to startup a new thread when it's first executed
+pub extern "C" fn thread_trampoline(ctx: *const TrapFrame) -> ! {
     unsafe {
         asm!(
             "mov rsp, rdi;
@@ -91,6 +92,6 @@ pub extern "C" fn restore_context(ctx: *const TrapFrame) -> ! {
             add rsp, 0x8;
             iretq;",
             options(noreturn)
-        );
+        )
     }
 }
