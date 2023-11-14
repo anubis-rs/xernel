@@ -6,23 +6,21 @@ pub mod time;
 mod lapic;
 mod ioapic;
 pub mod cpuid;
+pub mod ipl;
 
 use crate::arch::amd64::apic::APIC;
 use crate::cpu::register_cpu;
+use crate::sched::context::Context;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
 use crate::{KERNEL_PAGE_MAPPER, info};
-use core::arch::asm;
+use core::arch::{asm, global_asm};
 use limine::SmpInfo;
 use x86_64::VirtAddr;
-use crate::sched::context::Context;
 
-pub enum IPL {
-    IPL0,
-    IPLAPC,
-    IPLDPC,
-    IPLDevice,
-    IPLClock,
-    IPLHigh
+global_asm!(include_str!("switch.S"));
+
+extern "C" {
+    pub fn switch_context(old: *mut *mut Context, new: *const Context);
 }
 
 #[no_mangle]
@@ -70,6 +68,8 @@ pub fn read_cr2() -> VirtAddr {
     }
 }
 
+
+
 #[inline]
 pub unsafe fn wrmsr(msr: u32, value: u64) {
     let low = value as u32;
@@ -86,6 +86,3 @@ pub unsafe fn rdmsr(msr: u32) -> u64 {
     ((high as u64) << 32) | (low as u64)
 }
 
-pub fn switch_context(old_ctx: *mut *mut Context, new_ctx: *mut Context) {
-    // TODO: Use inline assembly to perform context switch
-}
