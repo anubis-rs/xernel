@@ -1,9 +1,10 @@
 use alloc::sync::Arc;
 use libxernel::sync::Spinlock;
 
-use super::context::TrapFrame;
+use super::context::{TrapFrame, Context};
 use super::process::{Process, KERNEL_PROCESS};
 
+use core::cell::UnsafeCell;
 use core::pin::Pin;
 
 use alloc::boxed::Box;
@@ -60,7 +61,8 @@ pub struct Thread {
     pub process: Weak<Spinlock<Process>>,
     pub status: ThreadStatus,
     pub priority: ThreadPriority,
-    pub context: TrapFrame,
+    pub context: UnsafeCell<*mut Context>,
+    pub trap_frame: UnsafeCell<*mut TrapFrame>,
     pub thread_stack: usize,
     /// Only a user space thread has a kernel stack
     pub kernel_stack: Option<Pin<Box<KernelStack>>>,
@@ -70,13 +72,13 @@ impl Thread {
     pub fn new_kernel_thread(entry_point: VirtAddr) -> Self {
         let thread_stack = KERNEL_PROCESS.lock().new_kernel_stack();
 
-        let mut ctx = TrapFrame::new();
+        let mut trap_frame = TrapFrame::new();
 
-        ctx.ss = 0x10; // kernel stack segment
-        ctx.cs = 0x8; // kernel code segment
-        ctx.rip = entry_point.as_u64();
-        ctx.rsp = thread_stack as u64;
-        ctx.rflags = 0x202;
+        trap_frame.ss = 0x10; // kernel stack segment
+        trap_frame.cs = 0x8; // kernel code segment
+        trap_frame.rip = entry_point.as_u64();
+        trap_frame.rsp = thread_stack as u64;
+        trap_frame.rflags = 0x202;
 
         let mut parent = KERNEL_PROCESS.lock();
 
@@ -87,7 +89,8 @@ impl Thread {
             process: Arc::downgrade(&KERNEL_PROCESS),
             status: ThreadStatus::Ready,
             priority: ThreadPriority::Normal,
-            context: ctx,
+            context: UnsafeCell::new(core::ptr::null_mut()),
+            trap_frame: UnsafeCell::new(core::ptr::null_mut()),
             thread_stack,
             kernel_stack: None,
         }
@@ -96,13 +99,13 @@ impl Thread {
     pub fn kernel_thread_from_fn(entry: fn()) -> Self {
         let thread_stack = KERNEL_PROCESS.lock().new_kernel_stack();
 
-        let mut ctx = TrapFrame::new();
+        let mut trap_frame = TrapFrame::new();
 
-        ctx.ss = 0x10; // kernel stack segment
-        ctx.cs = 0x8; // kernel code segment
-        ctx.rip = entry as u64;
-        ctx.rsp = thread_stack as u64;
-        ctx.rflags = 0x202;
+        trap_frame.ss = 0x10; // kernel stack segment
+        trap_frame.cs = 0x8; // kernel code segment
+        trap_frame.rip = entry as u64;
+        trap_frame.rsp = thread_stack as u64;
+        trap_frame.rflags = 0x202;
 
         let mut parent = KERNEL_PROCESS.lock();
 
@@ -113,7 +116,8 @@ impl Thread {
             process: Arc::downgrade(&KERNEL_PROCESS),
             status: ThreadStatus::Ready,
             priority: ThreadPriority::Normal,
-            context: ctx,
+            trap_frame: UnsafeCell::new(core::ptr::null_mut()),
+            context: UnsafeCell::new(core::ptr::null_mut()),
             thread_stack,
             kernel_stack: None,
         }
@@ -123,13 +127,13 @@ impl Thread {
         let thread_stack = parent_process.lock().new_user_stack();
         let kernel_stack_end = parent_process.lock().new_kernel_stack();
 
-        let mut ctx = TrapFrame::new();
+        let mut trap_frame = TrapFrame::new();
 
-        ctx.ss = 0x2b; // user stack segment
-        ctx.cs = 0x33; // user code segment
-        ctx.rip = entry_point.as_u64();
-        ctx.rsp = thread_stack as u64;
-        ctx.rflags = 0x202;
+        trap_frame.ss = 0x2b; // user stack segment
+        trap_frame.cs = 0x33; // user code segment
+        trap_frame.rip = entry_point.as_u64();
+        trap_frame.rsp = thread_stack as u64;
+        trap_frame.rflags = 0x202;
 
         let mut parent = parent_process.lock();
 
@@ -139,7 +143,8 @@ impl Thread {
             process: Arc::downgrade(&parent_process),
             status: ThreadStatus::Ready,
             priority: ThreadPriority::Normal,
-            context: ctx,
+            trap_frame: UnsafeCell::new(core::ptr::null_mut()),
+            context: UnsafeCell::new(core::ptr::null_mut()),
             kernel_stack: Some(Box::pin(KernelStack {
                 user_space_stack: 0,
                 kernel_stack_top: kernel_stack_end,
@@ -160,8 +165,17 @@ impl Thread {
         self.priority = priority;
     }
 
-    pub fn is_kernel_thread(&self) -> bool {
-        self.context.cs == 0x8 && self.context.ss == 0x10
+    pub fn is_kernel_thread(&mut self) -> bool {
+        unsafe {
+            let trap_frame_ptr = self.trap_frame.get();
+            if trap_frame_ptr.is_null() {
+                false // Assuming null pointer means it's not a kernel thread
+            } else {
+                // Dereference the pointer safely and check cs and ss values
+                let trap_frame_ref = *trap_frame_ptr;
+                (*trap_frame_ref).cs == 0x8 && (*trap_frame_ref).ss == 0x10
+            }
+        }
     }
 
     pub fn get_process(&self) -> Option<Arc<Spinlock<Process>>> {

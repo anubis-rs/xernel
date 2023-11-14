@@ -1,6 +1,6 @@
 use core::arch::asm;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, PartialOrd)]
 pub enum IPL {
     IPL0 = 0,
     IPLAPC = 1,
@@ -55,7 +55,7 @@ pub fn raise_spl(spl: IPL) -> IPL {
     assert!(old_ipl as u64 <= spl as u64);
 
     if old_ipl < spl {
-        set_ipl(spl)
+        set_ipl(spl);
     }
 
     old_ipl

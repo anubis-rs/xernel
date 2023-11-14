@@ -43,7 +43,7 @@ use x86_64::VirtAddr;
 
 use crate::acpi::hpet;
 use crate::arch::amd64::apic;
-use crate::cpu::register_cpu;
+use crate::cpu::{current_cpu, register_cpu};
 use crate::cpu::wait_until_cpus_registered;
 use crate::cpu::CPU_COUNT;
 use crate::fs::vfs;
@@ -193,10 +193,14 @@ extern "C" fn kernel_main() -> ! {
 
     let kernel_task2 = Thread::kernel_thread_from_fn(task2);
 
-    Scheduler::add_thread_balanced(Arc::new(Spinlock::new(main_task)));
+    current_cpu().lock().run_queue.push_back(Arc::new(main_task));
+    current_cpu().lock().run_queue.push_back(Arc::new(kernel_task));
+    current_cpu().lock().run_queue.push_back(Arc::new(kernel_task2));
+
+    //Scheduler::add_thread_balanced(Arc::new(Spinlock::new(main_task)));
     //Scheduler::add_task_balanced(Arc::new(Spinlock::new(user_task)));
-    Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task)));
-    Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task2)));
+    //Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task)));
+    //Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task2)));
 
     unsafe {
         for (i, sched) in SCHEDULER.get_all().iter().enumerate() {

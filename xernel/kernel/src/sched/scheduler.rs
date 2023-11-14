@@ -2,8 +2,8 @@ use crate::acpi::hpet;
 use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::gdt::GDT_BSP;
 use crate::arch::{allocate_vector, register_handler};
-use crate::cpu::{get_per_cpu_data, PerCpu, CPU_COUNT};
-use crate::sched::context::restore_context;
+use crate::cpu::{current_cpu, PerCpu, CPU_COUNT, Cpu};
+use crate::arch::amd64::{save_context, switch_context};
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -14,6 +14,8 @@ use libxernel::sync::{Once, Spinlock, SpinlockIRQ};
 use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
+use crate::{dbg, println};
+use crate::sched::context::thread_trampoline;
 
 use super::context::TrapFrame;
 use super::process::Process;
@@ -120,11 +122,6 @@ impl Scheduler {
         }
     }
 
-    pub fn save_ctx(&mut self, ctx: TrapFrame) {
-        let mut task = self.threads.get_mut(0).unwrap().lock();
-        task.context = ctx;
-    }
-
     pub fn get_next_thread(&mut self) -> Option<Arc<Spinlock<Thread>>> {
         if self.threads.is_empty() {
             return None;
@@ -177,7 +174,7 @@ pub fn schedule_handle(ctx: TrapFrame) {
     if let Some(task) = sched.threads.front()
         && task.lock().status == ThreadStatus::Running
     {
-        sched.save_ctx(ctx);
+        //sched.save_ctx(ctx);
 
         sched.set_current_thread_status(ThreadStatus::Ready);
     }
@@ -202,11 +199,11 @@ pub fn schedule_handle(ctx: TrapFrame) {
 
             DS::set_reg(GDT_BSP.1.user_data_selector);
 
-            get_per_cpu_data().set_kernel_stack(thread.kernel_stack.as_ref().unwrap().kernel_stack_top);
+            current_cpu().lock().kernel_stack = thread.kernel_stack.as_ref().unwrap().kernel_stack_top;
         }
     }
 
-    let context = &thread.context as *const TrapFrame;
+    // let context = &thread.context as *const TrapFrame;
 
     APIC.eoi();
     APIC.oneshot(*SCHEDULER_VECTOR, thread.priority.ms() * 1000);
@@ -214,14 +211,47 @@ pub fn schedule_handle(ctx: TrapFrame) {
     thread.unlock();
     sched.unlock();
 
-    restore_context(context);
+    //thread_trampoline(context);
+    //
+    unsafe {
+        //switch_context(prev, next);
+    }
 }
 
-pub fn schedule() {
+fn next_thread(cpu: &mut Cpu) -> Arc<Thread> {
+
+    let next = cpu.run_queue.pop_front().expect("no thread").clone();
+
+    cpu.run_queue.push_back(next.clone());
+
+    next
+    // if let Some(thread) = cpu.run_queue.pop_front() {
+    //     thread.clone()
+    // } else {
+    //     //cpu.idle_thread.clone()
+    // }
+
+}
+
+pub fn schedule(_ctx: TrapFrame) {
 
     // Search for new task
     // switch_context
     // Add new event to EventQueue
+
+    let next = next_thread(&mut *current_cpu().lock());
+
+    let current = current_cpu().lock().current_thread.clone().unwrap();
+
+    if next.status == ThreadStatus::Initial {
+        unsafe {
+            save_context(current.context.get());
+
+            thread_trampoline(*next.trap_frame.get())
+        }
+    } else if next.status == ThreadStatus::Ready {
+
+    }
 
 }
 
@@ -229,7 +259,7 @@ pub fn init() {
     if !SCHEDULER_VECTOR.is_completed() {
         let vector = allocate_vector();
         SCHEDULER_VECTOR.set_once(vector);
-        register_handler(vector, schedule_handle);
+        register_handler(vector, schedule);
     }
 
     SCHEDULER.init(|| SpinlockIRQ::new(Scheduler::new()));
