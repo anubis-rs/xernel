@@ -19,9 +19,10 @@ use x86_64::VirtAddr;
 
 global_asm!(include_str!("switch.S"));
 
-extern "C" {
+extern "sysv64" {
     pub fn switch_context(old: *mut *mut Context, new: *const Context);
     pub fn save_context(old: *mut *mut Context);
+    pub fn restore_context(new: *const Context);
 }
 
 #[no_mangle]
@@ -69,7 +70,9 @@ pub fn read_cr2() -> VirtAddr {
     }
 }
 
-
+pub const FS_BASE: u32 = 0xC0000100;
+pub const GS_BASE: u32 = 0xC0000101;
+pub const KERNEL_GS_BASE: u32 = 0xC0000102;
 
 #[inline]
 pub unsafe fn wrmsr(msr: u32, value: u64) {

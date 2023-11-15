@@ -1,24 +1,25 @@
+use alloc::boxed::Box;
 use alloc::sync::Arc;
-use libxernel::sync::Spinlock;
-
-use super::context::{TrapFrame, Context};
-use super::process::{Process, KERNEL_PROCESS};
-
-use core::cell::UnsafeCell;
+use alloc::sync::Weak;
+use core::cell::{Cell, UnsafeCell};
 use core::pin::Pin;
 
-use alloc::boxed::Box;
-use alloc::sync::Weak;
 use x86_64::VirtAddr;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+use libxernel::sync::Spinlock;
+
+use super::context::{Context, TrapFrame};
+use super::process::{KERNEL_PROCESS, Process};
+
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 /// Current status of the thread
 pub enum ThreadStatus {
     Initial,
     Running,
     Ready,
     Sleeping,
-    BlockingOnIo, // TODO: better name
+    BlockingOnIo,
+    // TODO: better name
     Done,
 }
 
@@ -59,7 +60,7 @@ fn idle_thread_fn() {
 pub struct Thread {
     pub id: usize,
     pub process: Weak<Spinlock<Process>>,
-    pub status: ThreadStatus,
+    pub status: Cell<ThreadStatus>,
     pub priority: ThreadPriority,
     pub context: UnsafeCell<*mut Context>,
     pub trap_frame: UnsafeCell<*mut TrapFrame>,
@@ -87,10 +88,10 @@ impl Thread {
         Self {
             id: tid,
             process: Arc::downgrade(&KERNEL_PROCESS),
-            status: ThreadStatus::Ready,
+            status: Cell::new(ThreadStatus::Initial),
             priority: ThreadPriority::Normal,
             context: UnsafeCell::new(core::ptr::null_mut()),
-            trap_frame: UnsafeCell::new(core::ptr::null_mut()),
+            trap_frame: UnsafeCell::new(Box::into_raw(Box::new(trap_frame))),
             thread_stack,
             kernel_stack: None,
         }
@@ -114,9 +115,9 @@ impl Thread {
         Self {
             id: tid,
             process: Arc::downgrade(&KERNEL_PROCESS),
-            status: ThreadStatus::Ready,
+            status: Cell::new(ThreadStatus::Initial),
             priority: ThreadPriority::Normal,
-            trap_frame: UnsafeCell::new(core::ptr::null_mut()),
+            trap_frame: UnsafeCell::new(Box::into_raw(Box::new(trap_frame))),
             context: UnsafeCell::new(core::ptr::null_mut()),
             thread_stack,
             kernel_stack: None,
@@ -141,9 +142,9 @@ impl Thread {
             id: parent.next_tid(),
             thread_stack,
             process: Arc::downgrade(&parent_process),
-            status: ThreadStatus::Ready,
+            status: Cell::new(ThreadStatus::Initial),
             priority: ThreadPriority::Normal,
-            trap_frame: UnsafeCell::new(core::ptr::null_mut()),
+            trap_frame: UnsafeCell::new(Box::into_raw(Box::new(trap_frame))),
             context: UnsafeCell::new(core::ptr::null_mut()),
             kernel_stack: Some(Box::pin(KernelStack {
                 user_space_stack: 0,
@@ -165,15 +166,14 @@ impl Thread {
         self.priority = priority;
     }
 
-    pub fn is_kernel_thread(&mut self) -> bool {
+    pub fn is_kernel_thread(&self) -> bool {
         unsafe {
             let trap_frame_ptr = self.trap_frame.get();
-            if trap_frame_ptr.is_null() {
-                false // Assuming null pointer means it's not a kernel thread
-            } else {
-                // Dereference the pointer safely and check cs and ss values
+            if !trap_frame_ptr.is_null() {
                 let trap_frame_ref = *trap_frame_ptr;
                 (*trap_frame_ref).cs == 0x8 && (*trap_frame_ref).ss == 0x10
+            } else {
+                false
             }
         }
     }

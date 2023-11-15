@@ -1,13 +1,15 @@
+use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use core::cell::UnsafeCell;
+use core::cell::{Cell, UnsafeCell};
 use core::sync::atomic::{AtomicUsize, Ordering};
-use libxernel::sync::{Once, Spinlock};
+use libxernel::sync::{Once, RwLock, Spinlock};
 use x86_64::registers::model_specific::KernelGsBase;
 use x86_64::VirtAddr;
 
 use crate::arch::amd64::apic::APIC;
+use crate::arch::amd64::{KERNEL_GS_BASE, rdmsr, wrmsr};
 use crate::sched::thread::Thread;
 
 static CPU_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -59,7 +61,7 @@ impl<T> PerCpu<T> {
     pub fn get(&self) -> &T {
         self.check_initialized();
 
-        let cpu_id = current_cpu().lock().cpu_id;
+        let cpu_id = current_cpu().cpu_id;
         let vec = unsafe { &mut *self.data.get() };
         &vec[cpu_id]
     }
@@ -68,7 +70,7 @@ impl<T> PerCpu<T> {
     pub fn get_mut(&self) -> &mut T {
         self.check_initialized();
 
-        let cpu_id = current_cpu().lock().cpu_id;
+        let cpu_id = current_cpu().cpu_id;
         let vec = unsafe { &mut *self.data.get() };
         &mut vec[cpu_id]
     }
@@ -106,13 +108,13 @@ impl<T> PerCpu<T> {
 pub struct Cpu {
     // NOTE: don't move these variables as we need to access them from assembly
     user_space_stack: usize,
-    pub kernel_stack: usize,
+    pub kernel_stack: Cell<usize>,
 
     cpu_id: usize,
     lapic_id: u32,
-    pub run_queue: VecDeque<Arc<Thread>>,
-    pub wait_queue: VecDeque<Arc<Thread>>,
-    pub current_thread: Option<Arc<Thread>>,
+    pub run_queue: RwLock<VecDeque<Arc<Thread>>>,
+    pub wait_queue:  RwLock<VecDeque<Arc<Thread>>>,
+    pub current_thread:  RwLock<Option<Arc<Thread>>>,
     //pub idle_thread: Arc<Thread>,
 }
 
@@ -120,22 +122,24 @@ pub fn register_cpu() {
     let cpu_id = CPU_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
     let lapic_id = APIC.lapic_id();
 
-    let cpu_data = Arc::new(Spinlock::new(Cpu {
+    let cpu_data = Box::leak(Box::new(Cpu {
         user_space_stack: 0,
-        kernel_stack: 0,
+        kernel_stack: Cell::new(0),
         cpu_id,
         lapic_id,
-        run_queue: VecDeque::new(),
-        wait_queue: VecDeque::new(),
-        current_thread: None,
+        run_queue: RwLock::new(VecDeque::new()),
+        wait_queue: RwLock::new(VecDeque::new()),
+        current_thread: RwLock::new(None),
     }));
 
     // use KERNEL_GS_BASE to store the cpu_data
-    KernelGsBase::write(VirtAddr::new(Arc::as_ptr(&cpu_data) as *const _ as u64));
+    unsafe {
+        wrmsr(KERNEL_GS_BASE, (cpu_data as *const Cpu).expose_addr() as u64)
+    }
 }
 
-pub fn current_cpu() -> Arc<Spinlock<Cpu>> {
-    unsafe { Arc::from_raw(KernelGsBase::read().as_u64() as *const Spinlock<Cpu>) }
+pub fn current_cpu() -> &'static Cpu {
+    unsafe { &*core::ptr::from_exposed_addr(rdmsr(KERNEL_GS_BASE) as usize) }
 }
 
 pub fn wait_until_cpus_registered() {

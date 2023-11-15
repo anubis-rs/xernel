@@ -3,7 +3,7 @@ use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::gdt::GDT_BSP;
 use crate::arch::{allocate_vector, register_handler};
 use crate::cpu::{current_cpu, PerCpu, CPU_COUNT, Cpu};
-use crate::arch::amd64::{save_context, switch_context};
+use crate::arch::amd64::{restore_context, save_context, switch_context};
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -14,8 +14,9 @@ use libxernel::sync::{Once, Spinlock, SpinlockIRQ};
 use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
+use x86_64::structures::idt::ExceptionVector::Page;
 use crate::{dbg, println};
-use crate::sched::context::thread_trampoline;
+use crate::sched::context::{Context, thread_trampoline};
 
 use super::context::TrapFrame;
 use super::process::Process;
@@ -107,7 +108,7 @@ impl Scheduler {
                 while tasks_needed > 0 && !schedulers[j].threads.is_empty() && schedulers[j].threads.len() > avg_tasks {
                     let task = schedulers[j].threads.back().unwrap().lock();
 
-                    if task.status == ThreadStatus::Running {
+                    if task.status.get() == ThreadStatus::Running {
                         continue;
                     }
 
@@ -137,7 +138,7 @@ impl Scheduler {
     }
 
     pub fn set_current_thread_status(&mut self, status: ThreadStatus) {
-        self.threads.front_mut().unwrap().lock().status = status;
+        self.threads.front_mut().unwrap().lock().status.set(status);
     }
 
     fn executing_thread(&mut self) -> Arc<Spinlock<Thread>> {
@@ -145,7 +146,7 @@ impl Scheduler {
             let task = self.threads.front();
 
             if let Some(task) = task {
-                if task.lock().status != ThreadStatus::Running {
+                if task.lock().status.get() != ThreadStatus::Running {
                     panic!("current task not running");
                 }
             } else {
@@ -182,7 +183,7 @@ pub fn schedule_handle(ctx: TrapFrame) {
     let thread = sched.get_next_thread().unwrap_or(sched.idle_thread.clone());
     let mut thread = thread.lock();
 
-    thread.status = ThreadStatus::Running;
+    thread.status.set(ThreadStatus::Running);
 
     if !thread.is_kernel_thread() {
         unsafe {
@@ -199,7 +200,7 @@ pub fn schedule_handle(ctx: TrapFrame) {
 
             DS::set_reg(GDT_BSP.1.user_data_selector);
 
-            current_cpu().lock().kernel_stack = thread.kernel_stack.as_ref().unwrap().kernel_stack_top;
+            current_cpu().kernel_stack.set(thread.kernel_stack.as_ref().unwrap().kernel_stack_top);
         }
     }
 
@@ -218,42 +219,55 @@ pub fn schedule_handle(ctx: TrapFrame) {
     }
 }
 
-fn next_thread(cpu: &mut Cpu) -> Arc<Thread> {
-
-    let next = cpu.run_queue.pop_front().expect("no thread").clone();
-
-    cpu.run_queue.push_back(next.clone());
-
-    next
-    // if let Some(thread) = cpu.run_queue.pop_front() {
-    //     thread.clone()
-    // } else {
-    //     //cpu.idle_thread.clone()
-    // }
-
-}
-
 pub fn schedule(_ctx: TrapFrame) {
 
     // Search for new task
     // switch_context
     // Add new event to EventQueue
 
-    let next = next_thread(&mut *current_cpu().lock());
+    let cpu = current_cpu();
 
-    let current = current_cpu().lock().current_thread.clone().unwrap();
+    let next_ref = cpu.run_queue.write().pop_front();
 
-    if next.status == ThreadStatus::Initial {
+    let current_ref = cpu.current_thread.read().clone();
+
+    if let Some(current_thread) = current_ref {
+
+        current_thread.status.set(ThreadStatus::Ready);
+
         unsafe {
-            save_context(current.context.get());
-
-            thread_trampoline(*next.trap_frame.get())
+            dbg!("{:?}", *current_thread.context.get());
+            save_context(current_thread.context.get());
         }
-    } else if next.status == ThreadStatus::Ready {
-
     }
 
+    if let Some(next_thread) = next_ref {
+
+        cpu.run_queue.write().push_back(next_thread.clone());
+
+        *cpu.current_thread.write() = Some(next_thread.clone());
+
+        let status = cpu.current_thread.read().clone().unwrap().status.get();
+
+        cpu.current_thread.read().clone().unwrap().status.set(ThreadStatus::Running);
+
+        APIC.eoi();
+        APIC.oneshot(*SCHEDULER_VECTOR, next_thread.priority.ms() * 1000);
+
+        if status == ThreadStatus::Initial {
+            unsafe {
+                thread_trampoline(*next_thread.trap_frame.get())
+            }
+        } else if status == ThreadStatus::Ready {
+            unsafe {
+                restore_context(*next_thread.context.get())
+            }
+        }
+    }
 }
+
+fn switch_threads() {}
+
 
 pub fn init() {
     if !SCHEDULER_VECTOR.is_completed() {

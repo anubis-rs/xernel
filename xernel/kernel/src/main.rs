@@ -5,6 +5,7 @@
 #![feature(naked_functions)]
 #![feature(exclusive_range_pattern)]
 #![feature(let_chains)]
+#![feature(strict_provenance)]
 #![allow(dead_code)]
 #![allow(clippy::fn_to_numeric_cast)]
 #![allow(non_upper_case_globals)]
@@ -193,9 +194,9 @@ extern "C" fn kernel_main() -> ! {
 
     let kernel_task2 = Thread::kernel_thread_from_fn(task2);
 
-    current_cpu().lock().run_queue.push_back(Arc::new(main_task));
-    current_cpu().lock().run_queue.push_back(Arc::new(kernel_task));
-    current_cpu().lock().run_queue.push_back(Arc::new(kernel_task2));
+    current_cpu().run_queue.write().push_back(Arc::new(main_task));
+    current_cpu().run_queue.write().push_back(Arc::new(kernel_task));
+    current_cpu().run_queue.write().push_back(Arc::new(kernel_task2));
 
     //Scheduler::add_thread_balanced(Arc::new(Spinlock::new(main_task)));
     //Scheduler::add_task_balanced(Arc::new(Spinlock::new(user_task)));
