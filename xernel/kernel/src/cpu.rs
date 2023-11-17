@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use core::pin::Pin;
 use core::cell::{Cell, UnsafeCell};
 use core::sync::atomic::{AtomicUsize, Ordering};
 use libxernel::sync::{Once, RwLock, Spinlock};
@@ -138,8 +139,8 @@ pub fn register_cpu() {
     }
 }
 
-pub fn current_cpu() -> &'static Cpu {
-    unsafe { &*core::ptr::from_exposed_addr(rdmsr(KERNEL_GS_BASE) as usize) }
+pub fn current_cpu() -> Pin<&'static Cpu> {
+    unsafe { Pin::new_unchecked(&*core::ptr::from_exposed_addr(rdmsr(KERNEL_GS_BASE) as usize)) }
 }
 
 pub fn wait_until_cpus_registered() {
