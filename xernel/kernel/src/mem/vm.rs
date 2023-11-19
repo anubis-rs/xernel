@@ -10,8 +10,7 @@ use super::MMAP_START_ADDR;
 
 pub struct VmEntry {
     start: VirtAddr,
-    // TODO: should we remove one of these as it is reduntant?
-    end: VirtAddr,
+    end: VirtAddr, // TODO: remove end
     length: usize,
     prot: ProtectionFlags,
     flags: MapFlags,

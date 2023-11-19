@@ -1,8 +1,9 @@
-use crate::arch::amd64::ports::outb;
 use crate::sched::context::CpuContext;
+use crate::{arch::amd64::ports::outb, mem::mmap::handle_page_fault};
 use core::arch::asm;
 use core::mem::size_of;
 use libxernel::sync::{Spinlock, SpinlockIRQ};
+use x86_64::structures::idt::PageFaultErrorCode;
 
 use crate::arch::amd64::read_cr2;
 use paste::paste;
@@ -238,17 +239,26 @@ fn double_fault_handler(frame: CpuContext) {
 }
 
 fn page_fault_handler(frame: CpuContext) {
-    dbg!("EXCEPTION: PAGE FAULT");
-    dbg!("Accessed Address: {:?}", read_cr2());
-    dbg!("Error Code: {:?}", frame.error_code);
-    dbg!("{:#?}", frame);
-    println!("EXCEPTION: PAGE FAULT");
-    println!("Accessed Address: {:?}", read_cr2());
-    println!("Error Code: {:?}", frame.error_code);
-    println!("{:#?}", frame);
-    loop {
-        unsafe {
-            asm!("hlt");
+    let addr = read_cr2();
+    let error_code = PageFaultErrorCode::from_bits_truncate(frame.error_code);
+
+    let handled_successfully = handle_page_fault(addr, error_code);
+
+    if !handled_successfully {
+        dbg!("EXCEPTION: PAGE FAULT");
+        dbg!("Accessed Address: {:?}", read_cr2());
+        dbg!("Error Code: {:?}", frame.error_code);
+        dbg!("{:#?}", frame);
+
+        error!("EXCEPTION: PAGE FAULT");
+        error!("Accessed Address: {:?}", read_cr2());
+        error!("Error Code: {:?}", error_code);
+        error!("{:#?}", frame);
+
+        loop {
+            unsafe {
+                asm!("hlt");
+            }
         }
     }
 }

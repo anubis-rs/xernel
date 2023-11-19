@@ -1,6 +1,9 @@
 use libxernel::syscall::{MapFlags, ProtectionFlags, SyscallError};
 use x86_64::{
-    structures::paging::{PageSize, Size4KiB},
+    structures::{
+        idt::PageFaultErrorCode,
+        paging::{PageSize, Size4KiB},
+    },
     VirtAddr,
 };
 
@@ -32,4 +35,21 @@ pub fn mmap(
         }
         _ => todo!("mmap: implement MAP_SHARED and MAP_PRIVATE"),
     }
+}
+
+/// Handles a page fault and returns whether the fault was handled successfully
+pub fn handle_page_fault(addr: VirtAddr, error_code: PageFaultErrorCode) -> bool {
+    let process = Scheduler::current_process();
+    let mut process = process.lock();
+
+    let vm_entry = process.vm().get_entry_from_address(addr);
+
+    if let Some(vm_entry) = vm_entry {
+    } else {
+        return false;
+    }
+
+    if !error_code.contains(PageFaultErrorCode::PROTECTION_VIOLATION) {}
+
+    false
 }
