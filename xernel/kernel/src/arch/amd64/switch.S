@@ -41,6 +41,6 @@ restore_context:
     pop r13
     pop r12
     pop rbx
-    pop rbx
+    pop rbp
 
     ret
