@@ -23,14 +23,14 @@ switch_context:
   ret
 
 save_context:
-    push rbp
-    push rbx
-    push r12
-    push r13
-    push r14
-    push r15
+    mov [rdi], r15
+    mov [rdi + 8], r14
+    mov [rdi + 16], r13
+    mov [rdi + 24], r12
+    mov [rdi + 32], rbx
+    mov [rdi + 40], rbp
 
-    mov [rdi], rsp
+    # rsp???
     ret
 
 restore_context:

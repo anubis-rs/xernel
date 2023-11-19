@@ -237,7 +237,7 @@ pub fn schedule(_ctx: TrapFrame) {
 
         unsafe {
             dbg!("{:?}", *current_thread.context.get());
-            save_context(current_thread.context.get());
+            save_context(*current_thread.context.get());
         }
     }
 
