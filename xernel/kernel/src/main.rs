@@ -54,7 +54,7 @@ use crate::mem::paging::KERNEL_PAGE_MAPPER;
 use crate::sched::process::Process;
 use crate::sched::process::KERNEL_PROCESS;
 use crate::sched::scheduler;
-use crate::sched::scheduler::{Scheduler, SCHEDULER};
+use crate::sched::scheduler::Scheduler;
 use crate::sched::thread::Thread;
 use crate::utils::writer;
 use crate::utils::logger;
@@ -138,6 +138,8 @@ extern "C" fn kernel_main() -> ! {
         bootloader_info.version.to_str().unwrap()
     );
 
+    KERNEL_PROCESS.set_once(Arc::new(Spinlock::new(Process::new(None))));
+
     let smp_response = SMP_REQUEST.get_response().get_mut().unwrap();
 
     let bsp_lapic_id = smp_response.bsp_lapic_id;
@@ -151,8 +153,6 @@ extern "C" fn kernel_main() -> ! {
             cpu.goto_address = arch::amd64::x86_64_ap_main;
         }
     }
-
-    KERNEL_PROCESS.set_once(Arc::new(Spinlock::new(Process::new(None))));
 
     wait_until_cpus_registered();
 
@@ -176,17 +176,17 @@ extern "C" fn kernel_main() -> ! {
         true,
     );
 
-    unsafe {
-        let start_address_fn = test_userspace_fn as usize;
+    // unsafe {
+    //     let start_address_fn = test_userspace_fn as usize;
 
-        // the `test_userspace_fn` is very small and should fit in 512 bytes
-        for i in 0..512 {
-            let ptr = (0x200000 + i) as *mut u8;
-            let val = (start_address_fn + i) as *mut u8;
+    //     // the `test_userspace_fn` is very small and should fit in 512 bytes
+    //     for i in 0..512 {
+    //         let ptr = (0x200000 + i) as *mut u8;
+    //         let val = (start_address_fn + i) as *mut u8;
 
-            ptr.write_volatile(val.read_volatile());
-        }
-    }
+    //         ptr.write_volatile(val.read_volatile());
+    //     }
+    // }
 
     let main_task = Thread::kernel_thread_from_fn(kernel_main_task);
 
@@ -203,11 +203,11 @@ extern "C" fn kernel_main() -> ! {
     //Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task)));
     //Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task2)));
 
-    unsafe {
-        for (i, sched) in SCHEDULER.get_all().iter().enumerate() {
-            println!("cpu {} has {} tasks", i, sched.lock().threads.len());
-        }
-    }
+    // unsafe {
+    //     for (i, sched) in SCHEDULER.get_all().iter().enumerate() {
+    //         println!("cpu {} has {} tasks", i, sched.lock().threads.len());
+    //     }
+    // }
 
     Scheduler::hand_over();
 

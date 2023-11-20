@@ -3,24 +3,24 @@
 .global restore_context
 
 switch_context:
-  push rbp
-  push rbx
-  push r12
-  push r13
-  push r14
-  push r15
+    sub rsp, 0x30
+    mov [rsp + 0x00], rbx
+    mov [rsp + 0x08], rbp
+    mov [rsp + 0x10], r12
+    mov [rsp + 0x18], r13
+    mov [rsp + 0x20], r14
+    mov [rsp + 0x28], r15
+    mov [rdi], rsp
 
-  mov [rdi], rsp
-  mov rsp, rsi
-
-  pop r15
-  pop r14
-  pop r13
-  pop r12
-  pop rbx
-  pop rbp
-
-  ret
+    mov rsp, rsi
+    mov rbx, [rsp + 0x00]
+    mov rbp, [rsp + 0x08]
+    mov r12, [rsp + 0x10]
+    mov r13, [rsp + 0x18]
+    mov r14, [rsp + 0x20]
+    mov r15, [rsp + 0x28]
+    add rsp, 0x30
+    ret
 
 save_context:
     mov [rdi], r15

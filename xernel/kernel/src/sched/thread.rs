@@ -162,6 +162,23 @@ impl Thread {
         thread
     }
 
+    pub fn idle_thread() -> Self {
+        let thread_stack = KERNEL_PROCESS.lock().new_kernel_stack();
+
+        let mut parent = KERNEL_PROCESS.lock();
+
+        Self {
+            id: parent.next_tid(),
+            process: Arc::downgrade(&KERNEL_PROCESS),
+            status: Cell::new(ThreadStatus::Ready),
+            priority: ThreadPriority::Low,
+            context: UnsafeCell::new(core::ptr::null_mut()),
+            trap_frame: UnsafeCell::new(core::ptr::null_mut()),
+            thread_stack,
+            kernel_stack: None,
+        }
+    }
+
     pub fn set_priority(&mut self, priority: ThreadPriority) {
         self.priority = priority;
     }

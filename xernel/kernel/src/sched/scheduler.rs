@@ -2,8 +2,8 @@ use crate::acpi::hpet;
 use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::gdt::GDT_BSP;
 use crate::arch::{allocate_vector, register_handler};
-use crate::cpu::{current_cpu, PerCpu, CPU_COUNT, Cpu};
-use crate::arch::amd64::{restore_context, save_context, switch_context};
+use crate::cpu::{current_cpu, PerCpu, CPU_COUNT};
+use crate::arch::amd64::switch_context;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -14,9 +14,8 @@ use libxernel::sync::{Once, Spinlock, SpinlockIRQ};
 use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
-use x86_64::structures::idt::ExceptionVector::Page;
-use crate::{dbg, println};
-use crate::sched::context::{Context, thread_trampoline};
+use crate::dbg;
+use crate::sched::context::thread_trampoline;
 
 use super::context::TrapFrame;
 use super::process::Process;
@@ -181,7 +180,7 @@ pub fn schedule_handle(ctx: TrapFrame) {
     }
 
     let thread = sched.get_next_thread().unwrap_or(sched.idle_thread.clone());
-    let mut thread = thread.lock();
+    let thread = thread.lock();
 
     thread.status.set(ThreadStatus::Running);
 
@@ -231,15 +230,16 @@ pub fn schedule(_ctx: TrapFrame) {
 
     let current_ref = cpu.current_thread.read().clone();
 
+    let old;
+    let new;
+
     if let Some(current_thread) = current_ref {
-
-        current_thread.status.set(ThreadStatus::Ready);
-
-        unsafe {
-            dbg!("{:?}", *current_thread.context.get());
-            save_context(*current_thread.context.get());
-        }
+        old = current_thread.clone();
+    } else {
+        old = cpu.idle_thread.clone();
     }
+
+    old.status.set(ThreadStatus::Ready);
 
     if let Some(next_thread) = next_ref {
 
@@ -249,21 +249,29 @@ pub fn schedule(_ctx: TrapFrame) {
 
         let status = cpu.current_thread.read().clone().unwrap().status.get();
 
-        cpu.current_thread.read().clone().unwrap().status.set(ThreadStatus::Running);
+        //cpu.current_thread.read().clone().unwrap().status.set(ThreadStatus::Running);
 
         APIC.eoi();
         APIC.oneshot(*SCHEDULER_VECTOR, next_thread.priority.ms() * 1000);
+
+        new = next_thread.clone();
 
         if status == ThreadStatus::Initial {
             unsafe {
                 thread_trampoline(*next_thread.trap_frame.get())
             }
-        } else if status == ThreadStatus::Ready {
-            unsafe {
-                restore_context(*next_thread.context.get())
-            }
         }
+    } else {
+        new = cpu.idle_thread.clone();
     }
+
+    new.status.set(ThreadStatus::Running);
+
+    unsafe {
+        // FIXME: *new.context.get() is 0x0, causing page fault in assembly
+        switch_context(old.context.get(), *new.context.get());
+    }
+
 }
 
 fn switch_threads() {}

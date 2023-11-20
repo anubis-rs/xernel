@@ -5,9 +5,7 @@ use alloc::vec::Vec;
 use core::pin::Pin;
 use core::cell::{Cell, UnsafeCell};
 use core::sync::atomic::{AtomicUsize, Ordering};
-use libxernel::sync::{Once, RwLock, Spinlock};
-use x86_64::registers::model_specific::KernelGsBase;
-use x86_64::VirtAddr;
+use libxernel::sync::{Once, RwLock};
 
 use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::{KERNEL_GS_BASE, rdmsr, wrmsr};
@@ -116,7 +114,7 @@ pub struct Cpu {
     pub run_queue: RwLock<VecDeque<Arc<Thread>>>,
     pub wait_queue:  RwLock<VecDeque<Arc<Thread>>>,
     pub current_thread:  RwLock<Option<Arc<Thread>>>,
-    //pub idle_thread: Arc<Thread>,
+    pub idle_thread: Arc<Thread>,
 }
 
 pub fn register_cpu() {
@@ -127,10 +125,11 @@ pub fn register_cpu() {
         user_space_stack: 0,
         kernel_stack: Cell::new(0),
         cpu_id,
-        lapic_id,
+        lapic_id: 0,
         run_queue: RwLock::new(VecDeque::new()),
         wait_queue: RwLock::new(VecDeque::new()),
         current_thread: RwLock::new(None),
+        idle_thread: Arc::new(Thread::idle_thread()),
     }));
 
     // use KERNEL_GS_BASE to store the cpu_data
