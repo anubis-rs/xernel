@@ -21,8 +21,6 @@ global_asm!(include_str!("switch.S"));
 
 extern "C" {
     pub fn switch_context(old: *mut *mut Context, new: *const Context);
-    pub fn save_context(old: *mut Context);
-    pub fn restore_context(new: *const Context);
 }
 
 #[no_mangle]

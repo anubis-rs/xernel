@@ -14,8 +14,6 @@ use libxernel::sync::{Once, Spinlock, SpinlockIRQ};
 use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
-use crate::dbg;
-use crate::sched::context::thread_trampoline;
 
 use super::context::TrapFrame;
 use super::process::Process;
@@ -168,60 +166,7 @@ impl Scheduler {
     }
 }
 
-#[no_mangle]
-pub fn schedule_handle(ctx: TrapFrame) {
-    let mut sched = SCHEDULER.get().lock();
-    if let Some(task) = sched.threads.front()
-        && task.lock().status == ThreadStatus::Running
-    {
-        //sched.save_ctx(ctx);
-
-        sched.set_current_thread_status(ThreadStatus::Ready);
-    }
-
-    let thread = sched.get_next_thread().unwrap_or(sched.idle_thread.clone());
-    let thread = thread.lock();
-
-    thread.status.set(ThreadStatus::Running);
-
-    if !thread.is_kernel_thread() {
-        unsafe {
-            // SAFETY: a user thread always has a page table
-            let pt = thread.process.upgrade().unwrap().lock().get_page_table().unwrap();
-
-            let cr3 = Cr3::read_raw();
-            let cr3 = cr3.0.start_address().as_u64() | cr3.1 as u64;
-
-            // Only reload the page table if it's different to avoid unnecessary TLB flushes
-            if cr3 != pt.pml4().as_u64() {
-                pt.load_pt();
-            }
-
-            DS::set_reg(GDT_BSP.1.user_data_selector);
-
-            current_cpu().kernel_stack.set(thread.kernel_stack.as_ref().unwrap().kernel_stack_top);
-        }
-    }
-
-    // let context = &thread.context as *const TrapFrame;
-
-    APIC.eoi();
-    APIC.oneshot(*SCHEDULER_VECTOR, thread.priority.ms() * 1000);
-
-    thread.unlock();
-    sched.unlock();
-
-    //thread_trampoline(context);
-    //
-    unsafe {
-        //switch_context(prev, next);
-    }
-}
-
 pub fn schedule(_ctx: TrapFrame) {
-
-    // Search for new task
-    // switch_context
     // Add new event to EventQueue
 
     let cpu = current_cpu();
@@ -249,18 +194,10 @@ pub fn schedule(_ctx: TrapFrame) {
 
         let status = cpu.current_thread.read().clone().unwrap().status.get();
 
-        //cpu.current_thread.read().clone().unwrap().status.set(ThreadStatus::Running);
-
         APIC.eoi();
         APIC.oneshot(*SCHEDULER_VECTOR, next_thread.priority.ms() * 1000);
 
         new = next_thread.clone();
-
-        if status == ThreadStatus::Initial {
-            unsafe {
-                thread_trampoline(*next_thread.trap_frame.get())
-            }
-        }
     } else {
         new = cpu.idle_thread.clone();
     }
@@ -268,7 +205,6 @@ pub fn schedule(_ctx: TrapFrame) {
     new.status.set(ThreadStatus::Running);
 
     unsafe {
-        // FIXME: *new.context.get() is 0x0, causing page fault in assembly
         switch_context(old.context.get(), *new.context.get());
     }
 

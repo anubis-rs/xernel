@@ -8,6 +8,7 @@ use x86_64::VirtAddr;
 
 use libxernel::sync::Spinlock;
 
+use super::context::thread_trampoline;
 use super::context::{Context, TrapFrame};
 use super::process::{KERNEL_PROCESS, Process};
 
@@ -81,6 +82,13 @@ impl Thread {
         trap_frame.rsp = thread_stack as u64;
         trap_frame.rflags = 0x202;
 
+        let trap = UnsafeCell::new(Box::into_raw(Box::new(trap_frame)));
+
+        let mut context = Context::new();
+
+        context.rip = thread_trampoline as u64;
+        unsafe { context.rbx = *trap.get() as u64; }
+
         let mut parent = KERNEL_PROCESS.lock();
 
         let tid = parent.next_tid();
@@ -90,8 +98,8 @@ impl Thread {
             process: Arc::downgrade(&KERNEL_PROCESS),
             status: Cell::new(ThreadStatus::Initial),
             priority: ThreadPriority::Normal,
-            context: UnsafeCell::new(core::ptr::null_mut()),
-            trap_frame: UnsafeCell::new(Box::into_raw(Box::new(trap_frame))),
+            context: UnsafeCell::new(Box::into_raw(Box::new(context))),
+            trap_frame: trap,
             thread_stack,
             kernel_stack: None,
         }
@@ -108,6 +116,13 @@ impl Thread {
         trap_frame.rsp = thread_stack as u64;
         trap_frame.rflags = 0x202;
 
+        let trap = UnsafeCell::new(Box::into_raw(Box::new(trap_frame)));
+
+        let mut context = Context::new();
+
+        context.rip = thread_trampoline as u64;
+        unsafe { context.rbx = *trap.get() as u64; }
+
         let mut parent = KERNEL_PROCESS.lock();
 
         let tid = parent.next_tid();
@@ -117,8 +132,8 @@ impl Thread {
             process: Arc::downgrade(&KERNEL_PROCESS),
             status: Cell::new(ThreadStatus::Initial),
             priority: ThreadPriority::Normal,
-            trap_frame: UnsafeCell::new(Box::into_raw(Box::new(trap_frame))),
-            context: UnsafeCell::new(core::ptr::null_mut()),
+            trap_frame: trap,
+            context: UnsafeCell::new(Box::into_raw(Box::new(context))),
             thread_stack,
             kernel_stack: None,
         }

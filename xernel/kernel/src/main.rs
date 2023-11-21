@@ -158,6 +158,8 @@ extern "C" fn kernel_main() -> ! {
 
     scheduler::init();
 
+    info!("scheduler initialized");
+
     let process = Arc::new(Spinlock::new(Process::new(Some(KERNEL_PROCESS.clone()))));
 
     let _user_task = Thread::new_user_thread(process.clone(), VirtAddr::new(0x200000));

@@ -3,13 +3,13 @@ use core::arch::asm;
 #[derive(Debug, Clone, Copy, Default)]
 #[repr(C)]
 pub struct Context {
-    pub r15: u64,
-    pub r14: u64,
-    pub r13: u64,
-    pub r12: u64,
-
     pub rbx: u64,
     pub rbp: u64,
+    
+    pub r12: u64,
+    pub r13: u64,
+    pub r14: u64,
+    pub r15: u64,
 
     pub rip: u64,
 }
@@ -86,10 +86,10 @@ impl TrapFrame {
 #[naked]
 /// Restores the gives TrapFrame and jumps to new RIP via iretq
 /// Is used to startup a new thread when it's first executed
-pub extern "C" fn thread_trampoline(ctx: *const TrapFrame) -> ! {
+pub extern "C" fn thread_trampoline() -> ! {
     unsafe {
         asm!(
-            "mov rsp, rdi;
+            "mov rsp, rbx;
             pop rbp;
             pop rax;
             pop rbx;

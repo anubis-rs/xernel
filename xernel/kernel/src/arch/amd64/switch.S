@@ -1,6 +1,4 @@
 .global switch_context
-.global save_context
-.global restore_context
 
 switch_context:
     sub rsp, 0x30
@@ -20,27 +18,4 @@ switch_context:
     mov r14, [rsp + 0x20]
     mov r15, [rsp + 0x28]
     add rsp, 0x30
-    ret
-
-save_context:
-    mov [rdi], r15
-    mov [rdi + 8], r14
-    mov [rdi + 16], r13
-    mov [rdi + 24], r12
-    mov [rdi + 32], rbx
-    mov [rdi + 40], rbp
-
-    # rsp???
-    ret
-
-restore_context:
-    mov rsp, rdi
-
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
-    pop rbp
-
     ret
