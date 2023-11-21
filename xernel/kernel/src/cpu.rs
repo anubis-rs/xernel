@@ -125,7 +125,7 @@ pub fn register_cpu() {
         user_space_stack: 0,
         kernel_stack: Cell::new(0),
         cpu_id,
-        lapic_id: 0,
+        lapic_id: lapic_id,
         run_queue: RwLock::new(VecDeque::new()),
         wait_queue: RwLock::new(VecDeque::new()),
         current_thread: RwLock::new(None),
