@@ -2,7 +2,7 @@ pub mod apic;
 pub mod gdt;
 pub mod idt;
 pub mod ports;
-pub mod time;
+pub mod tsc;
 mod lapic;
 mod ioapic;
 pub mod cpuid;
