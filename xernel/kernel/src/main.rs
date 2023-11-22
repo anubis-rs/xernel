@@ -20,7 +20,7 @@ mod framebuffer;
 mod fs;
 mod sched;
 mod syscall;
-mod time;
+mod timer_queue;
 mod mem;
 mod utils;
 
@@ -55,11 +55,11 @@ use crate::sched::process::Process;
 use crate::sched::process::KERNEL_PROCESS;
 use crate::sched::scheduler;
 use crate::sched::scheduler::Scheduler;
+use crate::sched::scheduler::schedule;
 use crate::sched::thread::Thread;
 use crate::utils::writer;
 use crate::utils::logger;
 use crate::utils::backtrace;
-
 static BOOTLOADER_INFO: BootInfoRequest = BootInfoRequest::new(0);
 static SMP_REQUEST: SmpRequest = SmpRequest::new(0);
 

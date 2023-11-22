@@ -65,6 +65,7 @@ pub struct Thread {
     pub priority: ThreadPriority,
     pub context: UnsafeCell<*mut Context>,
     pub trap_frame: UnsafeCell<*mut TrapFrame>,
+    // pub affinity
     pub thread_stack: usize,
     /// Only a user space thread has a kernel stack
     pub kernel_stack: Option<Pin<Box<KernelStack>>>,
