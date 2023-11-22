@@ -110,7 +110,7 @@ pub struct Cpu {
     pub kernel_stack: Cell<usize>,
 
     cpu_id: usize,
-    lapic_id: u32,
+    pub lapic_id: u32,
     pub run_queue: RwLock<VecDeque<Arc<Thread>>>,
     pub wait_queue:  RwLock<VecDeque<Arc<Thread>>>,
     pub current_thread:  RwLock<Option<Arc<Thread>>>,
