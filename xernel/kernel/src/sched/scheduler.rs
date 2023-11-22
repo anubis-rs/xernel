@@ -160,13 +160,15 @@ impl Scheduler {
 
         interrupts::enable();
 
-        unsafe {
-            asm!("hlt");
+        loop {
+            unsafe {
+                asm!("hlt");
+            }
         }
     }
 }
 
-pub fn schedule(_ctx: TrapFrame) {
+pub fn schedule(_ctx: &mut TrapFrame) {
     // Add new event to EventQueue
 
     let cpu = current_cpu();

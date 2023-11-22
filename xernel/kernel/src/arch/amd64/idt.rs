@@ -120,7 +120,7 @@ impl Idtr {
 
 #[derive(Copy, Clone)]
 pub(super) enum IRQHandler {
-    Handler(fn(TrapFrame)),
+    Handler(fn(&mut TrapFrame)),
     None,
 }
 
@@ -184,8 +184,10 @@ pub fn init() {
 }
 
 #[no_mangle]
-extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: TrapFrame) {
+extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
     let handlers = INTERRUPT_HANDLERS.lock();
+
+    let ctx = unsafe { &mut *ctx };
 
     match &handlers[isr] {
         IRQHandler::Handler(handler) => {
@@ -199,7 +201,7 @@ extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: TrapFrame) {
 }
 
 pub fn allocate_vector() -> u8 {
-    static FREE_VECTOR: Spinlock<u8> = Spinlock::new(32);
+    static FREE_VECTOR: Spinlock<u8> = Spinlock::new(0x20);
 
     let mut free_vector = FREE_VECTOR.lock();
 
@@ -214,9 +216,7 @@ pub fn allocate_vector() -> u8 {
     ret
 }
 
-// Exception handlers should only be registered in idt::init
-// From outside only normal handlers are allowed to be registered
-pub fn register_handler(vector: u8, handler: fn(TrapFrame)) {
+pub fn register_handler(vector: u8, handler: fn(&mut TrapFrame)) {
     let mut handlers = INTERRUPT_HANDLERS.lock();
 
     match handlers[vector as usize] {
@@ -227,7 +227,7 @@ pub fn register_handler(vector: u8, handler: fn(TrapFrame)) {
     handlers[vector as usize] = IRQHandler::Handler(handler);
 }
 
-fn double_fault_handler(frame: TrapFrame) {
+fn double_fault_handler(frame: &mut TrapFrame) {
     dbg!("EXCEPTION: DOUBLE FAULT");
     dbg!("{:#?}", frame);
     dbg!("{}", frame.error_code);
@@ -241,7 +241,7 @@ fn double_fault_handler(frame: TrapFrame) {
     }
 }
 
-fn page_fault_handler(frame: TrapFrame) {
+fn page_fault_handler(frame: &mut TrapFrame) {
     dbg!("EXCEPTION: PAGE FAULT");
     dbg!("Accessed Address: {:?}", read_cr2());
     dbg!("Error Code: {:?}", frame.error_code);
@@ -257,7 +257,7 @@ fn page_fault_handler(frame: TrapFrame) {
     }
 }
 
-fn general_fault_handler(frame: TrapFrame) {
+fn general_fault_handler(frame: &mut TrapFrame) {
     dbg!("EXCEPTION: GENERAL PROTECTION FAULT");
     dbg!("{:?}", frame);
     dbg!("{:b}", frame.error_code);

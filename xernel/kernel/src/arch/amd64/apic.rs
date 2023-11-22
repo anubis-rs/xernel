@@ -18,6 +18,6 @@ pub fn init() {
     APIC.set_once(LocalApic::new());
 }
 
-pub fn apic_spurious_interrupt(_stack_frame: TrapFrame) {
+pub fn apic_spurious_interrupt(_stack_frame: &mut TrapFrame) {
     APIC.eoi();
 }
