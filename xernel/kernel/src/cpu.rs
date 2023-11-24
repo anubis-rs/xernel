@@ -2,13 +2,13 @@ use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use core::pin::Pin;
 use core::cell::{Cell, UnsafeCell};
+use core::pin::Pin;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use libxernel::sync::{Once, RwLock};
 
 use crate::arch::amd64::apic::APIC;
-use crate::arch::amd64::{KERNEL_GS_BASE, rdmsr, wrmsr};
+use crate::arch::amd64::{rdmsr, wrmsr, KERNEL_GS_BASE};
 use crate::sched::thread::Thread;
 
 static CPU_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -112,8 +112,8 @@ pub struct Cpu {
     cpu_id: usize,
     pub lapic_id: u32,
     pub run_queue: RwLock<VecDeque<Arc<Thread>>>,
-    pub wait_queue:  RwLock<VecDeque<Arc<Thread>>>,
-    pub current_thread:  RwLock<Option<Arc<Thread>>>,
+    pub wait_queue: RwLock<VecDeque<Arc<Thread>>>,
+    pub current_thread: RwLock<Option<Arc<Thread>>>,
     pub idle_thread: Arc<Thread>,
 }
 
@@ -133,9 +133,7 @@ pub fn register_cpu() {
     }));
 
     // use KERNEL_GS_BASE to store the cpu_data
-    unsafe {
-        wrmsr(KERNEL_GS_BASE, (cpu_data as *const Cpu).expose_addr() as u64)
-    }
+    unsafe { wrmsr(KERNEL_GS_BASE, (cpu_data as *const Cpu).expose_addr() as u64) }
 }
 
 pub fn current_cpu() -> Pin<&'static Cpu> {

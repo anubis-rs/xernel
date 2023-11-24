@@ -7,7 +7,7 @@ pub enum IPL {
     IPLDPC = 2,
     IPLDevice = 13,
     IPLClock = 14,
-    IPLHigh = 15
+    IPLHigh = 15,
 }
 
 impl From<u64> for IPL {

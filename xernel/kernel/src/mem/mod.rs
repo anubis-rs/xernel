@@ -4,9 +4,9 @@ pub mod mmap;
 pub mod paging;
 pub mod vm;
 
+use crate::info;
 use libxernel::sync::Once;
 use limine::HhdmRequest;
-use crate::info;
 
 static HHDM_REQUEST: HhdmRequest = HhdmRequest::new(0);
 

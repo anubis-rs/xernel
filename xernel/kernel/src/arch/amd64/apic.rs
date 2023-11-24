@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use libxernel::sync::{Once, Spinlock};
 
-use crate::arch::amd64::{ioapic};
+use crate::arch::amd64::ioapic;
 use crate::arch::amd64::ioapic::IOApic;
 use crate::arch::amd64::lapic::LocalApic;
 use crate::sched::context::TrapFrame;

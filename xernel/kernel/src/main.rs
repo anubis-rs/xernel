@@ -18,10 +18,10 @@ mod cpu;
 mod drivers;
 mod framebuffer;
 mod fs;
+mod mem;
 mod sched;
 mod syscall;
 mod timer_queue;
-mod mem;
 mod utils;
 
 use alloc::string::ToString;
@@ -44,9 +44,9 @@ use x86_64::VirtAddr;
 
 use crate::acpi::hpet;
 use crate::arch::amd64::apic;
-use crate::cpu::{current_cpu, register_cpu};
 use crate::cpu::wait_until_cpus_registered;
 use crate::cpu::CPU_COUNT;
+use crate::cpu::{current_cpu, register_cpu};
 use crate::fs::vfs;
 use crate::fs::vfs::VFS;
 use crate::mem::frame::FRAME_ALLOCATOR;
@@ -54,12 +54,12 @@ use crate::mem::paging::KERNEL_PAGE_MAPPER;
 use crate::sched::process::Process;
 use crate::sched::process::KERNEL_PROCESS;
 use crate::sched::scheduler;
-use crate::sched::scheduler::Scheduler;
 use crate::sched::scheduler::schedule;
+use crate::sched::scheduler::Scheduler;
 use crate::sched::thread::Thread;
-use crate::utils::writer;
-use crate::utils::logger;
 use crate::utils::backtrace;
+use crate::utils::logger;
+use crate::utils::writer;
 static BOOTLOADER_INFO: BootInfoRequest = BootInfoRequest::new(0);
 static SMP_REQUEST: SmpRequest = SmpRequest::new(0);
 

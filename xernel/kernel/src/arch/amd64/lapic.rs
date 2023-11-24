@@ -1,10 +1,10 @@
-use x86_64::{PhysAddr, VirtAddr};
-use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size4KiB};
 use crate::acpi::hpet;
 use crate::arch::amd64::rdmsr;
-use crate::mem::HIGHER_HALF_OFFSET;
-use crate::mem::paging::KERNEL_PAGE_MAPPER;
 use crate::debug;
+use crate::mem::paging::KERNEL_PAGE_MAPPER;
+use crate::mem::HIGHER_HALF_OFFSET;
+use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size4KiB};
+use x86_64::{PhysAddr, VirtAddr};
 
 const IA32_APIC_BASE_MSR: u32 = 0x1B;
 const IA32_TSC_DEADLINE_MSR: u32 = 0x6E0;
@@ -28,15 +28,13 @@ pub struct LocalApic {
 impl LocalApic {
     pub fn new() -> Self {
         let mut mapper = KERNEL_PAGE_MAPPER.lock();
-        
-        let mut apic_base = unsafe {
-            rdmsr(IA32_APIC_BASE_MSR)
-        };
+
+        let mut apic_base = unsafe { rdmsr(IA32_APIC_BASE_MSR) };
 
         // INFO: IA32_APIC_BASE_MSR contains two flags on bit 8 and bit 11
         // BSP flag, bit 8 ⎯ Indicates if the processor is the bootstrap processor (BSP).
         // APIC Global Enable flag, bit 11 ⎯ Enables or disables the local APIC
-        // To get the local apic base address, bit range 12 - 35, we set the flag bits to zero 
+        // To get the local apic base address, bit range 12 - 35, we set the flag bits to zero
         apic_base &= !(1 << 8);
         apic_base &= !(1 << 11);
 

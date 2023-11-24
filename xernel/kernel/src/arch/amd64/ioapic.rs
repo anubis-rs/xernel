@@ -3,9 +3,9 @@ use alloc::vec::Vec;
 use x86_64::structures::paging::PageTableFlags;
 use x86_64::{PhysAddr, VirtAddr};
 
-use crate::acpi::{ACPI};
+use crate::acpi::ACPI;
 use crate::mem::{paging::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};
-use crate::{debug, dbg};
+use crate::{dbg, debug};
 
 pub struct IOApic {
     id: u8,
@@ -28,7 +28,14 @@ impl IOApic {
 
     pub unsafe fn unmask_irq(&mut self) {}
 
-    pub unsafe fn write_irq(&mut self, irq_number: u8, irq_vector: u8, apic_id: u8, level_sensitive: bool, low_priority: bool) {
+    pub unsafe fn write_irq(
+        &mut self,
+        irq_number: u8,
+        irq_vector: u8,
+        apic_id: u8,
+        level_sensitive: bool,
+        low_priority: bool,
+    ) {
         let redirection_entry = (0x10 + irq_number * 2) as u32;
 
         if !(0x10..=0xFE).contains(&irq_vector) {
@@ -64,9 +71,13 @@ impl IOApic {
         debug!("{:?}", apic_info.io_apics);
 
         let mut mapper = KERNEL_PAGE_MAPPER.lock();
-        mapper.map_range(PhysAddr::new(self.address - *HIGHER_HALF_OFFSET),
-        VirtAddr::new(self.address), 0x2000, PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE,
-        true);
+        mapper.map_range(
+            PhysAddr::new(self.address - *HIGHER_HALF_OFFSET),
+            VirtAddr::new(self.address),
+            0x2000,
+            PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE,
+            true,
+        );
 
         unsafe {
             self.write_irq(1, 0x47, 0, false, true);

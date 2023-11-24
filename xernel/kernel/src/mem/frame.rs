@@ -1,6 +1,6 @@
 use core::ptr::NonNull;
 
-use crate::{allocator::buddy::BuddyAllocator, mem::HIGHER_HALF_OFFSET, dbg};
+use crate::{allocator::buddy::BuddyAllocator, dbg, mem::HIGHER_HALF_OFFSET};
 use libxernel::sync::{Once, Spinlock};
 use limine::{MemmapEntry, MemmapRequest, MemoryMapEntryType, NonNullPtr};
 use x86_64::{

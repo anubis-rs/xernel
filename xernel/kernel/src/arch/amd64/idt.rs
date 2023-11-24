@@ -6,11 +6,11 @@ use core::ptr::addr_of;
 use libxernel::sync::{Spinlock, SpinlockIRQ};
 use x86_64::structures::idt::PageFaultErrorCode;
 
+use crate::arch::amd64::apic::apic_spurious_interrupt;
 use crate::arch::amd64::read_cr2;
+use crate::{dbg, println};
 use paste::paste;
 use seq_macro::seq;
-use crate::arch::amd64::apic::apic_spurious_interrupt;
-use crate::{println, dbg};
 
 const IDT_ENTRIES: usize = 256;
 

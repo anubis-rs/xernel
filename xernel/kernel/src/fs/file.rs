@@ -5,7 +5,7 @@ use super::vnode::VNode;
 
 pub struct File {
     node: Arc<Spinlock<VNode>>,
-    offset: usize
+    offset: usize,
 }
 
 impl File {

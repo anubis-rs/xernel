@@ -1,18 +1,18 @@
 pub mod apic;
+pub mod cpuid;
 pub mod gdt;
 pub mod idt;
+mod ioapic;
+pub mod ipl;
+mod lapic;
 pub mod ports;
 pub mod tsc;
-mod lapic;
-mod ioapic;
-pub mod cpuid;
-pub mod ipl;
 
 use crate::arch::amd64::apic::APIC;
 use crate::cpu::register_cpu;
 use crate::sched::context::Context;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
-use crate::{KERNEL_PAGE_MAPPER, info};
+use crate::{info, KERNEL_PAGE_MAPPER};
 use core::arch::{asm, global_asm};
 use limine::SmpInfo;
 use x86_64::VirtAddr;
@@ -87,4 +87,3 @@ pub unsafe fn rdmsr(msr: u32) -> u64 {
     }
     ((high as u64) << 32) | (low as u64)
 }
-

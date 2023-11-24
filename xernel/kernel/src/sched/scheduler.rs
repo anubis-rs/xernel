@@ -1,9 +1,9 @@
 use crate::acpi::hpet;
 use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::gdt::GDT_BSP;
+use crate::arch::amd64::switch_context;
 use crate::arch::{allocate_vector, register_handler};
 use crate::cpu::{current_cpu, PerCpu, CPU_COUNT};
-use crate::arch::amd64::switch_context;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -189,7 +189,6 @@ pub fn schedule(_ctx: &mut TrapFrame) {
     old.status.set(ThreadStatus::Ready);
 
     if let Some(next_thread) = next_ref {
-
         cpu.run_queue.write().push_back(next_thread.clone());
 
         *cpu.current_thread.write() = Some(next_thread.clone());
@@ -209,11 +208,9 @@ pub fn schedule(_ctx: &mut TrapFrame) {
     unsafe {
         switch_context(old.context.get(), *new.context.get());
     }
-
 }
 
 fn switch_threads() {}
-
 
 pub fn init() {
     if !SCHEDULER_VECTOR.is_completed() {

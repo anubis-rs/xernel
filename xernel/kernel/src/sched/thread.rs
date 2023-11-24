@@ -10,7 +10,7 @@ use libxernel::sync::Spinlock;
 
 use super::context::thread_trampoline;
 use super::context::{Context, TrapFrame};
-use super::process::{KERNEL_PROCESS, Process};
+use super::process::{Process, KERNEL_PROCESS};
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 /// Current status of the thread
@@ -88,7 +88,9 @@ impl Thread {
         let mut context = Context::new();
 
         context.rip = thread_trampoline as u64;
-        unsafe { context.rbx = *trap.get() as u64; }
+        unsafe {
+            context.rbx = *trap.get() as u64;
+        }
 
         let mut parent = KERNEL_PROCESS.lock();
 
@@ -122,7 +124,9 @@ impl Thread {
         let mut context = Context::new();
 
         context.rip = thread_trampoline as u64;
-        unsafe { context.rbx = *trap.get() as u64; }
+        unsafe {
+            context.rbx = *trap.get() as u64;
+        }
 
         let mut parent = KERNEL_PROCESS.lock();
 
