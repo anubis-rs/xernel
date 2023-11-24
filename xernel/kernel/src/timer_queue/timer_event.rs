@@ -1,37 +1,42 @@
-use alloc::sync::Arc;
 use crate::current_cpu;
+use alloc::boxed::Box;
 
 pub trait EventExecutor {
-    fn dispatch(&self);
+    fn dispatch(self: Box<Self>);
+    fn deadline(&self) -> usize;
 }
 
 enum EventState {
     Waiting,
-    Running
+    Running,
 }
 
 pub struct TimerEvent<T> {
-    callback: fn(Arc<T>),
-    data: Arc<T>,
+    callback: fn(T),
+    data: T,
     deadline: usize,
     state: EventState,
     callback_core: u32,
 }
 
 impl<T> EventExecutor for TimerEvent<T> {
-    fn dispatch(&self) {
-        (self.callback)(self.data.clone())
+    fn dispatch(self: Box<Self>) {
+        (self.callback)(self.data)
+    }
+
+    fn deadline(&self) -> usize {
+        self.deadline
     }
 }
 
 impl<T> TimerEvent<T> {
-    pub fn new(callback: fn(Arc<T>), data: T, deadline: usize) -> Self {
+    pub fn new(callback: fn(T), data: T, deadline: usize) -> Self {
         Self {
             callback,
-            data: Arc::new(data),
+            data,
             deadline,
             state: EventState::Waiting,
-            callback_core: current_cpu().lapic_id
+            callback_core: current_cpu().lapic_id,
         }
     }
 }
