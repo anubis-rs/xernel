@@ -177,18 +177,15 @@ pub fn schedule(_ctx: &mut TrapFrame) {
 
     let current_ref = cpu.current_thread.read().clone();
 
-    let old;
-    let new;
-
-    if let Some(current_thread) = current_ref {
-        old = current_thread.clone();
+    let old = if let Some(current_thread) = current_ref {
+        current_thread.clone()
     } else {
-        old = cpu.idle_thread.clone();
-    }
+        cpu.idle_thread.clone()
+    };
 
     old.status.set(ThreadStatus::Ready);
 
-    if let Some(next_thread) = next_ref {
+    let new = if let Some(next_thread) = next_ref {
         cpu.run_queue.write().push_back(next_thread.clone());
 
         *cpu.current_thread.write() = Some(next_thread.clone());
@@ -198,10 +195,10 @@ pub fn schedule(_ctx: &mut TrapFrame) {
         APIC.eoi();
         APIC.oneshot(*SCHEDULER_VECTOR, next_thread.priority.ms() * 1000);
 
-        new = next_thread.clone();
+        next_thread.clone()
     } else {
-        new = cpu.idle_thread.clone();
-    }
+        cpu.idle_thread.clone()
+    };
 
     new.status.set(ThreadStatus::Running);
 
