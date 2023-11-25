@@ -216,6 +216,10 @@ pub fn allocate_vector() -> u8 {
     ret
 }
 
+pub fn allocate_vector_with_ipl(ipl: u8) -> u8 {
+    ipl
+}
+
 pub fn register_handler(vector: u8, handler: fn(&mut TrapFrame)) {
     let mut handlers = INTERRUPT_HANDLERS.lock();
 
