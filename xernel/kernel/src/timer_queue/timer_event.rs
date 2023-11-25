@@ -12,9 +12,9 @@ enum EventState {
 }
 
 pub struct TimerEvent<T> {
-    // callback: fn(T),
-    // data: T,
-    dpc: Dpc<T>,
+    callback: fn(T),
+    data: T,
+    //dpc: Dpc<T>,
 //    nanosecs: usize,
     deadline: usize,
     state: EventState,
@@ -24,7 +24,7 @@ pub struct TimerEvent<T> {
 
 impl<T> EventExecutor for TimerEvent<T> {
     fn dispatch(self: Box<Self>) {
-        (self.dpc.callback)(self.dpc.arg)
+        
     }
 
     fn deadline(&self) -> usize {
@@ -34,9 +34,10 @@ impl<T> EventExecutor for TimerEvent<T> {
 
 impl<T> TimerEvent<T> {
     pub fn new(callback: fn(T), data: T, deadline: usize) -> Self {
-        let dpc = Dpc::new(callback, data);
+   //     let dpc = Dpc::new(callback, data);
         Self {
-            dpc,
+            callback,
+            data,
             deadline,
             state: EventState::Waiting,
             callback_core: current_cpu().lapic_id,
