@@ -35,7 +35,6 @@ use limine::*;
 use x86_64::instructions::interrupts;
 
 use arch::amd64::gdt;
-use arch::amd64::idt;
 
 use x86_64::structures::paging::Page;
 use x86_64::structures::paging::PageTableFlags;
@@ -43,6 +42,7 @@ use x86_64::structures::paging::Size2MiB;
 use x86_64::VirtAddr;
 
 use crate::acpi::hpet;
+use crate::arch::amd64;
 use crate::arch::amd64::apic;
 use crate::cpu::wait_until_cpus_registered;
 use crate::cpu::CPU_COUNT;
@@ -88,9 +88,9 @@ extern "C" fn kernel_main() -> ! {
 
     gdt::init();
     info!("GDT loaded");
-    idt::init();
+    amd64::interrupts::init();
     info!("IDT loaded");
-    idt::disable_pic();
+    amd64::interrupts::disable_pic();
 
     mem::init();
 

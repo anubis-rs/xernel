@@ -1,7 +1,6 @@
 pub mod apic;
 pub mod cpuid;
 pub mod gdt;
-pub mod idt;
 pub mod interrupts;
 mod ioapic;
 mod lapic;
@@ -40,7 +39,7 @@ pub extern "C" fn x86_64_ap_main(boot_info: *const SmpInfo) -> ! {
     gdt::init_ap(ap_id);
     info!("CPU{}: gdt initialized", ap_id);
 
-    idt::init();
+    interrupts::init();
     info!("CPU{}: idt initialized", ap_id);
 
     register_cpu();

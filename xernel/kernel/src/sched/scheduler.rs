@@ -1,8 +1,9 @@
 use crate::acpi::hpet;
 use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::gdt::GDT_BSP;
+use crate::arch::amd64::interrupts::ipl::IPL;
 use crate::arch::amd64::switch_context;
-use crate::arch::{allocate_vector, register_handler};
+use crate::arch::amd64::interrupts::{allocate_vector, register_handler};
 use crate::cpu::{current_cpu, PerCpu, CPU_COUNT};
 use crate::println;
 use alloc::collections::VecDeque;
@@ -213,7 +214,7 @@ fn switch_threads() {}
 
 pub fn init() {
     if !SCHEDULER_VECTOR.is_completed() {
-        let vector = allocate_vector();
+        let vector = allocate_vector(IPL::IPLDPC).expect("Could not allocate vector for scheduler");
         SCHEDULER_VECTOR.set_once(vector);
         register_handler(vector, reschedule);
     }
