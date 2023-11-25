@@ -1,3 +1,4 @@
+use crate::sched::context::TrapFrame;
 use crate::timer_queue::timer_event::EventExecutor;
 use crate::timer_queue::timer_event::TimerEvent;
 use alloc::boxed::Box;
@@ -23,4 +24,13 @@ impl TimerQueue {
             .unwrap_or(self.events.len());
         self.events.insert(insert_index, Box::new(event));
     }
+}
+
+pub fn timer_interrupt_handler(frame: &mut TrapFrame) {
+    
+    // get event to fire.
+    // create dpc and add to queue
+    // if periodic, add again to queue
+    // set timer to next event in queue
+
 }

@@ -115,6 +115,8 @@ pub struct Cpu {
     pub wait_queue: RwLock<VecDeque<Arc<Thread>>>,
     pub current_thread: RwLock<Option<Arc<Thread>>>,
     pub idle_thread: Arc<Thread>,
+
+    //pub dpc_queue: RwLock<VecDeque<Dpc>>,
 }
 
 pub fn register_cpu() {
@@ -125,7 +127,7 @@ pub fn register_cpu() {
         user_space_stack: 0,
         kernel_stack: Cell::new(0),
         cpu_id,
-        lapic_id: lapic_id,
+        lapic_id,
         run_queue: RwLock::new(VecDeque::new()),
         wait_queue: RwLock::new(VecDeque::new()),
         current_thread: RwLock::new(None),

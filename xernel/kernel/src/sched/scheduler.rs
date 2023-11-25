@@ -4,6 +4,7 @@ use crate::arch::amd64::gdt::GDT_BSP;
 use crate::arch::amd64::switch_context;
 use crate::arch::{allocate_vector, register_handler};
 use crate::cpu::{current_cpu, PerCpu, CPU_COUNT};
+use crate::println;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -168,7 +169,7 @@ impl Scheduler {
     }
 }
 
-pub fn schedule(_ctx: &mut TrapFrame) {
+pub fn reschedule(_ctx: &mut TrapFrame) {
     // Add new event to EventQueue
 
     let cpu = current_cpu();
@@ -203,6 +204,7 @@ pub fn schedule(_ctx: &mut TrapFrame) {
     new.status.set(ThreadStatus::Running);
 
     unsafe {
+        println!("{:?} {:?}", old.context.get(), *new.context.get());
         switch_context(old.context.get(), *new.context.get());
     }
 }
@@ -213,7 +215,7 @@ pub fn init() {
     if !SCHEDULER_VECTOR.is_completed() {
         let vector = allocate_vector();
         SCHEDULER_VECTOR.set_once(vector);
-        register_handler(vector, schedule);
+        register_handler(vector, reschedule);
     }
 
     SCHEDULER.init(|| SpinlockIRQ::new(Scheduler::new()));

@@ -14,9 +14,11 @@ enum EventState {
 pub struct TimerEvent<T> {
     callback: fn(T),
     data: T,
+//    nanosecs: usize,
     deadline: usize,
     state: EventState,
     callback_core: u32,
+//    periodic: bool,
 }
 
 impl<T> EventExecutor for TimerEvent<T> {
