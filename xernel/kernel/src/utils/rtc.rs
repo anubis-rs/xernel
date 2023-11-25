@@ -5,18 +5,14 @@ const CMOSData: u16 = 0x71;
 
 pub struct Rtc;
 
-
 impl Rtc {
-
     pub fn read() {
         
         let status: u8 = Rtc::read_cmos(0x0b);
 
         let bcd: bool = !(status & 0x04) > 0;
 
-        while !(Rtc::read_cmos(0xa) & 0x80) > 0 {}
-
-        while Rtc::read_cmos(0xa) & 0x80 > 0 {
+        while Rtc::read_cmos(0x0A) & 0x80 > 0 {
             unsafe {
                 asm!("pause");
             }
@@ -29,7 +25,7 @@ impl Rtc {
         let month = Rtc::decode(Rtc::read_cmos(0x08), bcd);
         let year = Rtc::decode(Rtc::read_cmos(0x09), bcd) + 2000;
 
-        println!("{}-{}-{} {}:{}:{}", year, month, day, hour, minute, second);
+        println!("Booted at: {}-{}-{} {}:{}:{} GMT", year, month, day, hour, minute, second);
 
     }
 
@@ -47,5 +43,4 @@ impl Rtc {
             return inb(CMOSData);
         }
     }
-
 }

@@ -54,11 +54,11 @@ use crate::mem::paging::KERNEL_PAGE_MAPPER;
 use crate::sched::process::Process;
 use crate::sched::process::KERNEL_PROCESS;
 use crate::sched::scheduler;
-use crate::sched::scheduler::schedule;
 use crate::sched::scheduler::Scheduler;
 use crate::sched::thread::Thread;
 use crate::utils::backtrace;
 use crate::utils::logger;
+use crate::utils::rtc::Rtc;
 use crate::utils::writer;
 static BOOTLOADER_INFO: BootInfoRequest = BootInfoRequest::new(0);
 static SMP_REQUEST: SmpRequest = SmpRequest::new(0);
@@ -137,6 +137,8 @@ extern "C" fn kernel_main() -> ! {
         bootloader_info.name.to_str().unwrap(),
         bootloader_info.version.to_str().unwrap()
     );
+
+    Rtc::read();
 
     KERNEL_PROCESS.set_once(Arc::new(Spinlock::new(Process::new(None))));
 
