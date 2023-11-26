@@ -1,4 +1,10 @@
+use alloc::boxed::Box;
+
 use crate::sched::context::TrapFrame;
+
+pub trait DpcCall {
+    fn call(self: Box<Self>);
+}
 
 pub enum DpcState {
     DPCUnbound,
@@ -12,8 +18,13 @@ pub struct Dpc<T> {
     state: DpcState,
 }
 
-impl<T> Dpc<T> {
+impl<T> DpcCall for Dpc<T> {
+    fn call(self: Box<Self>) {
+        (self.callback)(self.arg)
+    } 
+}
 
+impl<T> Dpc<T> {
     pub fn new(callback: fn(T), data: T) -> Self {
         Self {
             callback,
@@ -21,9 +32,8 @@ impl<T> Dpc<T> {
             state: DpcState::DPCUnbound,
         }
     }
-
 }
 
-pub fn dpc_interrupt(frame: &mut TrapFrame) {
-
+pub fn dpc_interrupt_dispatch(frame: &mut TrapFrame) {
+     
 }

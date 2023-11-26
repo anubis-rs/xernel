@@ -1,3 +1,9 @@
+use crate::arch::amd64::apic::APIC;
+use crate::arch::amd64::interrupts::dpc::{self, Dpc};
+use crate::arch::amd64::interrupts::dpc_queue::DpcQueue;
+use crate::arch::amd64::{rdmsr, wrmsr, KERNEL_GS_BASE};
+use crate::sched::thread::Thread;
+use crate::timer_queue::timer_queue::TimerQueue;
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
@@ -6,11 +12,6 @@ use core::cell::{Cell, UnsafeCell};
 use core::pin::Pin;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use libxernel::sync::{Once, RwLock};
-use crate::arch::amd64::interrupts::dpc::{self, Dpc};
-use crate::arch::amd64::apic::APIC;
-use crate::arch::amd64::{rdmsr, wrmsr, KERNEL_GS_BASE};
-use crate::sched::thread::Thread;
-use crate::timer_queue::timer_queue::TimerQueue;
 
 static CPU_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
@@ -118,7 +119,7 @@ pub struct Cpu {
     pub idle_thread: Arc<Thread>,
 
     pub timer_queue: RwLock<TimerQueue>,
-//     pub dpc_queue: RwLock<VecDeque<Dpc>>,
+    pub dpc_queue: RwLock<DpcQueue>,
 }
 
 pub fn register_cpu() {
@@ -135,7 +136,7 @@ pub fn register_cpu() {
         current_thread: RwLock::new(None),
         idle_thread: Arc::new(Thread::idle_thread()),
         timer_queue: RwLock::new(TimerQueue::new()),
-//        dpc_queue: RwLock::new(VecDeque::new()),
+        dpc_queue: RwLock::new(DpcQueue::new()),
     }));
 
     // use KERNEL_GS_BASE to store the cpu_data

@@ -1,4 +1,7 @@
-use crate::{arch::amd64::ports::{inb, outb}, println};
+use crate::{
+    arch::amd64::ports::{inb, outb},
+    println,
+};
 use core::arch::asm;
 const CMOSAddress: u16 = 0x70;
 const CMOSData: u16 = 0x71;
@@ -7,7 +10,6 @@ pub struct Rtc;
 
 impl Rtc {
     pub fn read() {
-        
         let status: u8 = Rtc::read_cmos(0x0b);
 
         let bcd: bool = !(status & 0x04) > 0;
@@ -25,8 +27,10 @@ impl Rtc {
         let month = Rtc::decode(Rtc::read_cmos(0x08), bcd);
         let year = Rtc::decode(Rtc::read_cmos(0x09), bcd) + 2000;
 
-        println!("Booted at: {}-{}-{} {}:{}:{} GMT", year, month, day, hour, minute, second);
-
+        println!(
+            "Booted at: {}-{}-{} {}:{}:{} GMT",
+            year, month, day, hour, minute, second
+        );
     }
 
     fn decode(value: u8, bcd: bool) -> i64 {

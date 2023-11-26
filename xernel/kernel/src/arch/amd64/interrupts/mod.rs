@@ -1,6 +1,7 @@
 pub mod ipl;
 pub mod dpc;
 pub mod idt;
+pub mod dpc_queue;
 
 use crate::{println, dbg};
 use crate::arch::amd64::{ports::outb, read_cr2};
@@ -8,6 +9,8 @@ use crate::sched::context::TrapFrame;
 use core::arch::asm;
 use idt::{IRQHandler, IDT_ENTRIES};
 use ipl::IPL;
+
+use self::ipl::{get_spl, raise_spl, set_ipl};
 
 use super::apic::apic_spurious_interrupt;
 use libxernel::sync::{SpinlockIRQ, Spinlock};
@@ -25,9 +28,20 @@ pub fn init() {
     handlers[0xF0] = IRQHandler::Handler(apic_spurious_interrupt);
 }
 
-
 #[no_mangle]
 extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
+
+    let mut ipl = IPL::from(isr / 16);
+
+    if (ipl as u8) < (get_spl() as u8) {
+        println!("IPL not less or equal (running at {:?}, requested ipl {:?})", get_spl(), ipl);
+        panic!("IPL not less or equal");
+    }
+
+    println!("{:?}: {:?}", ipl, get_spl());
+
+    ipl = raise_spl(ipl);
+
     let handlers = INTERRUPT_HANDLERS.lock();
 
     let ctx = unsafe { &mut *ctx };
@@ -41,6 +55,8 @@ extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
 
         IRQHandler::None => panic!("unhandled interrupt {}", isr),
     }
+
+    set_ipl(ipl);
 }
 
 // pub fn allocate_vector() -> u8 {
@@ -79,7 +95,7 @@ pub fn allocate_vector(ipl: IPL) -> Option<u8> {
         0xF << 4
     ]);
 
-    if ipl > 15.into() {
+    if (ipl as u8) > 15 {
         return None;
     }
 

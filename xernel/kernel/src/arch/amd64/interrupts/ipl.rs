@@ -1,6 +1,6 @@
 use core::arch::asm;
 
-#[derive(Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[repr(u8)]
 pub enum IPL {
     IPL0 = 0,
@@ -13,6 +13,34 @@ pub enum IPL {
 
 impl From<u64> for IPL {
     fn from(value: u64) -> Self {
+        match value {
+            0 => IPL::IPL0,
+            1 => IPL::IPLAPC,
+            2 => IPL::IPLDPC,
+            13 => IPL::IPLDevice,
+            14 => IPL::IPLClock,
+            15 => IPL::IPLDevice,
+            _ => panic!("Bad IPL"),
+        }
+    }
+}
+
+impl From<usize> for IPL {
+    fn from(value: usize) -> Self {
+        match value {
+            0 => IPL::IPL0,
+            1 => IPL::IPLAPC,
+            2 => IPL::IPLDPC,
+            13 => IPL::IPLDevice,
+            14 => IPL::IPLClock,
+            15 => IPL::IPLDevice,
+            _ => panic!("Bad IPL"),
+        }
+    }
+}
+
+impl From<u8> for IPL {
+    fn from(value: u8) -> Self {
         match value {
             0 => IPL::IPL0,
             1 => IPL::IPLAPC,
@@ -63,5 +91,9 @@ pub fn raise_spl(spl: IPL) -> IPL {
 }
 
 pub fn ipl_lowered(from: IPL, to: IPL) {
-    // Dispatch DPC self ipi here if ipl went below IPLDPC
+
+    if (to as u8) < IPL::IPLDPC {
+        // self ipi to dpc interrupt handler
+    }
+
 }

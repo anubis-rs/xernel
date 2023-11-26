@@ -1,3 +1,1 @@
-pub enum CpuFeatures {
-
-}
+pub enum CpuFeatures {}

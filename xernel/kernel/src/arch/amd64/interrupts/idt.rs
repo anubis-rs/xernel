@@ -169,4 +169,3 @@ pub fn init() {
         idtr.load();
     }
 }
-

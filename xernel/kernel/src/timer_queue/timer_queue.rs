@@ -1,3 +1,4 @@
+use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::interrupts::allocate_vector;
 use crate::arch::amd64::interrupts::ipl::IPL;
 use crate::arch::amd64::interrupts::register_handler;
@@ -7,6 +8,9 @@ use crate::timer_queue::timer_event::EventExecutor;
 use crate::timer_queue::timer_event::TimerEvent;
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
+use libxernel::sync::Once;
+
+static TIMER_VECTOR: Once<u8> = Once::new();
 
 pub struct TimerQueue {
     events: VecDeque<Box<dyn EventExecutor>>,
@@ -37,23 +41,31 @@ impl TimerQueue {
 }
 
 pub fn init() {
-
     let vector = allocate_vector(IPL::IPLClock).expect("Could not allocate vector for timer interrupt");
 
-    register_handler(vector, timer_interrupt_handler);
+    TIMER_VECTOR.set_once(vector.clone());
 
+    register_handler(vector, timer_interrupt_handler);
 }
 
 pub fn timer_interrupt_handler(frame: &mut TrapFrame) {
-    
     // get event to fire.
     // create dpc and add to queue
     // if periodic, add again to queue
     // set timer to next event in queue
-   
+
     let cpu = current_cpu();
     let mut timer_queue = cpu.timer_queue.write();
 
     timer_queue.event_dispatch();
 
+    let next_event = cpu.timer_queue.read().events.front();
+
+    if let Some(event) = next_event {
+
+        APIC.oneshot(*TIMER_VECTOR, event.deadline());
+
+    } else {
+        // No event in event queue?
+    }
 }
