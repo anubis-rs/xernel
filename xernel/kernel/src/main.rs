@@ -11,6 +11,12 @@
 #![allow(non_upper_case_globals)]
 extern crate alloc;
 
+#[macro_use]
+mod writer;
+
+#[macro_use]
+mod logger;
+
 mod acpi;
 mod allocator;
 mod arch;

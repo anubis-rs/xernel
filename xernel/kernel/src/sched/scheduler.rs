@@ -5,7 +5,7 @@ use crate::arch::amd64::interrupts::ipl::IPL;
 use crate::arch::amd64::interrupts::{allocate_vector, register_handler};
 use crate::arch::amd64::switch_context;
 use crate::cpu::{current_cpu, PerCpu, CPU_COUNT};
-use crate::println;
+use crate::timer::timer_event::TimerEvent;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use alloc::vec::Vec;

@@ -11,7 +11,7 @@ use crate::arch::amd64::apic::APIC;
 use crate::cpu::register_cpu;
 use crate::sched::context::Context;
 use crate::sched::scheduler::{Scheduler, SCHEDULER};
-use crate::{info, KERNEL_PAGE_MAPPER};
+use crate::KERNEL_PAGE_MAPPER;
 use core::arch::{asm, global_asm};
 use limine::SmpInfo;
 use x86_64::VirtAddr;

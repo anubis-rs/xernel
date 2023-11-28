@@ -1,7 +1,4 @@
-use crate::{
-    arch::amd64::ports::{inb, outb},
-    println,
-};
+use crate::arch::amd64::ports::{inb, outb};
 use core::arch::asm;
 const CMOSAddress: u16 = 0x70;
 const CMOSData: u16 = 0x71;

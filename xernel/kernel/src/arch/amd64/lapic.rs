@@ -1,6 +1,5 @@
 use crate::acpi::hpet;
 use crate::arch::amd64::rdmsr;
-use crate::debug;
 use crate::mem::paging::KERNEL_PAGE_MAPPER;
 use crate::mem::HIGHER_HALF_OFFSET;
 use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size4KiB};

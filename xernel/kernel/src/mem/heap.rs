@@ -6,7 +6,7 @@ use linked_list_allocator::Heap;
 use x86_64::structures::paging::{Page, PageSize, PageTableFlags, PhysFrame, Size2MiB};
 use x86_64::VirtAddr;
 
-use crate::{allocator::align_up, info};
+use crate::allocator::align_up;
 
 use super::HEAP_START_ADDR;
 use super::{frame::FRAME_ALLOCATOR, paging::KERNEL_PAGE_MAPPER};

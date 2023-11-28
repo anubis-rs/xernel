@@ -4,7 +4,6 @@ pub mod mmap;
 pub mod paging;
 pub mod vm;
 
-use crate::info;
 use libxernel::sync::Once;
 use limine::HhdmRequest;
 
