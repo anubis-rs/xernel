@@ -3,13 +3,14 @@ pub mod dpc;
 pub mod idt;
 pub mod dpc_queue;
 
-use crate::{println, dbg};
 use crate::arch::amd64::{ports::outb, read_cr2};
 use crate::sched::context::TrapFrame;
 use core::arch::asm;
+use core::sync::atomic::{compiler_fence, Ordering};
 use idt::{IRQHandler, IDT_ENTRIES};
 use ipl::IPL;
 
+use self::dpc::{dpc_interrupt_dispatch, DPC_VECTOR};
 use self::ipl::{get_spl, raise_spl, set_ipl};
 
 use super::apic::apic_spurious_interrupt;
@@ -26,6 +27,14 @@ pub fn init() {
     handlers[0xE] = IRQHandler::Handler(page_fault_handler);
     handlers[0x8] = IRQHandler::Handler(double_fault_handler);
     handlers[0xF0] = IRQHandler::Handler(apic_spurious_interrupt);
+
+    let dpc_vector = allocate_vector(IPL::IPLDPC).expect("Could not allocate DPC Vector");
+
+    DPC_VECTOR.set_once(dpc_vector);
+
+    info!("DPC_VECTOR set to: {}", *DPC_VECTOR);
+
+    handlers[dpc_vector as usize] = IRQHandler::Handler(dpc_interrupt_dispatch);
 }
 
 #[no_mangle]
@@ -38,7 +47,7 @@ extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
         panic!("IPL not less or equal");
     }
 
-    println!("{:?}: {:?}", ipl, get_spl());
+    debug!("IRQL {:?} received while running on {:?}", ipl, get_spl());
 
     ipl = raise_spl(ipl);
 
@@ -48,6 +57,7 @@ extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
 
     match &handlers[isr] {
         IRQHandler::Handler(handler) => {
+            enable();
             let handler = *handler;
             handlers.unlock();
             handler(ctx);
@@ -57,6 +67,22 @@ extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
     }
 
     set_ipl(ipl);
+}
+
+#[inline]
+pub fn enable() {
+    compiler_fence(Ordering::Release);
+    unsafe {
+        asm!("sti", options(nomem, nostack));
+    }
+}
+
+#[inline]
+pub fn disable() {
+    compiler_fence(Ordering::Acquire);
+    unsafe {
+        asm!("cli", options(nomem, nostack));
+    }
 }
 
 // pub fn allocate_vector() -> u8 {

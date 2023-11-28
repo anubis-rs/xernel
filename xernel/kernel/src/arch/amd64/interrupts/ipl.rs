@@ -1,5 +1,9 @@
 use core::arch::asm;
 
+use crate::{arch::amd64::apic::APIC, cpu::current_cpu};
+
+use super::dpc::DPC_VECTOR;
+
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[repr(u8)]
 pub enum IPL {
@@ -92,8 +96,11 @@ pub fn raise_spl(spl: IPL) -> IPL {
 
 pub fn ipl_lowered(from: IPL, to: IPL) {
 
-    if (to as u8) < IPL::IPLDPC {
-        // self ipi to dpc interrupt handler
+    debug!("IPL lowered");
+
+    if (to as u8) < (IPL::IPLDPC as u8) {
+        //APIC.send_ipi(current_cpu().lapic_id, *DPC_VECTOR as u32);
+        current_cpu().dpc_queue.write().work_off();
     }
 
 }

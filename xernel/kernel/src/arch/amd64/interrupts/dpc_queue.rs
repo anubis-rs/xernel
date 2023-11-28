@@ -16,4 +16,12 @@ impl DpcQueue {
     pub fn add_dpc<T: 'static>(&mut self, dpc: Dpc<T>) {
         self.dpcs.push_front(Box::new(dpc));
     }
+
+    pub fn work_off(&mut self) {
+
+        for i in self.dpcs.drain(..) {
+            i.call();
+        }
+        
+    }
 }

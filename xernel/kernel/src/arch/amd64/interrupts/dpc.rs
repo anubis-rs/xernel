@@ -1,6 +1,9 @@
 use alloc::boxed::Box;
+use libxernel::sync::Once;
 
-use crate::sched::context::TrapFrame;
+use crate::{sched::context::TrapFrame, cpu::current_cpu, dbg};
+
+pub static DPC_VECTOR: Once<u8> = Once::new();
 
 pub trait DpcCall {
     fn call(self: Box<Self>);
@@ -35,5 +38,8 @@ impl<T> Dpc<T> {
 }
 
 pub fn dpc_interrupt_dispatch(frame: &mut TrapFrame) {
-     
+    dbg!("in dpc interrupt dispatch");
+    let cpu = current_cpu();
+
+    cpu.dpc_queue.write().work_off();
 }

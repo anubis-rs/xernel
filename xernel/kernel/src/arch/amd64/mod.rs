@@ -86,3 +86,11 @@ pub unsafe fn rdmsr(msr: u32) -> u64 {
     }
     ((high as u64) << 32) | (low as u64)
 }
+
+pub fn hcf() -> ! {
+    unsafe {
+        loop {
+            asm!("hlt");
+        }
+    }
+}

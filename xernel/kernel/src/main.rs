@@ -50,6 +50,7 @@ use x86_64::VirtAddr;
 use crate::acpi::hpet;
 use crate::arch::amd64;
 use crate::arch::amd64::apic;
+use crate::arch::amd64::hcf;
 use crate::cpu::wait_until_cpus_registered;
 use crate::cpu::CPU_COUNT;
 use crate::cpu::{current_cpu, register_cpu};
@@ -219,8 +220,14 @@ extern "C" fn kernel_main() -> ! {
     //         println!("cpu {} has {} tasks", i, sched.lock().threads.len());
     //     }
     // }
+   
+    let event = TimerEvent::new(schedule, (), 1000, false);
 
-    Scheduler::hand_over();
+    current_cpu().timer_queue.write().queue_event(event);
+
+    amd64::interrupts::enable();
+
+    hcf();
 
     unreachable!();
 }
