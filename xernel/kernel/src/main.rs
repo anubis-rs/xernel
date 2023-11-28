@@ -27,7 +27,7 @@ mod fs;
 mod mem;
 mod sched;
 mod syscall;
-mod timer_queue;
+mod timer;
 mod utils;
 
 use alloc::string::ToString;
@@ -60,12 +60,12 @@ use crate::mem::paging::KERNEL_PAGE_MAPPER;
 use crate::sched::process::Process;
 use crate::sched::process::KERNEL_PROCESS;
 use crate::sched::scheduler;
-use crate::sched::scheduler::Scheduler;
+use crate::sched::scheduler::schedule;
 use crate::sched::thread::Thread;
+use crate::timer::timer_event::TimerEvent;
+use crate::timer::timer_queue;
 use crate::utils::backtrace;
-use crate::utils::logger;
 use crate::utils::rtc::Rtc;
-use crate::utils::writer;
 static BOOTLOADER_INFO: BootInfoRequest = BootInfoRequest::new(0);
 static SMP_REQUEST: SmpRequest = SmpRequest::new(0);
 
@@ -165,6 +165,7 @@ extern "C" fn kernel_main() -> ! {
     wait_until_cpus_registered();
 
     scheduler::init();
+    timer_queue::init();
 
     info!("scheduler initialized");
 

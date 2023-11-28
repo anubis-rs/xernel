@@ -3,7 +3,7 @@ use crate::arch::amd64::interrupts::dpc::{self, Dpc};
 use crate::arch::amd64::interrupts::dpc_queue::DpcQueue;
 use crate::arch::amd64::{rdmsr, wrmsr, KERNEL_GS_BASE};
 use crate::sched::thread::Thread;
-use crate::timer_queue::timer_queue::TimerQueue;
+use crate::timer::timer_queue::TimerQueue;
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
