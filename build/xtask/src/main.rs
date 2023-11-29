@@ -17,6 +17,7 @@ FLAGS:
     --ram           Set the amount of RAM in given size (M for Megabyte and G for Gigabyte) (default: 128M).
     --wsl-qemu      If you use wsl but got a X server installed like GWSL you can use this flag to say you want to use the qemu you've got installed with your wsl distro and not on windows (also possible to use a env variable called qemu_in_wsl and setting it to true)
     --kvm           Use KVM for QEMU (default: false).
+    --monitor       Enable QEMU monitor 
 SUBCOMMANDS:
     build           Build the kernel without running it.
     run             Build and run the kernel using QEMU.
@@ -170,6 +171,13 @@ fn run(sh: &Shell, gdb: bool, mut args: Arguments) -> Result<()> {
         &[][..]
     };
 
+
+    let qemu_monitor = if args.contains("--monitor") {
+        &["-monitor"]
+    } else {
+        &["-debugcon"]
+    };
+
     let mut file_extension = "";
 
     let qemu_in_wsl_arg = args.contains("--wsl-qemu");
@@ -194,7 +202,7 @@ fn run(sh: &Shell, gdb: bool, mut args: Arguments) -> Result<()> {
                 -cdrom xernel.hdd 
                 --no-reboot 
                 --no-shutdown
-                -debugcon stdio
+                {qemu_monitor...} stdio
                 -d int 
                 -D qemu.log
                 {kvm...}
