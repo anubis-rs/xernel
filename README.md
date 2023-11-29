@@ -1,6 +1,5 @@
 # xernel
-A kernel that tries to support multiple architectures/platforms using a hybrid kernel architecture.
-It's using the limine protocol.
+A kernel for x86-64 (and maybe ARM/RISC-V later on) using the limine boot protocol.
 Mostly made for learning purposes, no real-world application.
 
 ![xernel](status_quo.png)
