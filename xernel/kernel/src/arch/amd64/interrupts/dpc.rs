@@ -1,4 +1,4 @@
-use alloc::boxed::Box;
+use alloc::{boxed::Box, sync::Arc};
 use libxernel::sync::Once;
 
 use crate::{sched::context::TrapFrame, cpu::current_cpu, dbg};
@@ -38,7 +38,7 @@ impl<T> Dpc<T> {
 }
 
 pub fn dpc_interrupt_dispatch(frame: &mut TrapFrame) {
-    dbg!("in dpc interrupt dispatch");
+    debug!("in dpc interrupt dispatch");
     let cpu = current_cpu();
 
     cpu.dpc_queue.write().work_off();

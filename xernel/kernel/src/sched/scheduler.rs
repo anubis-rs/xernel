@@ -239,9 +239,11 @@ pub fn schedule(_: ()) {
 
     new.status.set(ThreadStatus::Running);
 
-    let event = TimerEvent::new(schedule, (), new.priority.ms() as usize, false);
+    let event = TimerEvent::new(schedule, (), (new.priority.ms() * 3000) as usize, false);
 
     cpu.timer_queue.write().queue_event(event);
+
+    APIC.oneshot(224, new.priority.ms() * 3000);
 
     unsafe {
         println!("{:?} {:?}", old.context.get(), *new.context.get());

@@ -1,4 +1,4 @@
-use alloc::{collections::VecDeque, boxed::Box};
+use alloc::{collections::VecDeque, boxed::Box, sync::Arc};
 
 use super::dpc::{Dpc, DpcCall};
 
@@ -13,8 +13,8 @@ impl DpcQueue {
         }
     }
 
-    pub fn add_dpc<T: 'static>(&mut self, dpc: Dpc<T>) {
-        self.dpcs.push_front(Box::new(dpc));
+    pub fn add_dpc(&mut self, dpc: Box<dyn DpcCall>) {
+        self.dpcs.push_front(dpc);
     }
 
     pub fn work_off(&mut self) {
@@ -22,6 +22,8 @@ impl DpcQueue {
         for i in self.dpcs.drain(..) {
             i.call();
         }
+
+        println!("after call to schedule");
         
     }
 }
