@@ -1,8 +1,6 @@
 use core::arch::asm;
 
-use crate::{arch::amd64::apic::APIC, cpu::current_cpu};
-
-use super::dpc::DPC_VECTOR;
+use crate::{arch::amd64::{apic::APIC, interrupts::dpc::DPC_VECTOR}, cpu::current_cpu};
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[repr(u8)]
@@ -23,7 +21,7 @@ impl From<u64> for IPL {
             2 => IPL::IPLDPC,
             13 => IPL::IPLDevice,
             14 => IPL::IPLClock,
-            15 => IPL::IPLDevice,
+            15 => IPL::IPLHigh,
             _ => panic!("Bad IPL"),
         }
     }
@@ -37,7 +35,7 @@ impl From<usize> for IPL {
             2 => IPL::IPLDPC,
             13 => IPL::IPLDevice,
             14 => IPL::IPLClock,
-            15 => IPL::IPLDevice,
+            15 => IPL::IPLHigh,
             _ => panic!("Bad IPL"),
         }
     }
@@ -51,7 +49,7 @@ impl From<u8> for IPL {
             2 => IPL::IPLDPC,
             13 => IPL::IPLDevice,
             14 => IPL::IPLClock,
-            15 => IPL::IPLDevice,
+            15 => IPL::IPLHigh,
             _ => panic!("Bad IPL"),
         }
     }
@@ -96,10 +94,10 @@ pub fn raise_spl(spl: IPL) -> IPL {
 
 pub fn ipl_lowered(from: IPL, to: IPL) {
 
-    debug!("IPL lowered");
+    debug!("IPL lowered from {:?} to {:?}", from, to);
 
     if (to as u8) < (IPL::IPLDPC as u8) {
-        //APIC.send_ipi(current_cpu().lapic_id, *DPC_VECTOR as u32);
+        APIC.send_ipi(current_cpu().lapic_id, *DPC_VECTOR as u32);
         current_cpu().dpc_queue.write().work_off();
     }
 
