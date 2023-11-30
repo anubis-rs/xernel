@@ -2,7 +2,7 @@ use crate::{arch::amd64::interrupts::dpc::{Dpc, DpcCall}, current_cpu};
 use alloc::{boxed::Box, sync::Arc};
 
 pub trait EventExecutor {
-    fn dispatch(&self);
+    fn dispatch(self);
 }
 
 enum EventState {
@@ -20,8 +20,8 @@ pub struct TimerEvent {
 }
 
 impl EventExecutor for TimerEvent {
-    fn dispatch(&self) {
-        current_cpu().dpc_queue.write().add_dpc(self.dpc.clone());
+    fn dispatch(self) {
+        current_cpu().dpc_queue.write().add_dpc(self.dpc);
     }
 }
 
