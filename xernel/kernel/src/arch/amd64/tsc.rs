@@ -1,9 +1,23 @@
-use core::arch::asm;
+use core::{arch::asm, sync::atomic::{AtomicU64, Ordering}};
 use libxernel::sync::Once;
 
-pub static TSC_FREQUENCY: Once<u64> = Once::new();
+use crate::acpi::hpet;
 
-pub fn calibrate_tsc() {}
+pub static TSC_TICKS_PER_MS: AtomicU64 = AtomicU64::new(0);
+
+pub fn calibrate_tsc() {
+    let start: u64 = rdtsc();
+    hpet::sleep(10_000_000);
+    let end: u64 = rdtsc();
+
+    println!("start: {} end: {}", start, end);
+
+    let ticks_per_ms = (end - start) / 10;
+
+    println!("ticks_per_ms: {}", ticks_per_ms);
+
+    TSC_TICKS_PER_MS.store(ticks_per_ms, Ordering::SeqCst);
+}
 
 pub fn rdtsc() -> u64 {
     let ret: u64;

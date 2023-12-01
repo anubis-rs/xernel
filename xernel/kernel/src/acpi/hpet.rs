@@ -1,3 +1,5 @@
+use core::hint::spin_loop;
+
 use libxernel::sync::Once;
 use x86_64::{
     structures::paging::{Page, PageTableFlags, PhysFrame, Size4KiB},
@@ -12,6 +14,7 @@ const HPET_CONFIGURATION_REGISTER_OFFSET: u64 = 0x10;
 const HPET_MAIN_COUNTER_REGISTER_OFFSET: u64 = 0xF0;
 
 static HPET_FREQUENCY: Once<u64> = Once::new();
+static HPET_PERIOD: Once<u64> = Once::new();
 static HPET_CLOCK_TICK_UNIT: Once<u16> = Once::new();
 static HPET_BASE_ADDRESS: Once<u64> = Once::new();
 
@@ -31,9 +34,19 @@ pub fn init() {
     );
 
     let period = (read(0) >> 32) & u64::MAX;
+
+    assert!(period != 0);
+    assert!(period <= 0x05F5E100);
+
     let f = (u64::pow(10, 15) as f64 / period as f64) as u64;
 
+    dbg!("HPET Period: {} femtoseconds", period);
+    dbg!("HPET Period: {} nanoseconds", period / 1_000_000);
+    dbg!("HPET Frequency: {} Hz", f);
+    dbg!("HPET Frequency: {} MHz", f / 1_000_000);
+
     HPET_FREQUENCY.set_once(f);
+    HPET_PERIOD.set_once(period);
 
     // set ENABLE_CNF bit
     write(
@@ -48,6 +61,14 @@ pub fn read_main_counter() -> u64 {
 
 pub fn frequency() -> u64 {
     *HPET_FREQUENCY
+}
+
+pub fn sleep(nanos: u64) {
+    let target_counter = read_main_counter() + ((nanos * 1_000_000) / *HPET_PERIOD);
+
+    while read_main_counter() < target_counter {
+        spin_loop();
+    }
 }
 
 /// returns the number of microseconds since start of the hpet

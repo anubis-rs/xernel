@@ -170,47 +170,7 @@ impl Scheduler {
     }
 }
 
-pub fn reschedule(_ctx: &mut TrapFrame) {
-    // Add new event to EventQueue
-
-    let cpu = current_cpu();
-
-    let next_ref = cpu.run_queue.write().pop_front();
-
-    let current_ref = cpu.current_thread.read().clone();
-
-    let old = if let Some(current_thread) = current_ref {
-        current_thread.clone()
-    } else {
-        cpu.idle_thread.clone()
-    };
-
-    old.status.set(ThreadStatus::Ready);
-
-    let new = if let Some(next_thread) = next_ref {
-        cpu.run_queue.write().push_back(next_thread.clone());
-
-        *cpu.current_thread.write() = Some(next_thread.clone());
-
-        let status = cpu.current_thread.read().clone().unwrap().status.get();
-
-        APIC.eoi();
-        APIC.oneshot(*SCHEDULER_VECTOR, next_thread.priority.ms() * 1000);
-
-        next_thread.clone()
-    } else {
-        cpu.idle_thread.clone()
-    };
-
-    new.status.set(ThreadStatus::Running);
-
-    unsafe {
-        println!("{:?} {:?}", old.context.get(), *new.context.get());
-        switch_context(old.context.get(), *new.context.get());
-    }
-}
-
-pub fn schedule(_: ()) {
+pub fn reschedule(_: ()) {
     let cpu = current_cpu();
 
     let next_ref = cpu.run_queue.write().pop_front();
@@ -239,11 +199,9 @@ pub fn schedule(_: ()) {
 
     new.status.set(ThreadStatus::Running);
 
-    let event = TimerEvent::new(schedule, (), (new.priority.ms() * 3000) as usize, false);
+    let event = TimerEvent::new(reschedule, (), (new.priority.ms() * 1000) as usize, false);
 
     cpu.timer_queue.write().queue_event(event);
-
-    APIC.oneshot(224, new.priority.ms() * 3000);
 
     unsafe {
         println!("{:?} {:?}", old.context.get(), *new.context.get());
@@ -255,9 +213,9 @@ fn switch_threads() {}
 
 pub fn init() {
     if !SCHEDULER_VECTOR.is_completed() {
-        let vector = allocate_vector(IPL::IPLDPC).expect("Could not allocate vector for scheduler");
-        SCHEDULER_VECTOR.set_once(vector);
-        register_handler(vector, reschedule);
+        //let vector = allocate_vector(IPL::IPLDPC).expect("Could not allocate vector for scheduler");
+        //SCHEDULER_VECTOR.set_once(vector);
+        //register_handler(vector, reschedule);
     }
 
     SCHEDULER.init(|| SpinlockIRQ::new(Scheduler::new()));

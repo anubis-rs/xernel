@@ -61,8 +61,9 @@ use crate::mem::paging::KERNEL_PAGE_MAPPER;
 use crate::sched::process::Process;
 use crate::sched::process::KERNEL_PROCESS;
 use crate::sched::scheduler;
-use crate::sched::scheduler::schedule;
+use crate::sched::scheduler::reschedule;
 use crate::sched::thread::Thread;
+use crate::timer::hardclock;
 use crate::timer::timer_event::TimerEvent;
 use crate::timer::timer_queue;
 use crate::utils::backtrace;
@@ -220,8 +221,12 @@ extern "C" fn kernel_main() -> ! {
     //         println!("cpu {} has {} tasks", i, sched.lock().threads.len());
     //     }
     // }
-   
-    let event = TimerEvent::new(schedule, (), 1000, false);
+  
+    let timekeeper = TimerEvent::new(hardclock, (), 1000 * 1000, false);
+
+    current_cpu().timer_queue.write().queue_event(timekeeper);
+
+    let event = TimerEvent::new(reschedule, (), 2500 * 1000, false);
 
     current_cpu().timer_queue.write().queue_event(event);
 

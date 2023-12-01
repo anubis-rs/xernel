@@ -39,7 +39,8 @@ pub fn init() {
 
 #[no_mangle]
 extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
-    let mut ipl = IPL::from(isr / 16);
+    println!("=== BEGIN generic interrupt handler"); 
+    let mut ipl = IPL::from(isr >> 4);
 
     if (ipl as u8) < (get_spl() as u8) {
         println!("IPL not less or equal (running at {:?}, requested ipl {:?})", get_spl(), ipl);
@@ -65,6 +66,9 @@ extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
 
         IRQHandler::None => panic!("unhandled interrupt {}", isr),
     }
+
+
+    println!("=== END generic interrupt handler"); 
 
     set_ipl(ipl);
 }

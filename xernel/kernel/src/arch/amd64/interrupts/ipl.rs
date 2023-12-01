@@ -62,12 +62,16 @@ pub fn get_spl() -> IPL {
         asm!("mov {}, cr8", out(reg) ipl, options(nomem, nostack, preserves_flags));
     }
 
+    debug!("get_spl {:?}", IPL::from(ipl));
+
     IPL::from(ipl)
 }
 
 pub fn set_ipl(ipl: IPL) -> IPL {
     let requested_ipl = ipl as u64;
     let old_ipl = get_spl() as u64;
+
+    println!("set_ipl requested_ipl: {:?} old_ipl: {:?}", requested_ipl, old_ipl);
 
     unsafe {
         asm!("mov cr8, {}", in(reg) requested_ipl, options(nomem, nostack, preserves_flags));
@@ -81,6 +85,7 @@ pub fn set_ipl(ipl: IPL) -> IPL {
 }
 
 pub fn raise_spl(spl: IPL) -> IPL {
+    debug!("raise_spl with spl {:?}", spl);
     let old_ipl = get_spl();
 
     assert!(old_ipl as u64 <= spl as u64);
@@ -96,7 +101,7 @@ pub fn ipl_lowered(from: IPL, to: IPL) {
 
     debug!("IPL lowered from {:?} to {:?}", from, to);
 
-    if (to as u8) < (IPL::IPLDPC as u8) {
+    if (to as u8) < (IPL::IPLDPC as u8) && current_cpu().dpc_queue.read().dpcs.len() > 0 {
         APIC.send_ipi(current_cpu().lapic_id, *DPC_VECTOR as u32);
         current_cpu().dpc_queue.write().work_off();
     }

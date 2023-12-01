@@ -1,6 +1,6 @@
-use alloc::{collections::VecDeque, boxed::Box, sync::Arc};
+use alloc::{collections::VecDeque, boxed::Box};
 
-use super::dpc::{Dpc, DpcCall};
+use super::dpc::DpcCall;
 
 pub struct DpcQueue {
     pub dpcs: VecDeque<Box<dyn DpcCall>>,
@@ -18,12 +18,10 @@ impl DpcQueue {
     }
 
     pub fn work_off(&mut self) {
+        println!("work off dpcs");
+        self.dpcs.drain(..).for_each(|dpc| dpc.call());
 
-        for i in self.dpcs.drain(..) {
-            i.call();
-        }
-
-        println!("after call to schedule");
+        println!("after call to dpc");
         
     }
 }
