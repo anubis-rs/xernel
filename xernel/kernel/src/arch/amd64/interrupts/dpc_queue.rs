@@ -17,11 +17,10 @@ impl DpcQueue {
         self.dpcs.push_front(dpc);
     }
 
-    pub fn work_off(&mut self) {
-        println!("work off dpcs");
-        self.dpcs.drain(..).for_each(|dpc| dpc.call());
+    pub fn work_off(&mut self) -> VecDeque<Box<dyn DpcCall>> {
+        let mut dpcs: VecDeque<Box<dyn DpcCall>> = VecDeque::new();
 
-        println!("after call to dpc");
-        
+        self.dpcs.drain(..).for_each(|dpc| dpcs.push_front(dpc));
+        dpcs 
     }
 }

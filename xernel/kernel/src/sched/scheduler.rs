@@ -4,8 +4,10 @@ use crate::arch::amd64::gdt::GDT_BSP;
 use crate::arch::amd64::interrupts::ipl::IPL;
 use crate::arch::amd64::interrupts::{allocate_vector, register_handler};
 use crate::arch::amd64::switch_context;
+use crate::arch::amd64::tsc::rdtsc;
 use crate::cpu::{current_cpu, PerCpu, CPU_COUNT};
 use crate::timer::timer_event::TimerEvent;
+use crate::utils::rtc::Rtc;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -199,14 +201,23 @@ pub fn reschedule(_: ()) {
 
     new.status.set(ThreadStatus::Running);
 
-    let event = TimerEvent::new(reschedule, (), (new.priority.ms() * 1000) as usize, false);
-
-    cpu.timer_queue.write().queue_event(event);
+    register_reschedule_event(100000 as usize);
 
     unsafe {
         println!("{:?} {:?}", old.context.get(), *new.context.get());
         switch_context(old.context.get(), *new.context.get());
     }
+}
+
+fn register_reschedule_event(nanos: usize) {
+    let event = TimerEvent::new(reschedule, (), nanos, false);
+
+    let cpu = current_cpu();
+    let mut timer_queue = cpu.timer_queue.write();
+
+    timer_queue.queue_event(event);
+
+    timer_queue.unlock();
 }
 
 fn switch_threads() {}

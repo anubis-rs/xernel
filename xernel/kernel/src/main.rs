@@ -30,10 +30,7 @@ mod syscall;
 mod timer;
 mod utils;
 
-use alloc::string::ToString;
 use alloc::sync::Arc;
-use alloc::vec;
-use alloc::vec::Vec;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use libxernel::sync::Spinlock;
@@ -116,24 +113,7 @@ extern "C" fn kernel_main() -> ! {
 
     vfs::init();
 
-    let t = VFS.lock().vn_open("/test.txt".to_string(), 0).unwrap();
-
-    let mut write_buf: Vec<u8> = vec![5; 10];
-
-    VFS.lock()
-        .vn_write(t.clone(), &mut write_buf)
-        .expect("write to file failed");
-
-    let mut read_buf: Vec<u8> = vec![0; 5];
-
-    VFS.lock().vn_read(t.clone(), &mut read_buf).expect("read failed");
-
-    println!(
-        "name of fs where node is mounted: {}",
-        t.lock().vfsp.upgrade().unwrap().lock().vfs_name()
-    );
-    println!("{:?}", write_buf);
-    println!("{:?}", read_buf);
+    vfs::test();
 
     let bootloader_info = BOOTLOADER_INFO
         .get_response()
@@ -201,7 +181,7 @@ extern "C" fn kernel_main() -> ! {
     //     }
     // }
 
-    let main_task = Thread::kernel_thread_from_fn(kernel_main_task);
+    let main_task = Thread::kernel_thread_from_fn(kmain_thread);
 
     let kernel_task = Thread::kernel_thread_from_fn(task1);
 
@@ -221,12 +201,13 @@ extern "C" fn kernel_main() -> ! {
     //         println!("cpu {} has {} tasks", i, sched.lock().threads.len());
     //     }
     // }
-  
-    let timekeeper = TimerEvent::new(hardclock, (), 1000 * 1000, false);
+ 
+    // FIXME: If timekeeper event is used, only main thread is scheduled. Why???
+    let timekeeper = TimerEvent::new(hardclock, (), 50000, false);
 
     current_cpu().timer_queue.write().queue_event(timekeeper);
 
-    let event = TimerEvent::new(reschedule, (), 2500 * 1000, false);
+    let event = TimerEvent::new(reschedule, (),  5000, false);
 
     current_cpu().timer_queue.write().queue_event(event);
 
@@ -237,7 +218,7 @@ extern "C" fn kernel_main() -> ! {
     unreachable!();
 }
 
-pub fn kernel_main_task() {
+pub fn kmain_thread() {
     let mut var = 1;
 
     loop {

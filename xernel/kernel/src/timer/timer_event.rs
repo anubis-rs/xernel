@@ -1,5 +1,5 @@
 use crate::{arch::amd64::interrupts::dpc::{Dpc, DpcCall}, current_cpu}; 
-use alloc::{boxed::Box, sync::Arc};
+use alloc::boxed::Box;
 
 pub trait EventExecutor {
     fn dispatch(self);
