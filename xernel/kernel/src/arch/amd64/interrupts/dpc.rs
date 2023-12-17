@@ -1,7 +1,7 @@
-use alloc::{boxed::Box, sync::Arc};
+use alloc::boxed::Box;
 use libxernel::sync::Once;
 
-use crate::{sched::context::TrapFrame, cpu::current_cpu, dbg, arch::amd64::apic::APIC};
+use crate::{sched::context::TrapFrame, cpu::current_cpu};
 
 pub static DPC_VECTOR: Once<u8> = Once::new();
 
@@ -37,7 +37,7 @@ impl<T> Dpc<T> {
     }
 }
 
-pub fn dpc_interrupt_dispatch(frame: &mut TrapFrame) {
+pub fn dpc_interrupt_dispatch(_frame: &mut TrapFrame) {
     let cpu = current_cpu();
 
     let mut dpcs = cpu.dpc_queue.write().work_off();

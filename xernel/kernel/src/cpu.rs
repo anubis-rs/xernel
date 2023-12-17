@@ -1,5 +1,4 @@
 use crate::arch::amd64::apic::APIC;
-use crate::arch::amd64::interrupts::dpc::{self, Dpc};
 use crate::arch::amd64::interrupts::dpc_queue::DpcQueue;
 use crate::arch::amd64::{rdmsr, wrmsr, KERNEL_GS_BASE};
 use crate::sched::thread::Thread;

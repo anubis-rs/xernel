@@ -1,5 +1,4 @@
 use core::{arch::asm, sync::atomic::{AtomicU64, Ordering}};
-use libxernel::sync::Once;
 
 use crate::acpi::hpet;
 

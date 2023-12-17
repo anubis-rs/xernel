@@ -92,7 +92,7 @@ pub fn raise_spl(spl: IPL) -> IPL {
     old_ipl
 }
 
-pub fn ipl_lowered(from: IPL, to: IPL) {
+pub fn ipl_lowered(_from: IPL, to: IPL) {
     if (to as u8) < (IPL::IPLDPC as u8) && current_cpu().dpc_queue.read().dpcs.len() > 0 {
         // FIXME: Only works one time
         // APIC.send_ipi(current_cpu().lapic_id, *DPC_VECTOR as u32);

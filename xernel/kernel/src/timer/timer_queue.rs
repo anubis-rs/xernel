@@ -5,7 +5,6 @@ use crate::arch::amd64::interrupts::allocate_vector;
 use crate::arch::amd64::interrupts::ipl::IPL;
 use crate::arch::amd64::interrupts::register_handler;
 use crate::arch::amd64::tsc;
-use crate::arch::amd64::tsc::rdtsc;
 use crate::cpu::current_cpu;
 use crate::sched::context::TrapFrame;
 use crate::timer::timer_event::EventExecutor;
@@ -76,7 +75,7 @@ pub fn init() {
     register_handler(vector, timer_interrupt_handler);
 }
 
-pub fn timer_interrupt_handler(frame: &mut TrapFrame) {
+pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
     // if periodic, add again to queue
     // set timer to next event in queue
     

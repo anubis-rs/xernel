@@ -1,13 +1,9 @@
 use crate::acpi::hpet;
 use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::gdt::GDT_BSP;
-use crate::arch::amd64::interrupts::ipl::IPL;
-use crate::arch::amd64::interrupts::{allocate_vector, register_handler};
 use crate::arch::amd64::switch_context;
-use crate::arch::amd64::tsc::rdtsc;
 use crate::cpu::{current_cpu, PerCpu, CPU_COUNT};
 use crate::timer::timer_event::TimerEvent;
-use crate::utils::rtc::Rtc;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -20,7 +16,6 @@ use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
 
-use super::context::TrapFrame;
 use super::process::Process;
 use super::thread::{Thread, ThreadStatus};
 
@@ -193,7 +188,7 @@ pub fn reschedule(_: ()) {
 
         *cpu.current_thread.write() = Some(next_thread.clone());
 
-        let status = cpu.current_thread.read().clone().unwrap().status.get();
+        let _status = cpu.current_thread.read().clone().unwrap().status.get();
 
         next_thread.clone()
     } else {
