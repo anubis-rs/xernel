@@ -1,3 +1,5 @@
+use core::time::Duration;
+
 use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::interrupts::allocate_vector;
 use crate::arch::amd64::interrupts::ipl::IPL;
@@ -27,14 +29,22 @@ impl TimerQueue {
     }
 
     pub fn event_dispatch(&mut self) {
+
+        let mut deadline = Duration::ZERO;
+
         if let Some(event) = self.events.pop_front() {
+            deadline = event.deadline;
             event.dispatch();
+        }
+
+        for ev in self.events.iter_mut() {
+            ev.deadline -= deadline;
         }
     }
 
     pub fn queue_event(&mut self, event: TimerEvent) {
         if self.events.len() == 0 {
-            APIC.oneshot(*TIMER_VECTOR, (event.deadline) as u64);
+            APIC.oneshot(*TIMER_VECTOR, (event.deadline.as_micros()) as u64);
         }
 
         let insert_index = self
@@ -43,12 +53,14 @@ impl TimerQueue {
             .position(|i| i.deadline >= event.deadline)
             .unwrap_or(self.events.len());
         self.events.insert(insert_index, event);
-
-        //self.events.iter().for_each(|i| println!("event deadline: {}", i.deadline));
     }
 
     pub fn len(&self) -> usize {
         self.events.len()
+    }
+
+    pub fn deadlines(&self) {
+        self.events.iter().for_each(|i| println!("event deadline: {:?}", i.deadline));
     }
 }
 
@@ -72,12 +84,14 @@ pub fn timer_interrupt_handler(frame: &mut TrapFrame) {
 
     let mut timer_queue = cpu.timer_queue.write(); 
 
+    timer_queue.deadlines();
+
     timer_queue.event_dispatch();
 
     let next_event = timer_queue.events.front();
 
     if let Some(event) = next_event {
-        APIC.oneshot(*TIMER_VECTOR, (event.deadline) as u64);
+        APIC.oneshot(*TIMER_VECTOR, (event.deadline.as_micros()) as u64);
 
         if event.periodic {
             //timer_queue.queue_event(event.clone());

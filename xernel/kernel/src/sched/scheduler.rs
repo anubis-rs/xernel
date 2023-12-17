@@ -14,6 +14,7 @@ use alloc::vec::Vec;
 use core::arch::asm;
 use core::sync::atomic::AtomicU64;
 use core::sync::atomic::Ordering;
+use core::time::Duration;
 use libxernel::sync::{Once, Spinlock, SpinlockIRQ};
 use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
@@ -201,7 +202,7 @@ pub fn reschedule(_: ()) {
 
     new.status.set(ThreadStatus::Running);
 
-    register_reschedule_event(100000 as usize);
+    register_reschedule_event(new.priority.ms());
 
     unsafe {
         println!("{:?} {:?}", old.context.get(), *new.context.get());
@@ -209,8 +210,8 @@ pub fn reschedule(_: ()) {
     }
 }
 
-fn register_reschedule_event(nanos: usize) {
-    let event = TimerEvent::new(reschedule, (), nanos, false);
+fn register_reschedule_event(millis: u64) {
+    let event = TimerEvent::new(reschedule, (), Duration::from_millis(millis), false);
 
     let cpu = current_cpu();
     let mut timer_queue = cpu.timer_queue.write();

@@ -1,6 +1,6 @@
 use core::arch::asm;
 
-use crate::{arch::amd64::{apic::APIC, interrupts::dpc::DPC_VECTOR}, cpu::current_cpu};
+use crate::cpu::current_cpu;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[repr(u8)]

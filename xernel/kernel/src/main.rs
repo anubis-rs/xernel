@@ -33,6 +33,7 @@ mod utils;
 use alloc::sync::Arc;
 use core::arch::asm;
 use core::panic::PanicInfo;
+use core::time::Duration;
 use libxernel::sync::Spinlock;
 use limine::*;
 use x86_64::instructions::interrupts;
@@ -191,23 +192,11 @@ extern "C" fn kernel_main() -> ! {
     current_cpu().run_queue.write().push_back(Arc::new(kernel_task));
     current_cpu().run_queue.write().push_back(Arc::new(kernel_task2));
 
-    //Scheduler::add_thread_balanced(Arc::new(Spinlock::new(main_task)));
-    //Scheduler::add_task_balanced(Arc::new(Spinlock::new(user_task)));
-    //Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task)));
-    //Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task2)));
-
-    // unsafe {
-    //     for (i, sched) in SCHEDULER.get_all().iter().enumerate() {
-    //         println!("cpu {} has {} tasks", i, sched.lock().threads.len());
-    //     }
-    // }
- 
-    // FIXME: If timekeeper event is used, only main thread is scheduled. Why???
-    let timekeeper = TimerEvent::new(hardclock, (), 50000, false);
+    let timekeeper = TimerEvent::new(hardclock, (), Duration::from_secs(1), false);
 
     current_cpu().timer_queue.write().queue_event(timekeeper);
 
-    let event = TimerEvent::new(reschedule, (),  5000, false);
+    let event = TimerEvent::new(reschedule, (),  Duration::from_millis(5), false);
 
     current_cpu().timer_queue.write().queue_event(event);
 
