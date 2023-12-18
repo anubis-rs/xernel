@@ -43,15 +43,16 @@ impl TimerQueue {
 
     pub fn queue_event(&mut self, event: TimerEvent) {
         if self.events.len() == 0 {
-            APIC.oneshot(*TIMER_VECTOR, (event.deadline.as_micros()) as u64);
+            APIC.oneshot(*TIMER_VECTOR, &event.deadline);
+            self.events.push_front(event);
+        } else {
+            let insert_index = self
+                .events
+                .iter()
+                .position(|i| i.deadline >= event.deadline)
+                .unwrap_or(self.events.len());
+            self.events.insert(insert_index, event);
         }
-
-        let insert_index = self
-            .events
-            .iter()
-            .position(|i| i.deadline >= event.deadline)
-            .unwrap_or(self.events.len());
-        self.events.insert(insert_index, event);
     }
 
     pub fn len(&self) -> usize {
@@ -90,7 +91,7 @@ pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
     let next_event = timer_queue.events.front();
 
     if let Some(event) = next_event {
-        APIC.oneshot(*TIMER_VECTOR, (event.deadline.as_micros()) as u64);
+        APIC.oneshot(*TIMER_VECTOR, &event.deadline);
 
         if event.periodic {
             //timer_queue.queue_event(event.clone());

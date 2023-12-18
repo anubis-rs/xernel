@@ -152,20 +152,6 @@ impl Scheduler {
         }
         self.threads.front_mut().unwrap().clone()
     }
-
-    pub fn hand_over() {
-        interrupts::disable();
-
-        APIC.oneshot(*SCHEDULER_VECTOR, 1);
-
-        interrupts::enable();
-
-        loop {
-            unsafe {
-                asm!("hlt");
-            }
-        }
-    }
 }
 
 pub fn reschedule(_: ()) {

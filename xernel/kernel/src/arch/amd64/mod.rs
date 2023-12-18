@@ -51,7 +51,7 @@ pub extern "C" fn x86_64_ap_main(boot_info: *const SmpInfo) -> ! {
     APIC.enable_apic();
     info!("CPU{}: apic initialized", ap_id);
 
-    Scheduler::hand_over();
+    hcf();
 
     unreachable!()
 }

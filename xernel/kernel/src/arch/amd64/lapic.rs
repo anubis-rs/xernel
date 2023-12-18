@@ -1,3 +1,5 @@
+use core::time::Duration;
+
 use crate::acpi::hpet;
 use crate::arch::amd64::rdmsr;
 use crate::mem::paging::KERNEL_PAGE_MAPPER;
@@ -91,8 +93,8 @@ impl LocalApic {
         }
     }
 
-    pub fn periodic_timer(&self, int_no: u8, micro_seconds_period: u64) {
-        let mut apic_ticks = self.frequency * micro_seconds_period / (1000 * 1000);
+    pub fn periodic_timer(&self, int_no: u8, period: &Duration) {
+        let mut apic_ticks = self.frequency * period.as_micros() as u64 / (1000 * 1000);
         apic_ticks /= 16;
 
         unsafe {
@@ -107,8 +109,8 @@ impl LocalApic {
         }
     }
 
-    pub fn oneshot(&self, int_no: u8, micro_seconds: u64) {
-        let mut apic_ticks = self.frequency * micro_seconds / (1000 * 1000);
+    pub fn oneshot(&self, int_no: u8, deadline: &Duration) {
+        let mut apic_ticks = self.frequency * deadline.as_micros() as u64 / (1000 * 1000);
         apic_ticks /= 16;
 
         unsafe {
@@ -123,7 +125,7 @@ impl LocalApic {
         }
     }
 
-    pub fn deadline(&self, int_no: u8, nano_seconds: u64) {
+    pub fn deadline(&self, int_no: u8, deadline: &Duration) {
         unsafe {
             // set the interrupt vector & deadline mode
             self.write(LAPICRegTimer, (2 << 17) | int_no as u32);
@@ -151,7 +153,7 @@ impl LocalApic {
             // set the divisor to 1
             self.write(LAPICRegTimerDivider, 0b1011);
 
-            let hpet_cycles_to_wait = hpet::frequency() / 100;
+            let hpet_cycles_to_wait = hpet::frequency() / 1000;
 
             let hpet_start_counter = hpet::read_main_counter();
 
@@ -169,6 +171,11 @@ impl LocalApic {
 
             let apic_frequency = apic_ticks as u64 * hpet::frequency() / hpet_ticks;
 
+            debug!("APIC Ticks {} in 10ms", apic_ticks);
+            debug!("APIC Ticks per ms {}", apic_ticks);
+            debug!("APIC Frequency: {} Hz", apic_frequency);
+            debug!("HPET Frequency: {} Hz", hpet::frequency());
+            debug!("HPET Ticks {}", hpet_ticks);
             self.frequency = apic_frequency;
         }
     }

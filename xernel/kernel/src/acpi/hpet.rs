@@ -40,10 +40,10 @@ pub fn init() {
 
     let f = (u64::pow(10, 15) as f64 / period as f64) as u64;
 
-    dbg!("HPET Period: {} femtoseconds", period);
-    dbg!("HPET Period: {} nanoseconds", period / 1_000_000);
-    dbg!("HPET Frequency: {} Hz", f);
-    dbg!("HPET Frequency: {} MHz", f / 1_000_000);
+    debug!("HPET Period: {} femtoseconds", period);
+    debug!("HPET Period: {} nanoseconds", period / 1_000_000);
+    debug!("HPET Frequency: {} Hz", f);
+    debug!("HPET Frequency: {} MHz", f / 1_000_000);
 
     HPET_FREQUENCY.set_once(f);
     HPET_PERIOD.set_once(period);
