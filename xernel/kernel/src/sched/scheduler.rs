@@ -183,11 +183,15 @@ pub fn reschedule(_: ()) {
 
     new.status.set(ThreadStatus::Running);
 
+    if Arc::ptr_eq(&old, &new) {
+        return;
+    }
+
     register_reschedule_event(new.priority.ms());
 
     unsafe {
         // FIXME: If println is used after some time page fault happens
-        // println!("{:?} {:?}", old.context.get(), *new.context.get());
+        println!("{:?} {:?}", old.context.get(), *new.context.get());
         switch_context(old.context.get(), *new.context.get());
     }
 }

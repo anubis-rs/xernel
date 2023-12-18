@@ -31,7 +31,7 @@ pub fn init() {
 
     let dpc_vector = allocate_vector(IPL::IPLDPC).expect("Could not allocate DPC Vector");
 
-    DPC_VECTOR.set_once(dpc_vector);
+    *DPC_VECTOR.get_mut() = dpc_vector;
 
     info!("DPC_VECTOR set to: {}", *DPC_VECTOR);
 

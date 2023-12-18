@@ -1,9 +1,9 @@
 use alloc::boxed::Box;
 use libxernel::sync::Once;
 
-use crate::{sched::context::TrapFrame, cpu::current_cpu};
+use crate::{sched::context::TrapFrame, cpu::{current_cpu, PerCpu}};
 
-pub static DPC_VECTOR: Once<u8> = Once::new();
+pub static DPC_VECTOR: PerCpu<u8> = PerCpu::new();
 
 pub trait DpcCall {
     fn call(self: Box<Self>);

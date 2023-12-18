@@ -49,6 +49,7 @@ use crate::acpi::hpet;
 use crate::arch::amd64;
 use crate::arch::amd64::apic;
 use crate::arch::amd64::hcf;
+use crate::arch::amd64::interrupts::dpc::DPC_VECTOR;
 use crate::cpu::wait_until_cpus_registered;
 use crate::cpu::CPU_COUNT;
 use crate::cpu::{current_cpu, register_cpu};

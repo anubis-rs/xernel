@@ -8,6 +8,7 @@ use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::cell::{Cell, UnsafeCell};
+use core::ops::Deref;
 use core::pin::Pin;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use libxernel::sync::{Once, RwLock};
@@ -101,6 +102,14 @@ impl<T> PerCpu<T> {
         self.check_initialized();
 
         &mut *self.data.get()
+    }
+}
+
+impl <T> Deref for PerCpu<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.get()
     }
 }
 
