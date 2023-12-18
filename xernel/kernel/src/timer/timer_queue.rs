@@ -46,6 +46,12 @@ impl TimerQueue {
             APIC.oneshot(*TIMER_VECTOR, &event.deadline);
             self.events.push_front(event);
         } else {
+
+            if event.deadline < self.events.front().unwrap().deadline {
+                APIC.stop();
+                APIC.oneshot(*TIMER_VECTOR, &event.deadline);
+            }
+
             let insert_index = self
                 .events
                 .iter()
@@ -84,7 +90,7 @@ pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
 
     let mut timer_queue = cpu.timer_queue.write(); 
 
-    timer_queue.deadlines();
+    //timer_queue.deadlines();
 
     timer_queue.event_dispatch();
 

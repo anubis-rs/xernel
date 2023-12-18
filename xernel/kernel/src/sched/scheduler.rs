@@ -186,7 +186,8 @@ pub fn reschedule(_: ()) {
     register_reschedule_event(new.priority.ms());
 
     unsafe {
-        println!("{:?} {:?}", old.context.get(), *new.context.get());
+        // FIXME: If println is used after some time page fault happens
+        // println!("{:?} {:?}", old.context.get(), *new.context.get());
         switch_context(old.context.get(), *new.context.get());
     }
 }
