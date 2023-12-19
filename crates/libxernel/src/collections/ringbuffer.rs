@@ -123,3 +123,11 @@ impl <T, const N: usize> Ringbuffer<T, N> {
         self.size -= 1;
     }
 }
+
+impl<T, const N: usize> Drop for Ringbuffer<T, N> {
+    fn drop(&mut self) {
+        while let Some(value) = self.peek() {
+            self.skip()
+       }
+    }
+}
