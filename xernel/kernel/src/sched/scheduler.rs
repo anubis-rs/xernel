@@ -191,7 +191,7 @@ pub fn reschedule(_: ()) {
 
     unsafe {
         // FIXME: If println is used after some time page fault happens
-        println!("{:?} {:?}", old.context.get(), *new.context.get());
+        //println!("{:?} {:?}", old.context.get(), *new.context.get());
         switch_context(old.context.get(), *new.context.get());
     }
 }

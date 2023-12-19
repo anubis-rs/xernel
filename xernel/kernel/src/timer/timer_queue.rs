@@ -73,13 +73,13 @@ impl TimerQueue {
 pub fn init() {
     tsc::calibrate_tsc();
 
-    let vector = allocate_vector(IPL::IPLClock).expect("Could not allocate vector for timer interrupt");
+    //let vector = allocate_vector(IPL::IPLClock).expect("Could not allocate vector for timer interrupt");
 
-    TIMER_VECTOR.set_once(vector.clone());
+    TIMER_VECTOR.set_once(0xE0);
 
-    info!("TIMER_VECTOR initialized to: {}", *TIMER_VECTOR);
+    //info!("TIMER_VECTOR initialized to: {}", *TIMER_VECTOR);
 
-    register_handler(vector, timer_interrupt_handler);
+    register_handler(*TIMER_VECTOR, timer_interrupt_handler);
 }
 
 pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {

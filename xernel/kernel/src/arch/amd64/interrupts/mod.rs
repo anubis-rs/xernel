@@ -11,7 +11,7 @@ use core::sync::atomic::{compiler_fence, Ordering};
 use idt::{IRQHandler, IDT_ENTRIES};
 use ipl::IPL;
 
-use self::dpc::{dpc_interrupt_dispatch, DPC_VECTOR};
+use self::dpc::dpc_interrupt_dispatch;
 use self::ipl::{get_spl, raise_spl, set_ipl};
 
 use super::apic::apic_spurious_interrupt;
@@ -29,13 +29,7 @@ pub fn init() {
     handlers[0x8] = IRQHandler::Handler(double_fault_handler);
     handlers[0xF0] = IRQHandler::Handler(apic_spurious_interrupt);
 
-    let dpc_vector = allocate_vector(IPL::IPLDPC).expect("Could not allocate DPC Vector");
-
-    *DPC_VECTOR.get_mut() = dpc_vector;
-
-    info!("DPC_VECTOR set to: {}", *DPC_VECTOR);
-
-    handlers[dpc_vector as usize] = IRQHandler::Handler(dpc_interrupt_dispatch);
+    handlers[0x20] = IRQHandler::Handler(dpc_interrupt_dispatch);
 }
 
 #[no_mangle]
@@ -86,22 +80,6 @@ pub fn disable() {
         asm!("cli", options(nomem, nostack));
     }
 }
-
-// pub fn allocate_vector() -> u8 {
-//     static FREE_VECTOR: Spinlock<u8> = Spinlock::new(0x20);
-
-//     let mut free_vector = FREE_VECTOR.lock();
-
-//     if *free_vector >= 0xf0 {
-//         panic!("IDT exhausted");
-//     }
-
-//     let ret = *free_vector;
-
-//     *free_vector += 1;
-
-//     ret
-// }
 
 pub fn allocate_vector(ipl: IPL) -> Option<u8> {
     static FREE_VECTORS_FOR_IPL: Spinlock<[u8; 16]> = Spinlock::new([
