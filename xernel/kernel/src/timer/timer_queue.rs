@@ -10,6 +10,7 @@ use crate::sched::context::TrapFrame;
 use crate::timer::timer_event::EventExecutor;
 use crate::timer::timer_event::TimerEvent;
 use alloc::collections::VecDeque;
+use alloc::vec::Vec;
 use libxernel::sync::Once;
 
 static TIMER_VECTOR: Once<u8> = Once::new();
@@ -35,8 +36,20 @@ impl TimerQueue {
             event.dispatch();
         }
 
-        for ev in self.events.iter_mut() {
+        let mut indices_to_remove: Vec<usize> = Vec::new();
+
+        for (index, ev) in self.events.iter_mut().enumerate() {
             ev.deadline -= deadline;
+
+            if ev.deadline.is_zero() {
+               indices_to_remove.push(index);
+            }
+        }
+
+        for &index in indices_to_remove.iter().rev() {
+            if let Some(event) = self.events.remove(index) {
+                event.dispatch();
+            }
         }
     }
 
@@ -64,9 +77,18 @@ impl TimerQueue {
     }
 
     pub fn deadlines(&self) {
+        println!("===");
         self.events
             .iter()
             .for_each(|i| println!("event deadline: {:?}", i.deadline));
+
+        if let Some(event) = self.events.front() {
+            let first = event.deadline;
+            if self.events.iter().all(|ev| ev.deadline == first) {
+                println!("all have the same deadline");
+            }
+        }
+
     }
 }
 
@@ -85,12 +107,14 @@ pub fn init() {
 pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
     // if periodic, add again to queue
     // set timer to next event in queue
+    
+    // FIXME: If two events got down to the same ms
 
     let cpu = current_cpu();
 
     let mut timer_queue = cpu.timer_queue.write();
 
-    //timer_queue.deadlines();
+    timer_queue.deadlines();
 
     timer_queue.event_dispatch();
 

@@ -42,15 +42,11 @@ extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
 
     ipl = raise_spl(ipl);
 
-    enable();
-
     let handlers = INTERRUPT_HANDLERS.lock();
 
     let ctx = unsafe { &mut *ctx };
 
-    if isr > 32 {
-        APIC.eoi();
-    }
+    enable();
 
     match &handlers[isr] {
         IRQHandler::Handler(handler) => {
@@ -61,6 +57,12 @@ extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
 
         IRQHandler::None => panic!("unhandled interrupt {}", isr),
     }
+
+    if isr > 32 {
+        APIC.eoi();
+    }
+
+    disable();
 
     set_ipl(ipl);
 }
