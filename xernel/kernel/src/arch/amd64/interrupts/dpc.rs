@@ -1,5 +1,4 @@
 use alloc::boxed::Box;
-use libxernel::sync::Once;
 
 use crate::{
     cpu::{current_cpu, PerCpu},

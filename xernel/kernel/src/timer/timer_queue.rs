@@ -1,8 +1,6 @@
 use core::time::Duration;
 
 use crate::arch::amd64::apic::APIC;
-use crate::arch::amd64::interrupts::allocate_vector;
-use crate::arch::amd64::interrupts::ipl::IPL;
 use crate::arch::amd64::interrupts::register_handler;
 use crate::arch::amd64::tsc;
 use crate::cpu::current_cpu;

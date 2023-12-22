@@ -10,7 +10,7 @@ pub mod tsc;
 use crate::arch::amd64::apic::APIC;
 use crate::cpu::register_cpu;
 use crate::sched::context::Context;
-use crate::sched::scheduler::{Scheduler, SCHEDULER};
+use crate::sched::scheduler::SCHEDULER;
 use crate::KERNEL_PAGE_MAPPER;
 use core::arch::{asm, global_asm};
 use limine::SmpInfo;
@@ -52,8 +52,6 @@ pub extern "C" fn x86_64_ap_main(boot_info: *const SmpInfo) -> ! {
     info!("CPU{}: apic initialized", ap_id);
 
     hcf();
-
-    unreachable!()
 }
 
 #[inline]
