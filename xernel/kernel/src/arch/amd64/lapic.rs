@@ -7,6 +7,9 @@ use crate::mem::HIGHER_HALF_OFFSET;
 use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size4KiB};
 use x86_64::{PhysAddr, VirtAddr};
 
+use super::tsc::TSC_TICKS_PER_MS;
+use super::wrmsr;
+
 const IA32_APIC_BASE_MSR: u32 = 0x1B;
 const IA32_TSC_DEADLINE_MSR: u32 = 0x6E0;
 
@@ -130,8 +133,7 @@ impl LocalApic {
             // set the interrupt vector & deadline mode
             self.write(LAPICRegTimer, (2 << 17) | int_no as u32);
 
-            // https://xem.github.io/minix86/manual/intel-x86-and-64-manual-vol3/o_fe12b1e2a880e0ce-379.html
-            // IA32_TSC_DEADLINE_MSR
+            wrmsr(IA32_TSC_DEADLINE_MSR, deadline.as_millis() * TSC_TICKS_PER_MS);
         }
     }
 
