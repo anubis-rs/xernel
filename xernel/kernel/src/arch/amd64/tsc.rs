@@ -1,4 +1,7 @@
-use core::{arch::asm, sync::atomic::{AtomicU64, Ordering}};
+use core::{
+    arch::asm,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 use crate::acpi::hpet;
 

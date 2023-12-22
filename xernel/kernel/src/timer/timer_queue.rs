@@ -28,7 +28,6 @@ impl TimerQueue {
     }
 
     pub fn event_dispatch(&mut self) {
-
         let mut deadline = Duration::ZERO;
 
         if let Some(event) = self.events.pop_front() {
@@ -46,7 +45,6 @@ impl TimerQueue {
             APIC.oneshot(*TIMER_VECTOR, &event.deadline);
             self.events.push_front(event);
         } else {
-
             if event.deadline < self.events.front().unwrap().deadline {
                 APIC.stop();
                 APIC.oneshot(*TIMER_VECTOR, &event.deadline);
@@ -66,7 +64,9 @@ impl TimerQueue {
     }
 
     pub fn deadlines(&self) {
-        self.events.iter().for_each(|i| println!("event deadline: {:?}", i.deadline));
+        self.events
+            .iter()
+            .for_each(|i| println!("event deadline: {:?}", i.deadline));
     }
 }
 
@@ -85,10 +85,10 @@ pub fn init() {
 pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
     // if periodic, add again to queue
     // set timer to next event in queue
-    
+
     let cpu = current_cpu();
 
-    let mut timer_queue = cpu.timer_queue.write(); 
+    let mut timer_queue = cpu.timer_queue.write();
 
     //timer_queue.deadlines();
 
@@ -102,7 +102,6 @@ pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
         if event.periodic {
             //timer_queue.queue_event(event.clone());
         }
-
     } else {
         // No event in event queue?
     }

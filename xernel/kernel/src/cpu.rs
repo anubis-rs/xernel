@@ -105,7 +105,7 @@ impl<T> PerCpu<T> {
     }
 }
 
-impl <T> Deref for PerCpu<T> {
+impl<T> Deref for PerCpu<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {

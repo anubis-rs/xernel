@@ -86,14 +86,7 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
         .opt_value_from_str::<_, String>("--target")?
         .unwrap_or_else(|| "x86_64".to_string());
 
-    if !Path::new(
-        sh.current_dir()
-            .as_path()
-            .join("xernel/kernel/limine")
-            .as_path(),
-    )
-    .exists()
-    {
+    if !Path::new(sh.current_dir().as_path().join("xernel/kernel/limine").as_path()).exists() {
         sh.change_dir(sh.current_dir().as_path().join("xernel/kernel"));
         cmd!(
             sh,
@@ -124,32 +117,16 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
     let diskname = "xernel.hdd";
     let disksize = 64.to_string();
 
-    cmd!(
-        sh,
-        "dd if=/dev/zero of={diskname} bs=1M count=0 seek={disksize}"
-    )
-    .run()?;
+    cmd!(sh, "dd if=/dev/zero of={diskname} bs=1M count=0 seek={disksize}").run()?;
 
     cmd!(sh, "mformat -i {diskname} -F").run()?;
-    cmd!(
-        sh,
-        "mcopy -i {diskname} ./target/{target}/{build_dir}/xernel ::/xernel"
-    )
-    .run()?;
-    cmd!(
-        sh,
-        "mcopy -i {diskname} xernel/kernel/limine.cfg ::/limine.cfg"
-    )
-    .run()?;
+    cmd!(sh, "mcopy -i {diskname} ./target/{target}/{build_dir}/xernel ::/xernel").run()?;
+    cmd!(sh, "mcopy -i {diskname} xernel/kernel/limine.cfg ::/limine.cfg").run()?;
 
     cmd!(sh, "mcopy -i {diskname} ./logo.bmp ::/logo.bmp").run()?;
     cmd!(sh, "mmd -i {diskname} ::/EFI").run()?;
     cmd!(sh, "mmd -i {diskname} ::/EFI/BOOT").run()?;
-    cmd!(
-        sh,
-        "mcopy -i {diskname} xernel/kernel/limine/BOOTX64.EFI ::/EFI/BOOT"
-    )
-    .run()?;
+    cmd!(sh, "mcopy -i {diskname} xernel/kernel/limine/BOOTX64.EFI ::/EFI/BOOT").run()?;
 
     Ok(())
 }
@@ -160,17 +137,13 @@ fn run(sh: &Shell, gdb: bool, mut args: Arguments) -> Result<()> {
     let ram = args
         .opt_value_from_str::<_, String>("--ram")?
         .unwrap_or_else(|| "128M".to_string());
-    let cpus = args
-        .opt_value_from_str::<_, u32>("--cpus")?
-        .unwrap_or(2)
-        .to_string();
+    let cpus = args.opt_value_from_str::<_, u32>("--cpus")?.unwrap_or(2).to_string();
 
     let kvm = if args.contains("--kvm") {
         &["-enable-kvm"]
     } else {
         &[][..]
     };
-
 
     let qemu_monitor = if args.contains("--monitor") {
         &["-monitor"]
@@ -182,10 +155,7 @@ fn run(sh: &Shell, gdb: bool, mut args: Arguments) -> Result<()> {
 
     let qemu_in_wsl_arg = args.contains("--wsl-qemu");
 
-    let qemu_in_wsl_env = env::var("qemu_in_wsl")
-        .unwrap_or("false".to_string())
-        .parse()
-        .unwrap();
+    let qemu_in_wsl_env = env::var("qemu_in_wsl").unwrap_or("false".to_string()).parse().unwrap();
 
     let qemu_in_wsl = qemu_in_wsl_arg || qemu_in_wsl_env;
 

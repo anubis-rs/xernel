@@ -100,5 +100,4 @@ pub fn ipl_lowered(_from: IPL, to: IPL) {
 
         dpcs.drain(..).for_each(|dpc| dpc.call());
     }
-
 }

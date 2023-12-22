@@ -1,6 +1,9 @@
 use core::time::Duration;
 
-use crate::{arch::amd64::interrupts::dpc::{Dpc, DpcCall}, current_cpu}; 
+use crate::{
+    arch::amd64::interrupts::dpc::{Dpc, DpcCall},
+    current_cpu,
+};
 use alloc::boxed::Box;
 
 pub trait EventExecutor {
@@ -35,7 +38,7 @@ impl TimerEvent {
             deadline,
             state: EventState::Waiting,
             callback_core: current_cpu().lapic_id,
-            periodic
+            periodic,
         }
     }
 }

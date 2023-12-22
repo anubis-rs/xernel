@@ -1,4 +1,7 @@
-use core::{sync::atomic::{AtomicUsize, Ordering}, time::Duration};
+use core::{
+    sync::atomic::{AtomicUsize, Ordering},
+    time::Duration,
+};
 
 use crate::cpu::current_cpu;
 

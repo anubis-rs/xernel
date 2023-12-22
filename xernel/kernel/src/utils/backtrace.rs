@@ -1,4 +1,3 @@
-
 pub fn init() {}
 
 // TODO: print symbol names

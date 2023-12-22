@@ -189,6 +189,9 @@ pub fn reschedule(_: ()) {
 
     register_reschedule_event(new.priority.ms());
 
+    // TODO: Call switch_threads which switches everything needed (cr3, if needed etc.) and then
+    // calls switch_context
+
     unsafe {
         // FIXME: If println is used after some time page fault happens
         //println!("{:?} {:?}", old.context.get(), *new.context.get());

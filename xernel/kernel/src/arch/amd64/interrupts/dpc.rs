@@ -1,7 +1,10 @@
 use alloc::boxed::Box;
 use libxernel::sync::Once;
 
-use crate::{sched::context::TrapFrame, cpu::{current_cpu, PerCpu}};
+use crate::{
+    cpu::{current_cpu, PerCpu},
+    sched::context::TrapFrame,
+};
 
 pub static DPC_VECTOR: PerCpu<u8> = PerCpu::new();
 
@@ -24,7 +27,7 @@ pub struct Dpc<T> {
 impl<T> DpcCall for Dpc<T> {
     fn call(self: Box<Self>) {
         (self.callback)(self.arg)
-    } 
+    }
 }
 
 impl<T> Dpc<T> {

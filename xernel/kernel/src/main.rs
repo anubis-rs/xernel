@@ -197,7 +197,7 @@ extern "C" fn kernel_main() -> ! {
 
     current_cpu().timer_queue.write().queue_event(timekeeper);
 
-    let event = TimerEvent::new(reschedule, (),  Duration::from_millis(5), false);
+    let event = TimerEvent::new(reschedule, (), Duration::from_millis(5), false);
 
     current_cpu().timer_queue.write().queue_event(event);
 

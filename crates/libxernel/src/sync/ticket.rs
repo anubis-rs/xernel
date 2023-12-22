@@ -51,10 +51,7 @@ impl<T> TicketMutex<T> {
             core::hint::spin_loop();
         }
 
-        TicketMutexGuard {
-            mutex: self,
-            ticket,
-        }
+        TicketMutexGuard { mutex: self, ticket }
     }
 
     /// Tries one time to acquire the lock
@@ -71,10 +68,7 @@ impl<T> TicketMutex<T> {
                 }
             });
 
-        ticket.ok().map(|ticket| TicketMutexGuard {
-            ticket,
-            mutex: self,
-        })
+        ticket.ok().map(|ticket| TicketMutexGuard { ticket, mutex: self })
     }
 
     /// Unlocking a spinlock

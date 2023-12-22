@@ -1,7 +1,7 @@
-pub mod ipl;
 pub mod dpc;
-pub mod idt;
 pub mod dpc_queue;
+pub mod idt;
+pub mod ipl;
 
 use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::{ports::outb, read_cr2};
@@ -15,7 +15,7 @@ use self::dpc::dpc_interrupt_dispatch;
 use self::ipl::{get_spl, raise_spl, set_ipl};
 
 use super::apic::apic_spurious_interrupt;
-use libxernel::sync::{SpinlockIRQ, Spinlock};
+use libxernel::sync::{Spinlock, SpinlockIRQ};
 
 static INTERRUPT_HANDLERS: SpinlockIRQ<[IRQHandler; IDT_ENTRIES]> = SpinlockIRQ::new([IRQHandler::None; IDT_ENTRIES]);
 
@@ -81,6 +81,7 @@ pub fn disable() {
     }
 }
 
+// FIXME: Find solution for multi-core usage
 pub fn allocate_vector(ipl: IPL) -> Option<u8> {
     static FREE_VECTORS_FOR_IPL: Spinlock<[u8; 16]> = Spinlock::new([
         0x0 << 4,
@@ -93,12 +94,12 @@ pub fn allocate_vector(ipl: IPL) -> Option<u8> {
         0x7 << 4,
         0x8 << 4,
         0x9 << 4,
-        0xA << 4, 
+        0xA << 4,
         0xB << 4,
         0xC << 4,
         0xD << 4,
         0xE << 4,
-        0xF << 4
+        0xF << 4,
     ]);
 
     if (ipl as u8) > 15 {
@@ -197,4 +198,3 @@ pub fn disable_pic() {
         outb(0xa1, 0xff);
     }
 }
-

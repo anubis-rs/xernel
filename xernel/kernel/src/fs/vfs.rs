@@ -1,7 +1,8 @@
 use alloc::{
     string::{String, ToString},
     sync::Arc,
-    vec, vec::Vec,
+    vec,
+    vec::Vec,
 };
 use libxernel::boot::InitAtBoot;
 use libxernel::sync::Spinlock;
@@ -160,7 +161,7 @@ pub fn test() {
     let t = VFS.lock().vn_open("/test.txt".to_string(), 0).unwrap();
 
     let mut write_buf: Vec<u8> = vec![5; 10];
-    
+
     VFS.lock()
         .vn_write(t.clone(), &mut write_buf)
         .expect("write to file failed");
@@ -175,6 +176,4 @@ pub fn test() {
     );
     println!("{:?}", write_buf);
     println!("{:?}", read_buf);
-
-
 }
