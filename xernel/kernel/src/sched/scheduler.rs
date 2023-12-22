@@ -167,8 +167,6 @@ pub fn reschedule(_: ()) {
         cpu.idle_thread.clone()
     };
 
-    old.status.set(ThreadStatus::Ready);
-
     let new = if let Some(next_thread) = next_ref {
         cpu.run_queue.write().push_back(next_thread.clone());
 
@@ -181,16 +179,40 @@ pub fn reschedule(_: ()) {
         cpu.idle_thread.clone()
     };
 
-    new.status.set(ThreadStatus::Running);
-
     if Arc::ptr_eq(&old, &new) {
         return;
     }
 
     register_reschedule_event(new.priority.ms());
 
-    // TODO: Call switch_threads which switches everything needed (cr3, if needed etc.) and then
-    // calls switch_context
+    switch_threads(old, new);
+}
+
+fn switch_threads(old: Arc<Thread>, new: Arc<Thread>) {
+    
+    old.status.set(ThreadStatus::Ready);
+
+    new.status.set(ThreadStatus::Running);
+
+    if !new.is_kernel_thread() {
+        println!("i am here where i should not be");
+        unsafe {
+            // SAFETY: A user thread always has a page table
+            let pt = new.process.upgrade().unwrap().lock().get_page_table().unwrap();
+
+            let cr3 = Cr3::read_raw();
+
+            let cr3 = cr3.0.start_address().as_u64() | cr3.1 as u64;
+
+            if cr3 != pt.pml4().as_u64() {
+                pt.load_pt();
+            }
+
+            DS::set_reg(GDT_BSP.1.user_data_selector);
+
+            current_cpu().kernel_stack.set(new.kernel_stack.as_ref().unwrap().kernel_stack_top);
+        }
+    }
 
     unsafe {
         // FIXME: If println is used after some time page fault happens
@@ -209,8 +231,6 @@ fn register_reschedule_event(millis: u64) {
 
     timer_queue.unlock();
 }
-
-fn switch_threads() {}
 
 pub fn init() {
     if !SCHEDULER_VECTOR.is_completed() {
