@@ -1,3 +1,4 @@
+use core::sync::atomic::Ordering;
 use core::time::Duration;
 
 use crate::acpi::hpet;
@@ -133,7 +134,7 @@ impl LocalApic {
             // set the interrupt vector & deadline mode
             self.write(LAPICRegTimer, (2 << 17) | int_no as u32);
 
-            wrmsr(IA32_TSC_DEADLINE_MSR, deadline.as_millis() * TSC_TICKS_PER_MS);
+            wrmsr(IA32_TSC_DEADLINE_MSR, deadline.as_millis() as u64 * TSC_TICKS_PER_MS.load(Ordering::Acquire));
         }
     }
 
