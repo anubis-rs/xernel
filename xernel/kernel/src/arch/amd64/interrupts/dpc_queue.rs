@@ -1,3 +1,5 @@
+use core::ops::RangeBounds;
+
 use alloc::{boxed::Box, collections::VecDeque};
 
 use super::dpc::DpcCall;
@@ -15,10 +17,10 @@ impl DpcQueue {
         self.dpcs.push_front(dpc);
     }
 
-    pub fn work_off(&mut self) -> VecDeque<Box<dyn DpcCall>> {
+    pub fn drain<R>(&mut self, range: R) -> VecDeque<Box<dyn DpcCall>> where R: RangeBounds<usize> {
         let mut dpcs: VecDeque<Box<dyn DpcCall>> = VecDeque::new();
 
-        self.dpcs.drain(..).for_each(|dpc| dpcs.push_front(dpc));
+        self.dpcs.drain(range).for_each(|dpc| dpcs.push_front(dpc));
         dpcs
     }
 }

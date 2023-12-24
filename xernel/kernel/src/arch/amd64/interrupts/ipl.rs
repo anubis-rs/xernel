@@ -96,8 +96,8 @@ pub fn ipl_lowered(_from: IPL, to: IPL) {
     if (to as u8) < (IPL::IPLDPC as u8) && current_cpu().dpc_queue.read().dpcs.len() > 0 {
         // FIXME: Only works one time
         // APIC.send_ipi(current_cpu().lapic_id, *DPC_VECTOR as u32);
-        let mut dpcs = current_cpu().dpc_queue.write().work_off();
+        let dpcs = current_cpu().dpc_queue.write().drain(..);
 
-        dpcs.drain(..).for_each(|dpc| dpc.call());
+        dpcs.into_iter().for_each(|dpc| dpc.call());
     }
 }

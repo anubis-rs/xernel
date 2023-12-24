@@ -112,7 +112,7 @@ pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
 
     let mut timer_queue = cpu.timer_queue.write();
 
-    timer_queue.deadlines();
+    //timer_queue.deadlines();
 
     timer_queue.event_dispatch();
 

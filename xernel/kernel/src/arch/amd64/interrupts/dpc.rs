@@ -42,7 +42,7 @@ impl<T> Dpc<T> {
 pub fn dpc_interrupt_dispatch(_frame: &mut TrapFrame) {
     let cpu = current_cpu();
 
-    let mut dpcs = cpu.dpc_queue.write().work_off();
+    let mut dpcs = cpu.dpc_queue.write().drain(..);
 
-    dpcs.drain(..).for_each(|dpc| dpc.call());
+    dpcs.into_iter().for_each(|dpc| dpc.call());
 }
