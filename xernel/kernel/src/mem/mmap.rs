@@ -65,10 +65,8 @@ pub fn handle_page_fault(addr: VirtAddr, error_code: PageFaultErrorCode) -> bool
 
         pt.map::<Size4KiB>(frame, Page::from_start_address(base_addr).unwrap(), pt_flags, true);
 
-        return true;
+        true
     } else {
-        return false;
+        false
     }
-
-    false
 }

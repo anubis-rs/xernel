@@ -11,7 +11,7 @@ pub struct File {
 impl File {
     pub fn new(node: Arc<Spinlock<VNode>>) -> Self {
         Self { 
-            node: node,
+            node,
             offset: 0
         }
     }

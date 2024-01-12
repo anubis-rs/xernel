@@ -1,6 +1,7 @@
 use alloc::alloc::alloc_zeroed;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use core::ptr::addr_of;
 use libxernel::sync::{Once, TicketMutex};
 use x86_64::instructions::segmentation::{Segment, CS, DS, ES, SS};
 use x86_64::instructions::tables::load_tss;
@@ -39,7 +40,7 @@ pub struct Selectors {
 pub fn init() {
     let mut tss = TaskStateSegment::new();
     tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = {
-        let stack_start = VirtAddr::from_ptr(unsafe { &BSP_IST_STACK });
+        let stack_start = VirtAddr::from_ptr(unsafe { addr_of!(BSP_IST_STACK) });
         stack_start + IST_STACK_SIZE
     };
 

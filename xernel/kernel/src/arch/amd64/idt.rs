@@ -2,6 +2,7 @@ use crate::sched::context::CpuContext;
 use crate::{arch::amd64::ports::outb, mem::mmap::handle_page_fault};
 use core::arch::asm;
 use core::mem::size_of;
+use core::ptr::addr_of;
 use libxernel::sync::{Spinlock, SpinlockIRQ};
 use x86_64::structures::idt::PageFaultErrorCode;
 
@@ -166,7 +167,7 @@ pub fn init() {
 
         let idtr = Idtr::new(
             ((IDT.len() * size_of::<IDTEntry>()) - 1) as u16,
-            (&IDT as *const _) as u64,
+            (addr_of!(IDT) as *const _) as u64,
         );
 
         idtr.load();

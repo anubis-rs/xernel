@@ -200,7 +200,7 @@ pub extern "C" fn scheduler_irq_handler(_stack_frame: InterruptStackFrame) {
 #[no_mangle]
 pub fn schedule_handle(ctx: CpuContext) {
     let mut sched = SCHEDULER.get().lock();
-    if let Some(task) = sched.threads.get(0)
+    if let Some(task) = sched.threads.front()
         && task.lock().status == ThreadStatus::Running
     {
         sched.save_ctx(ctx);
