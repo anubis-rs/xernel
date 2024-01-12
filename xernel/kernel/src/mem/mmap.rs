@@ -2,12 +2,14 @@ use libxernel::syscall::{MapFlags, ProtectionFlags, SyscallError};
 use x86_64::{
     structures::{
         idt::PageFaultErrorCode,
-        paging::{PageSize, Size4KiB},
+        paging::{Page, PageSize, Size4KiB},
     },
     VirtAddr,
 };
 
 use crate::{allocator::align_up, sched::scheduler::Scheduler};
+
+use super::{frame::FRAME_ALLOCATOR, vm::ptflags_from_protflags};
 
 #[allow(unused_variables)]
 pub fn mmap(
@@ -45,11 +47,28 @@ pub fn handle_page_fault(addr: VirtAddr, error_code: PageFaultErrorCode) -> bool
     let vm_entry = process.vm().get_entry_from_address(addr);
 
     if let Some(vm_entry) = vm_entry {
+        if vm_entry.flags != MapFlags::ANONYMOUS {
+            todo!("handle_page_fault: implement non-anonymous mappings");
+        }
+
+        // If the page is present we don't need to map it
+        // FIXME: this doesn't work when COW is implemented
+        if error_code.contains(PageFaultErrorCode::PROTECTION_VIOLATION) {
+            return false;
+        }
+
+        let base_addr = addr.align_down(Size4KiB::SIZE);
+        let frame = FRAME_ALLOCATOR.lock().allocate_frame::<Size4KiB>().unwrap();
+
+        let pt_flags = ptflags_from_protflags(vm_entry.prot);
+        let mut pt = process.get_page_table().unwrap();
+
+        pt.map::<Size4KiB>(frame, Page::from_start_address(base_addr).unwrap(), pt_flags, true);
+
+        return true;
     } else {
         return false;
     }
-
-    if !error_code.contains(PageFaultErrorCode::PROTECTION_VIOLATION) {}
 
     false
 }

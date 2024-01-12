@@ -25,6 +25,7 @@ pub enum SyscallError {
 }
 
 bitflags! {
+    #[derive(Clone, Copy)]
     pub struct ProtectionFlags: u8 {
         const READ = 1 << 0;
         const WRITE = 1 << 1;
