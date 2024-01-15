@@ -2,8 +2,6 @@ use crate::sched::context::TrapFrame;
 use core::arch::asm;
 use core::mem::size_of;
 use core::ptr::addr_of;
-use libxernel::sync::{Spinlock, SpinlockIRQ};
-use x86_64::structures::idt::PageFaultErrorCode;
 
 use paste::paste;
 use seq_macro::seq;

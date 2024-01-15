@@ -1,5 +1,4 @@
 use core::mem::MaybeUninit;
-use core::ptr;
 
 struct Ringbuffer<T, const N: usize> {
     buffer: [MaybeUninit<T>; N],
