@@ -58,5 +58,4 @@ pub fn dpc_interrupt_dispatch() {
         *cpu.next.write() = None;
         switch_threads(old.unwrap(), new.unwrap());
     }
-
 }

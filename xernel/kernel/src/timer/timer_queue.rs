@@ -98,7 +98,6 @@ pub fn init() {
 }
 
 pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
-
     // if periodic, add again to queue
     // set timer to next event in queue
 

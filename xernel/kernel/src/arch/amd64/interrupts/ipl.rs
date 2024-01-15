@@ -68,7 +68,6 @@ pub fn get_spl() -> IPL {
 }
 
 pub fn set_ipl(ipl: IPL) -> IPL {
-
     let requested_ipl = ipl as u64;
     let old_ipl = get_spl() as u64;
 

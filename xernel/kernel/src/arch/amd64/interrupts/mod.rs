@@ -27,7 +27,6 @@ pub fn init() {
     handlers[0xE] = IRQHandler::Handler(page_fault_handler);
     handlers[0x8] = IRQHandler::Handler(double_fault_handler);
     handlers[0xF0] = IRQHandler::Handler(apic_spurious_interrupt);
-
 }
 
 #[no_mangle]
