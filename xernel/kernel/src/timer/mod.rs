@@ -10,16 +10,14 @@ use crate::cpu::current_cpu;
 
 use self::timer_event::TimerEvent;
 
-use libxernel::sync::Once;
-use crate::amd64::tsc;
 use crate::amd64::interrupts::register_handler;
-use crate::sched::context::TrapFrame;
+use crate::amd64::tsc;
 use crate::apic::APIC;
-
+use crate::sched::context::TrapFrame;
+use libxernel::sync::Once;
 
 static UPTIME: AtomicUsize = AtomicUsize::new(0);
 static TIMER_VECTOR: Once<u8> = Once::new();
-
 
 pub fn init() {
     tsc::calibrate_tsc();

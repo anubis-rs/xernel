@@ -1,11 +1,10 @@
-use core::time::Duration;
-use crate::timer::TIMER_VECTOR;
 use crate::arch::amd64::apic::APIC;
 use crate::timer::timer_event::EventExecutor;
 use crate::timer::timer_event::TimerEvent;
+use crate::timer::TIMER_VECTOR;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
-
+use core::time::Duration;
 
 pub struct TimerQueue {
     pub events: VecDeque<TimerEvent>,
@@ -82,4 +81,3 @@ impl TimerQueue {
         }
     }
 }
-
