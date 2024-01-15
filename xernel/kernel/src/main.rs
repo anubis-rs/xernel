@@ -63,7 +63,6 @@ use crate::sched::scheduler::reschedule;
 use crate::sched::thread::Thread;
 use crate::timer::hardclock;
 use crate::timer::timer_event::TimerEvent;
-use crate::timer::timer_queue;
 use crate::utils::backtrace;
 use crate::utils::rtc::Rtc;
 static BOOTLOADER_INFO: BootInfoRequest = BootInfoRequest::new(0);
@@ -148,7 +147,7 @@ extern "C" fn kernel_main() -> ! {
     wait_until_cpus_registered();
 
     scheduler::init();
-    timer_queue::init();
+    timer::init();
 
     info!("scheduler initialized");
 
