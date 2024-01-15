@@ -54,6 +54,11 @@ impl<T: ?Sized> Spinlock<T> {
         }
     }
 
+    pub fn lock_with_ipl(&self) -> MutexGuard<'_, T> {
+        // TODO: Implement
+        self.lock()
+    }
+
     /// Tries one time to acquire the lock
     ///
     /// Simply a try if the lock is free, if not [`None`] returned, else a [`MutexGuard`] wrapped in an option
