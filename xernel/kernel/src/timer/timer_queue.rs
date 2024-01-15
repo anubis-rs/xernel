@@ -40,7 +40,7 @@ impl TimerQueue {
             ev.deadline -= deadline;
 
             if ev.deadline.is_zero() {
-               indices_to_remove.push(index);
+                indices_to_remove.push(index);
             }
         }
 
@@ -86,27 +86,21 @@ impl TimerQueue {
                 println!("all have the same deadline");
             }
         }
-
     }
 }
 
 pub fn init() {
     tsc::calibrate_tsc();
 
-    //let vector = allocate_vector(IPL::IPLClock).expect("Could not allocate vector for timer interrupt");
-
     TIMER_VECTOR.set_once(0xE0);
-
-    //info!("TIMER_VECTOR initialized to: {}", *TIMER_VECTOR);
 
     register_handler(*TIMER_VECTOR, timer_interrupt_handler);
 }
 
 pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
+
     // if periodic, add again to queue
     // set timer to next event in queue
-    
-    // FIXME: If two events got down to the same ms
 
     let cpu = current_cpu();
 

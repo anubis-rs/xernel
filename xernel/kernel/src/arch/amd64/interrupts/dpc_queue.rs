@@ -17,7 +17,10 @@ impl DpcQueue {
         self.dpcs.push_front(dpc);
     }
 
-    pub fn drain<R>(&mut self, range: R) -> VecDeque<Box<dyn DpcCall>> where R: RangeBounds<usize> {
+    pub fn drain<R>(&mut self, range: R) -> VecDeque<Box<dyn DpcCall>>
+    where
+        R: RangeBounds<usize>,
+    {
         let mut dpcs: VecDeque<Box<dyn DpcCall>> = VecDeque::new();
 
         self.dpcs.drain(range).for_each(|dpc| dpcs.push_front(dpc));

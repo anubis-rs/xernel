@@ -2,6 +2,8 @@ use core::arch::asm;
 
 use crate::cpu::current_cpu;
 
+use super::dpc::dpc_interrupt_dispatch;
+
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[repr(u8)]
 pub enum IPL {
@@ -66,6 +68,7 @@ pub fn get_spl() -> IPL {
 }
 
 pub fn set_ipl(ipl: IPL) -> IPL {
+
     let requested_ipl = ipl as u64;
     let old_ipl = get_spl() as u64;
 
@@ -94,10 +97,6 @@ pub fn raise_spl(spl: IPL) -> IPL {
 
 pub fn ipl_lowered(_from: IPL, to: IPL) {
     if (to as u8) < (IPL::IPLDPC as u8) && current_cpu().dpc_queue.read().dpcs.len() > 0 {
-        // FIXME: Only works one time
-        // APIC.send_ipi(current_cpu().lapic_id, *DPC_VECTOR as u32);
-        let dpcs = current_cpu().dpc_queue.write().drain(..);
-
-        dpcs.into_iter().for_each(|dpc| dpc.call());
+        dpc_interrupt_dispatch();
     }
 }

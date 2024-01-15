@@ -134,7 +134,10 @@ impl LocalApic {
             // set the interrupt vector & deadline mode
             self.write(LAPICRegTimer, (2 << 17) | int_no as u32);
 
-            wrmsr(IA32_TSC_DEADLINE_MSR, deadline.as_millis() as u64 * TSC_TICKS_PER_MS.load(Ordering::Acquire));
+            wrmsr(
+                IA32_TSC_DEADLINE_MSR,
+                deadline.as_millis() as u64 * TSC_TICKS_PER_MS.load(Ordering::Acquire),
+            );
         }
     }
 

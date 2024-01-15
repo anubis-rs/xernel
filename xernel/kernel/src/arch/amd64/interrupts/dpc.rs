@@ -1,8 +1,9 @@
 use alloc::boxed::Box;
 
 use crate::{
+    arch::amd64::interrupts::ipl::{raise_spl, set_ipl, IPL},
     cpu::{current_cpu, PerCpu},
-    sched::context::TrapFrame,
+    sched::scheduler::switch_threads,
 };
 
 pub static DPC_VECTOR: PerCpu<u8> = PerCpu::new();
@@ -39,10 +40,23 @@ impl<T> Dpc<T> {
     }
 }
 
-pub fn dpc_interrupt_dispatch(_frame: &mut TrapFrame) {
+pub fn dpc_interrupt_dispatch() {
     let cpu = current_cpu();
 
-    let mut dpcs = cpu.dpc_queue.write().drain(..);
+    let ipl = raise_spl(IPL::IPLDPC);
+
+    let dpcs = cpu.dpc_queue.write().drain(..);
 
     dpcs.into_iter().for_each(|dpc| dpc.call());
+
+    set_ipl(ipl);
+
+    let old = cpu.current_thread.read().clone();
+    let new = cpu.next.read().clone();
+
+    if old.is_some() && new.is_some() {
+        *cpu.next.write() = None;
+        switch_threads(old.unwrap(), new.unwrap());
+    }
+
 }

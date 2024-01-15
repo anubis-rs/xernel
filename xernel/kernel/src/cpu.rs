@@ -128,6 +128,7 @@ pub struct Cpu {
 
     pub timer_queue: RwLock<TimerQueue>,
     pub dpc_queue: RwLock<DpcQueue>,
+    pub next: RwLock<Option<Arc<Thread>>>,
 }
 
 pub fn register_cpu() {
@@ -145,6 +146,7 @@ pub fn register_cpu() {
         idle_thread: Arc::new(Thread::idle_thread()),
         timer_queue: RwLock::new(TimerQueue::new()),
         dpc_queue: RwLock::new(DpcQueue::new()),
+        next: RwLock::new(None),
     }));
 
     // use KERNEL_GS_BASE to store the cpu_data

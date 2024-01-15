@@ -203,6 +203,7 @@ extern "C" fn kernel_main() -> ! {
     amd64::interrupts::enable();
 
     hcf();
+
 }
 
 pub fn kmain_thread() {

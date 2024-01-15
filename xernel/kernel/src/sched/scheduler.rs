@@ -161,32 +161,28 @@ pub fn reschedule(_: ()) {
     let old = if let Some(current_thread) = current_ref {
         current_thread.clone()
     } else {
+        *cpu.current_thread.write() = Some(cpu.idle_thread.clone());
         cpu.idle_thread.clone()
     };
 
     let new = if let Some(next_thread) = next_ref {
         cpu.run_queue.write().push_back(next_thread.clone());
 
-        *cpu.current_thread.write() = Some(next_thread.clone());
-
-        let _status = cpu.current_thread.read().clone().unwrap().status.get();
-
         next_thread.clone()
     } else {
         cpu.idle_thread.clone()
     };
 
+    register_reschedule_event(new.priority.ms());
+
     if Arc::ptr_eq(&old, &new) {
         return;
     }
 
-    register_reschedule_event(new.priority.ms());
-
-    switch_threads(old, new);
+    *cpu.next.write() = Some(new);
 }
 
-fn switch_threads(old: Arc<Thread>, new: Arc<Thread>) {
-    
+pub fn switch_threads(old: Arc<Thread>, new: Arc<Thread>) {
     old.status.set(ThreadStatus::Ready);
 
     new.status.set(ThreadStatus::Running);
@@ -207,9 +203,13 @@ fn switch_threads(old: Arc<Thread>, new: Arc<Thread>) {
 
             DS::set_reg(GDT_BSP.1.user_data_selector);
 
-            current_cpu().kernel_stack.set(new.kernel_stack.as_ref().unwrap().kernel_stack_top);
+            current_cpu()
+                .kernel_stack
+                .set(new.kernel_stack.as_ref().unwrap().kernel_stack_top);
         }
     }
+
+    *current_cpu().current_thread.write() = Some(new.clone());
 
     unsafe {
         // FIXME: If println is used after some time page fault happens
@@ -225,8 +225,6 @@ fn register_reschedule_event(millis: u64) {
     let mut timer_queue = cpu.timer_queue.write();
 
     timer_queue.queue_event(event);
-
-    timer_queue.unlock();
 }
 
 pub fn init() {

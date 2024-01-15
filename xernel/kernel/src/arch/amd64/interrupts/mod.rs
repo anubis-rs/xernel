@@ -11,7 +11,6 @@ use core::sync::atomic::{compiler_fence, Ordering};
 use idt::{IRQHandler, IDT_ENTRIES};
 use ipl::IPL;
 
-use self::dpc::dpc_interrupt_dispatch;
 use self::ipl::{get_spl, raise_spl, set_ipl};
 
 use super::apic::apic_spurious_interrupt;
@@ -29,7 +28,6 @@ pub fn init() {
     handlers[0x8] = IRQHandler::Handler(double_fault_handler);
     handlers[0xF0] = IRQHandler::Handler(apic_spurious_interrupt);
 
-    handlers[0x20] = IRQHandler::Handler(dpc_interrupt_dispatch);
 }
 
 #[no_mangle]
