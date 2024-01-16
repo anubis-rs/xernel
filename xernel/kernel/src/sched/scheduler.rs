@@ -84,4 +84,3 @@ fn register_reschedule_event(millis: u64) {
 
     timer_queue.queue_event(event);
 }
-

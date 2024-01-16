@@ -86,9 +86,7 @@ impl Thread {
 
         context.rip = thread_trampoline as u64;
 
-        let (trap_ptr, ctx_ptr) = unsafe {
-            Thread::setup_stack(thread_stack, trap_frame, context, false)
-        };
+        let (trap_ptr, ctx_ptr) = unsafe { Thread::setup_stack(thread_stack, trap_frame, context, false) };
 
         let mut parent = KERNEL_PROCESS.lock();
 
@@ -120,9 +118,7 @@ impl Thread {
 
         context.rip = thread_trampoline as u64;
 
-        let (trap_ptr, ctx_ptr) = unsafe {
-            Thread::setup_stack(thread_stack, trap_frame, context, false)
-        };
+        let (trap_ptr, ctx_ptr) = unsafe { Thread::setup_stack(thread_stack, trap_frame, context, false) };
 
         let mut parent = KERNEL_PROCESS.lock();
 
@@ -158,9 +154,7 @@ impl Thread {
 
         let mut parent = parent_process.lock();
 
-        let (trap_ptr, ctx_ptr) = unsafe {
-            Thread::setup_stack(kernel_stack_end, trap_frame, context, true)
-        };
+        let (trap_ptr, ctx_ptr) = unsafe { Thread::setup_stack(kernel_stack_end, trap_frame, context, true) };
 
         Self {
             id: parent.next_tid(),
@@ -177,19 +171,25 @@ impl Thread {
         }
     }
 
-    unsafe fn setup_stack(stack: usize, trap_frame: TrapFrame, ctx: Context, is_user: bool) -> (*mut TrapFrame, *mut Context) {
+    unsafe fn setup_stack(
+        stack: usize,
+        trap_frame: TrapFrame,
+        ctx: Context,
+        is_user: bool,
+    ) -> (*mut TrapFrame, *mut Context) {
         let ptr = (stack as *mut u64).offset(-1);
 
-        let ctx_begin = -27; 
+        let ctx_begin = -27;
         let frame_begin = -20;
         let end_of_combined_frame = -27;
 
         ptr.offset(frame_begin + 20).write(trap_frame.ss);
-        
+
         if is_user {
             ptr.offset(frame_begin + 19).write(trap_frame.rsp);
         } else {
-            ptr.offset(frame_begin + 19).write(ptr.offset(end_of_combined_frame) as u64);
+            ptr.offset(frame_begin + 19)
+                .write(ptr.offset(end_of_combined_frame) as u64);
         }
 
         ptr.offset(frame_begin + 18).write(trap_frame.rflags);
@@ -220,7 +220,10 @@ impl Thread {
         ptr.offset(ctx_begin + 1).write(ctx.rbp);
         ptr.offset(ctx_begin).write(ptr.offset(frame_begin) as u64);
 
-        (ptr.offset(frame_begin) as *mut TrapFrame, ptr.offset(ctx_begin) as *mut Context) 
+        (
+            ptr.offset(frame_begin) as *mut TrapFrame,
+            ptr.offset(ctx_begin) as *mut Context,
+        )
     }
 
     pub fn new_idle_thread() -> Self {

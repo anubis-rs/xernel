@@ -1,6 +1,6 @@
 use alloc::string::String;
 
-use crate::{syscall::Result, cpu::current_process};
+use crate::{cpu::current_process, syscall::Result};
 
 use super::{file::File, vfs::VFS};
 

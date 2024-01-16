@@ -159,11 +159,17 @@ pub fn current_cpu() -> Pin<&'static Cpu> {
 }
 
 pub fn current_thread() -> Arc<Thread> {
-    current_cpu().current_thread.read().clone().unwrap_or(current_cpu().idle_thread.clone())
+    current_cpu()
+        .current_thread
+        .read()
+        .clone()
+        .unwrap_or(current_cpu().idle_thread.clone())
 }
 
 pub fn current_process() -> Arc<Spinlock<Process>> {
-    current_thread().get_process().unwrap_or_else(|| panic!("current_process called with no current process"))
+    current_thread()
+        .get_process()
+        .unwrap_or_else(|| panic!("current_process called with no current process"))
 }
 
 pub fn wait_until_cpus_registered() {
