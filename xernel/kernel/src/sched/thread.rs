@@ -111,6 +111,8 @@ impl Thread {
     pub fn kernel_thread_from_fn(entry: fn()) -> Self {
         let thread_stack = KERNEL_PROCESS.lock().new_kernel_stack();
 
+        println!("{:x}", thread_stack);
+
         let mut trap_frame = TrapFrame::new();
 
         trap_frame.ss = 0x10; // kernel stack segment
@@ -119,14 +121,17 @@ impl Thread {
         trap_frame.rsp = thread_stack as u64;
         trap_frame.rflags = 0x202;
 
-        let trap = UnsafeCell::new(Box::into_raw(Box::new(trap_frame)));
+        println!("{:?}", trap_frame);
 
         let mut context = Context::new();
 
         context.rip = thread_trampoline as u64;
-        unsafe {
-            context.rbx = *trap.get() as u64;
-        }
+
+        let (trap_ptr, ctx_ptr) = unsafe {
+            Thread::setup_stack_frame(thread_stack, trap_frame, context)
+        };
+
+        context.rbx = trap_ptr as u64;
 
         let mut parent = KERNEL_PROCESS.lock();
 
@@ -137,8 +142,8 @@ impl Thread {
             process: Arc::downgrade(&KERNEL_PROCESS),
             status: Cell::new(ThreadStatus::Initial),
             priority: ThreadPriority::Normal,
-            trap_frame: trap,
-            context: UnsafeCell::new(Box::into_raw(Box::new(context))),
+            trap_frame: UnsafeCell::new(trap_ptr),
+            context: UnsafeCell::new(ctx_ptr),
             thread_stack,
             kernel_stack: None,
         }
@@ -156,7 +161,15 @@ impl Thread {
         trap_frame.rsp = thread_stack as u64;
         trap_frame.rflags = 0x202;
 
+        let mut context = Context::new();
+
+        context.rip = thread_trampoline as u64;
+
         let mut parent = parent_process.lock();
+
+        let (trap_ptr, ctx_ptr) = unsafe {
+            Thread::setup_stack_frame(thread_stack, trap_frame, context)
+        };
 
         Self {
             id: parent.next_tid(),
@@ -171,6 +184,49 @@ impl Thread {
                 kernel_stack_top: kernel_stack_end,
             })),
         }
+    }
+
+    unsafe fn setup_stack_frame(stack: usize, trap_frame: TrapFrame, ctx: Context) -> (*mut TrapFrame, *mut Context) {
+
+        let ptr = stack as *mut u64;
+        debug!("{:?}", ptr);
+
+        //let ptr = ptr.offset(-1);
+
+        ptr.write(trap_frame.ss);
+        println!("first write");
+        ptr.offset(-1).write(trap_frame.rsp);
+        ptr.offset(-2).write(trap_frame.rflags);
+        ptr.offset(-3).write(trap_frame.cs);
+        ptr.offset(-4).write(trap_frame.rip);
+        ptr.offset(-5).write(trap_frame.error_code);
+        ptr.offset(-6).write(trap_frame.r15);
+        ptr.offset(-7).write(trap_frame.r14);
+        ptr.offset(-8).write(trap_frame.r13);
+        ptr.offset(-9).write(trap_frame.r12);
+        ptr.offset(-10).write(trap_frame.r11);
+        ptr.offset(-11).write(trap_frame.r10);
+        ptr.offset(-12).write(trap_frame.r9);
+        ptr.offset(-13).write(trap_frame.r8);
+        ptr.offset(-14).write(trap_frame.rdi);
+        ptr.offset(-15).write(trap_frame.rsi);
+        ptr.offset(-16).write(trap_frame.rdx);
+        ptr.offset(-17).write(trap_frame.rcx);
+        ptr.offset(-18).write(trap_frame.rbx);
+        ptr.offset(-19).write(trap_frame.rax);
+        ptr.offset(-20).write(trap_frame.rbp);
+
+        ptr.offset(-21).write(ctx.rip);
+        ptr.offset(-22).write(ctx.r15);
+        ptr.offset(-23).write(ctx.r14);
+        ptr.offset(-24).write(ctx.r13);
+        ptr.offset(-25).write(ctx.r12);
+        ptr.offset(-26).write(ctx.rbp);
+        ptr.offset(-27).write(ptr.offset(-20) as u64);
+
+        println!("{:?}", ptr.offset(-20) as *mut TrapFrame);
+
+        (ptr.offset(-20) as *mut TrapFrame, ptr.offset(-27) as *mut Context) 
     }
 
     pub fn new_idle_thread() -> Self {
