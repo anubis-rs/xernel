@@ -1,6 +1,8 @@
 use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::interrupts::dpc_queue::DpcQueue;
 use crate::arch::amd64::{rdmsr, wrmsr, KERNEL_GS_BASE};
+use crate::panic;
+use crate::sched::process::Process;
 use crate::sched::thread::Thread;
 use crate::timer::timer_queue::TimerQueue;
 use alloc::boxed::Box;
@@ -11,7 +13,7 @@ use core::cell::{Cell, UnsafeCell};
 use core::ops::Deref;
 use core::pin::Pin;
 use core::sync::atomic::{AtomicUsize, Ordering};
-use libxernel::sync::{Once, RwLock};
+use libxernel::sync::{Once, RwLock, Spinlock};
 
 static CPU_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
@@ -155,6 +157,14 @@ pub fn register_cpu() {
 
 pub fn current_cpu() -> Pin<&'static Cpu> {
     unsafe { Pin::new_unchecked(&*core::ptr::from_exposed_addr(rdmsr(KERNEL_GS_BASE) as usize)) }
+}
+
+pub fn current_thread() -> Arc<Thread> {
+    current_cpu().current_thread.read().clone().unwrap_or(current_cpu().idle_thread.clone())
+}
+
+pub fn current_process() -> Arc<Spinlock<Process>> {
+    current_thread().get_process().unwrap_or_else(|| panic!("current_process called with no current process"))
 }
 
 pub fn wait_until_cpus_registered() {

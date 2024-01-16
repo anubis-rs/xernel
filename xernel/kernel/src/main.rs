@@ -146,9 +146,7 @@ extern "C" fn kernel_main() -> ! {
 
     wait_until_cpus_registered();
 
-    scheduler::init();
     timer::init();
-
     info!("scheduler initialized");
 
     let process = Arc::new(Spinlock::new(Process::new(Some(KERNEL_PROCESS.clone()))));
