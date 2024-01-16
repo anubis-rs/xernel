@@ -26,4 +26,8 @@ impl DpcQueue {
         self.dpcs.drain(range).for_each(|dpc| dpcs.push_front(dpc));
         dpcs
     }
+
+    pub fn dequeue(&mut self) -> Option<Box<dyn DpcCall>> {
+        self.dpcs.pop_front()
+    }
 }

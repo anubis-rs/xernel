@@ -45,9 +45,15 @@ pub fn dpc_interrupt_dispatch() {
 
     let ipl = raise_spl(IPL::IPLDPC);
 
-    let dpcs = cpu.dpc_queue.write().drain(..);
-
-    dpcs.into_iter().for_each(|dpc| dpc.call());
+    while let Some(dpc) = {
+        let old = raise_spl(IPL::IPLHigh);
+        let mut lock = cpu.dpc_queue.write();
+        let dpc = lock.dequeue();
+        set_ipl(old);
+        dpc
+    } {
+        dpc.call();
+    }
 
     set_ipl(ipl);
 
