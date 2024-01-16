@@ -6,6 +6,7 @@
 #![feature(exclusive_range_pattern)]
 #![feature(let_chains)]
 #![feature(strict_provenance)]
+#![feature(exposed_provenance)]
 #![allow(dead_code)]
 #![allow(clippy::fn_to_numeric_cast)]
 #![allow(non_upper_case_globals)]
