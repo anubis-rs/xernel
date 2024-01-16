@@ -59,7 +59,6 @@ use crate::mem::frame::FRAME_ALLOCATOR;
 use crate::mem::paging::KERNEL_PAGE_MAPPER;
 use crate::sched::process::Process;
 use crate::sched::process::KERNEL_PROCESS;
-use crate::sched::scheduler;
 use crate::sched::scheduler::reschedule;
 use crate::sched::thread::Thread;
 use crate::timer::hardclock;
