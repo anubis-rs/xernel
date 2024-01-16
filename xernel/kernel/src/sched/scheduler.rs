@@ -40,6 +40,27 @@ pub fn reschedule(_: ()) {
     *cpu.next.write() = Some(new);
 }
 
+pub fn enqueue_thread(thread: Thread) {
+    current_cpu().run_queue.write().push_back(Arc::new(thread));
+}
+
+pub fn dequeue_thread(thread: Arc<Thread>) -> Option<Arc<Thread>> {
+
+    let cpu = current_cpu();
+
+    let mut index_to_remove = 0;
+
+    for (i, thrd) in cpu.run_queue.write().iter().enumerate() {
+        if Arc::ptr_eq(&thread, thrd) {
+            index_to_remove = i; 
+            break;
+        } 
+    }
+
+    let thread = cpu.run_queue.write().remove(index_to_remove);
+    thread
+}
+
 pub fn switch_threads(old: Arc<Thread>, new: Arc<Thread>) {
     old.status.set(ThreadStatus::Ready);
 
