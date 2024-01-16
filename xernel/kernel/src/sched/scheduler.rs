@@ -1,19 +1,12 @@
-use crate::acpi::hpet;
 use crate::arch::amd64::gdt::GDT_BSP;
 use crate::arch::amd64::switch_context;
-use crate::cpu::{current_cpu, PerCpu, CPU_COUNT};
+use crate::cpu::current_cpu;
 use crate::timer::timer_event::TimerEvent;
-use alloc::collections::VecDeque;
 use alloc::sync::Arc;
-use alloc::vec::Vec;
-use core::sync::atomic::AtomicU64;
-use core::sync::atomic::Ordering;
 use core::time::Duration;
-use libxernel::sync::{Once, Spinlock, SpinlockIRQ};
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
 
-use super::process::Process;
 use super::thread::{Thread, ThreadStatus};
 
 pub fn reschedule(_: ()) {
