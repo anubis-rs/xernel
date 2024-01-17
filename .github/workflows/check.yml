@@ -1,0 +1,11 @@
+name: Xernel Lint
+on: [push, pull_request]
+jobs:
+  xernel-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: rustup update && rustup toolchain install nightly
+      - run: cargo kernel build
+      - run: cargo kernel fmt --check
+      - run: cargo kernel clippy
