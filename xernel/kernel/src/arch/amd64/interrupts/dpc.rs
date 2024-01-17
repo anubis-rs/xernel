@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 
 use crate::{
-    arch::amd64::interrupts::ipl::{raise_spl, set_ipl, IPL},
+    arch::amd64::interrupts::ipl::{raise_ipl, set_ipl, IPL},
     cpu::{current_cpu, PerCpu},
     sched::scheduler::switch_threads,
 };
@@ -43,10 +43,10 @@ impl<T> Dpc<T> {
 pub fn dpc_interrupt_dispatch() {
     let cpu = current_cpu();
 
-    let ipl = raise_spl(IPL::IPLDPC);
+    let ipl = raise_ipl(IPL::IPLDPC);
 
     while let Some(dpc) = {
-        let old = raise_spl(IPL::IPLHigh);
+        let old = raise_ipl(IPL::IPLHigh);
         let mut lock = cpu.dpc_queue.write();
         let dpc = lock.dequeue();
         set_ipl(old);

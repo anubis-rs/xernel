@@ -4,6 +4,22 @@ use crate::cpu::current_cpu;
 
 use super::dpc::dpc_interrupt_dispatch;
 
+#[macro_export]
+macro_rules! lock_with_ipl {
+    ($name:ident) => {
+        {
+            let old = raise_ipl(IPL::IPLDPC);
+            OnDrop::new($name.lock(), || { set_ipl(old); })
+        }
+    };
+    ($name:ident, $ipl:expr) => {
+        {
+            let _ = raise_ipl(IPL::IPLDPC);
+            OnDrop::new($name.lock(), || { set_ipl($ipl); })
+        }
+    };
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[repr(u8)]
 pub enum IPL {
@@ -41,7 +57,7 @@ impl From<u8> for IPL {
     }
 }
 
-pub fn get_spl() -> IPL {
+pub fn get_ipl() -> IPL {
     let ipl: u64;
 
     unsafe {
@@ -53,7 +69,7 @@ pub fn get_spl() -> IPL {
 
 pub fn set_ipl(ipl: IPL) -> IPL {
     let requested_ipl = ipl as u64;
-    let old_ipl = get_spl() as u64;
+    let old_ipl = get_ipl() as u64;
 
     unsafe {
         asm!("mov cr8, {}", in(reg) requested_ipl, options(nomem, nostack, preserves_flags));
@@ -66,13 +82,13 @@ pub fn set_ipl(ipl: IPL) -> IPL {
     IPL::from(old_ipl)
 }
 
-pub fn raise_spl(spl: IPL) -> IPL {
-    let old_ipl = get_spl();
+pub fn raise_ipl(ipl: IPL) -> IPL {
+    let old_ipl = get_ipl();
 
-    assert!(old_ipl as u64 <= spl as u64);
+    assert!(old_ipl as u64 <= ipl as u64);
 
-    if old_ipl < spl {
-        set_ipl(spl);
+    if old_ipl < ipl {
+        set_ipl(ipl);
     }
 
     old_ipl

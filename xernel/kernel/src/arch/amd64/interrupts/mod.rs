@@ -11,7 +11,7 @@ use core::sync::atomic::{compiler_fence, Ordering};
 use idt::{IRQHandler, IDT_ENTRIES};
 use ipl::IPL;
 
-use self::ipl::{get_spl, raise_spl, set_ipl};
+use self::ipl::{get_ipl, raise_ipl, set_ipl};
 
 use super::apic::apic_spurious_interrupt;
 use libxernel::sync::{Spinlock, SpinlockIRQ};
@@ -33,11 +33,11 @@ pub fn init() {
 extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
     let mut ipl = IPL::from(isr >> 4);
 
-    if (ipl as u8) < (get_spl() as u8) {
+    if (ipl as u8) < (get_ipl() as u8) {
         panic!("IPL not less or equal");
     }
 
-    ipl = raise_spl(ipl);
+    ipl = raise_ipl(ipl);
 
     let handlers = INTERRUPT_HANDLERS.lock();
 
