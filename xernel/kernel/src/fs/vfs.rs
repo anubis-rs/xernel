@@ -3,8 +3,8 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
-use libxernel::sync::Spinlock;
 use libxernel::boot::InitAtBoot;
+use libxernel::sync::Spinlock;
 
 use super::{
     mount::{Mount, VfsOps},

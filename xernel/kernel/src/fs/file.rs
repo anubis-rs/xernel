@@ -5,15 +5,12 @@ use super::vnode::VNode;
 
 pub struct File {
     node: Arc<Spinlock<VNode>>,
-    offset: usize
+    offset: usize,
 }
 
 impl File {
     pub fn new(node: Arc<Spinlock<VNode>>) -> Self {
-        Self { 
-            node,
-            offset: 0
-        }
+        Self { node, offset: 0 }
     }
 
     pub fn get_node(&self) -> Arc<Spinlock<VNode>> {
