@@ -15,20 +15,6 @@ pub enum IPL {
     IPLHigh = 15,
 }
 
-impl From<u64> for IPL {
-    fn from(value: u64) -> Self {
-        match value {
-            0 => IPL::IPL0,
-            1 => IPL::IPLAPC,
-            2 => IPL::IPLDPC,
-            13 => IPL::IPLDevice,
-            14 => IPL::IPLClock,
-            15 => IPL::IPLHigh,
-            _ => panic!("Bad IPL"),
-        }
-    }
-}
-
 impl From<usize> for IPL {
     fn from(value: usize) -> Self {
         match value {
@@ -43,17 +29,15 @@ impl From<usize> for IPL {
     }
 }
 
+impl From<u64> for IPL {
+    fn from(value: u64) -> Self {
+        IPL::from(value as usize)
+    }
+}
+
 impl From<u8> for IPL {
     fn from(value: u8) -> Self {
-        match value {
-            0 => IPL::IPL0,
-            1 => IPL::IPLAPC,
-            2 => IPL::IPLDPC,
-            13 => IPL::IPLDevice,
-            14 => IPL::IPLClock,
-            15 => IPL::IPLHigh,
-            _ => panic!("Bad IPL"),
-        }
+        IPL::from(value as usize)
     }
 }
 

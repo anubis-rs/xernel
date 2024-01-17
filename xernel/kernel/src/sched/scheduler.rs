@@ -67,7 +67,6 @@ pub fn switch_threads(old: Arc<Thread>, new: Arc<Thread>) {
     new.status.set(ThreadStatus::Running);
 
     if !new.is_kernel_thread() {
-        println!("i am here where i should not be");
         unsafe {
             // SAFETY: A user thread always has a page table
             let pt = new.process.upgrade().unwrap().lock().get_page_table().unwrap();
@@ -91,8 +90,6 @@ pub fn switch_threads(old: Arc<Thread>, new: Arc<Thread>) {
     *current_cpu().current_thread.write() = Some(new.clone());
 
     unsafe {
-        // FIXME: If println is used after some time page fault happens
-        //println!("{:?} {:?}", old.context.get(), *new.context.get());
         switch_context(old.context.get(), *new.context.get());
     }
 }

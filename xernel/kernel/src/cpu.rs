@@ -114,7 +114,7 @@ impl<T> Deref for PerCpu<T> {
     }
 }
 
-#[repr(C)]
+#[repr(C, align(8))]
 pub struct Cpu {
     // NOTE: don't move these variables as we need to access them from assembly
     user_space_stack: usize,

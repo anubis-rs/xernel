@@ -24,9 +24,13 @@ impl IOApic {
         ((self.address + 0x10) as *mut u32).write_volatile(val);
     }
 
-    pub unsafe fn mask_irq(&mut self) {}
+    pub unsafe fn mask_irq(&mut self) {
+        todo!();
+    }
 
-    pub unsafe fn unmask_irq(&mut self) {}
+    pub unsafe fn unmask_irq(&mut self) {
+        todo!();
+    }
 
     pub unsafe fn write_irq(
         &mut self,

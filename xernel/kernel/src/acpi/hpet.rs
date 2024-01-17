@@ -36,6 +36,8 @@ pub fn init() {
     let period = (read(0) >> 32) & u64::MAX;
 
     assert!(period != 0);
+
+    // INFO: Period must be less or equal to 0x05F5E100 according to HPET spec
     assert!(period <= 0x05F5E100);
 
     let f = (u64::pow(10, 15) as f64 / period as f64) as u64;

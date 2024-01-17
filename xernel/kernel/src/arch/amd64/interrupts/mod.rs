@@ -125,7 +125,7 @@ pub fn register_handler(vector: u8, handler: fn(&mut TrapFrame)) {
 
     match handlers[vector as usize] {
         IRQHandler::None => {}
-        _ => unreachable!("register_handler: handler has already been registered"),
+        _ => panic!("register_handler: handler has already been registered"),
     }
 
     handlers[vector as usize] = IRQHandler::Handler(handler);
