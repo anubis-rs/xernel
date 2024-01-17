@@ -119,6 +119,6 @@ impl<T, const N: usize> Ringbuffer<T, N> {
 
 impl<T, const N: usize> Drop for Ringbuffer<T, N> {
     fn drop(&mut self) {
-        while let Some(_) = self.pop() {}
+        while self.pop().is_some() {}
     }
 }
