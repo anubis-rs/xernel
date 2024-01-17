@@ -5,6 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: sudo apt update && sudo apt install -y mtools
       - run: rustup update && rustup toolchain install nightly
       - run: rustup component add rust-src rustfmt clippy
       - run: cargo kernel build
