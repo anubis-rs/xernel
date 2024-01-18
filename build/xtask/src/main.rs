@@ -4,7 +4,6 @@ use fatfs::{format_volume, FormatVolumeOptions};
 use pico_args::Arguments;
 use std::io::{Cursor, Read, Seek, Write};
 use std::path::{Path, PathBuf};
-use std::ptr::slice_from_raw_parts;
 use std::{env, fs, vec};
 use xshell::{cmd, Shell};
 
@@ -119,62 +118,27 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
     let diskname = "xernel.hdd";
 
     let data_vec = vec![0_u8; 64 * 1024 * 1024];
-    let ptr = data_vec.as_ptr();
-
     let mut disk = Cursor::new(data_vec);
 
     format_volume(&mut disk, FormatVolumeOptions::new().fat_type(fatfs::FatType::Fat32))?;
 
-    let fs = fatfs::FileSystem::new(disk, fatfs::FsOptions::new())?;
+    let fs = fatfs::FileSystem::new(&mut disk, fatfs::FsOptions::new())?;
+    {
+        let root_dir = fs.root_dir();
 
-    let root_dir = fs.root_dir();
+        copy_to_image(&root_dir, &format!("./target/{target}/{build_dir}/xernel"), "xernel")?;
 
-    copy_to_image(&root_dir, &format!("./target/{target}/{build_dir}/xernel"), "xernel")?;
+        copy_to_image(&root_dir, "./xernel/kernel/limine.cfg", "limine.cfg")?;
+        copy_to_image(&root_dir, "./logo.bmp", "logo.bmp")?;
 
-    copy_to_image(&root_dir, "./xernel/kernel/limine.cfg", "limine.cfg")?;
-    copy_to_image(&root_dir, "./logo.bmp", "logo.bmp")?;
+        let dir = root_dir.create_dir("EFI")?;
+        let dir = dir.create_dir("BOOT")?;
 
-    let dir = root_dir.create_dir("EFI")?;
-    let dir = dir.create_dir("BOOT")?;
+        copy_to_image(&dir, "./xernel/kernel/limine/BOOTX64.EFI", "BOOTX64.EFI")?;
+    }
+    fs.unmount()?;
 
-    copy_to_image(&dir, "./xernel/kernel/limine/BOOTX64.EFI", "BOOTX64.EFI")?;
-
-    //   fs.unmount()?;
-
-    let illegal_copy = unsafe { &*slice_from_raw_parts(ptr, 64 * 1024 * 1024) };
-
-    fs::write(diskname, illegal_copy)?;
-
-    /*
-    let disksize = 64.to_string();
-
-    cmd!(
-        sh,
-        "dd if=/dev/zero of={diskname} bs=1M count=0 seek={disksize}"
-    )
-    .run()?;
-
-    cmd!(sh, "mformat -i {diskname} -F").run()?;
-    cmd!(
-        sh,
-        "mcopy -i {diskname} ./target/{target}/{build_dir}/xernel ::/xernel"
-    )
-    .run()?;
-    cmd!(
-        sh,
-        "mcopy -i {diskname} xernel/kernel/limine.cfg ::/limine.cfg"
-    )
-    .run()?;
-
-    cmd!(sh, "mcopy -i {diskname} ./logo.bmp ::/logo.bmp").run()?;
-    cmd!(sh, "mmd -i {diskname} ::/EFI").run()?;
-    cmd!(sh, "mmd -i {diskname} ::/EFI/BOOT").run()?;
-    cmd!(
-        sh,
-        "mcopy -i {diskname} xernel/kernel/limine/BOOTX64.EFI ::/EFI/BOOT"
-    )
-    .run()?;
-    */
+    fs::write(diskname, disk.into_inner())?;
 
     Ok(())
 }
