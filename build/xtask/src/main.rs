@@ -116,8 +116,9 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
     let build_dir = if rl { "release" } else { "debug" };
 
     let diskname = "xernel.hdd";
+    let disksize = 64 * 1024 * 1024; // 64 MB
 
-    let data_vec = vec![0_u8; 64 * 1024 * 1024];
+    let data_vec = vec![0_u8; disksize];
     let mut disk = Cursor::new(data_vec);
 
     format_volume(&mut disk, FormatVolumeOptions::new().fat_type(fatfs::FatType::Fat32))?;
@@ -128,13 +129,13 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
 
         copy_to_image(&root_dir, &format!("./target/{target}/{build_dir}/xernel"), "xernel")?;
 
-        copy_to_image(&root_dir, "./xernel/kernel/limine.cfg", "limine.cfg")?;
         copy_to_image(&root_dir, "./logo.bmp", "logo.bmp")?;
 
         let dir = root_dir.create_dir("EFI")?;
         let dir = dir.create_dir("BOOT")?;
 
         copy_to_image(&dir, "./xernel/kernel/limine/BOOTX64.EFI", "BOOTX64.EFI")?;
+        copy_to_image(&dir, "./xernel/kernel/limine.cfg", "limine.cfg")?;
     }
     fs.unmount()?;
 
