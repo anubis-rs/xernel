@@ -24,7 +24,7 @@ pub struct TimerEvent {
 
 impl EventExecutor for TimerEvent {
     fn dispatch(self) {
-        current_cpu().dpc_queue.write().add_dpc(self.dpc);
+        current_cpu().dpc_queue.write().enqueue(self.dpc);
     }
 }
 

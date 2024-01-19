@@ -44,7 +44,7 @@ impl TimerQueue {
         }
     }
 
-    pub fn queue_event(&mut self, event: TimerEvent) {
+    pub fn enqueue(&mut self, event: TimerEvent) {
         if self.events.len() == 0 {
             APIC.oneshot(*TIMER_VECTOR, &event.deadline);
             self.events.push_front(event);

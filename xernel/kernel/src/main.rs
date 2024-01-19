@@ -193,11 +193,11 @@ extern "C" fn kernel_main() -> ! {
 
     let timekeeper = TimerEvent::new(hardclock, (), Duration::from_secs(1), false);
 
-    current_cpu().timer_queue.write().queue_event(timekeeper);
+    current_cpu().timer_queue.write().enqueue(timekeeper);
 
     let event = TimerEvent::new(reschedule, (), Duration::from_millis(5), false);
 
-    current_cpu().timer_queue.write().queue_event(event);
+    current_cpu().timer_queue.write().enqueue(event);
 
     amd64::interrupts::enable();
 

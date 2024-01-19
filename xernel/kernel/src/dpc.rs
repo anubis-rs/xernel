@@ -52,8 +52,8 @@ impl DpcQueue {
         Self { dpcs: VecDeque::new() }
     }
 
-    pub fn add_dpc(&mut self, dpc: Box<dyn DpcCall>) {
-        self.dpcs.push_front(dpc);
+    pub fn enqueue(&mut self, dpc: Box<dyn DpcCall>) {
+        self.dpcs.push_back(dpc);
     }
 
     pub fn drain<R>(&mut self, range: R) -> VecDeque<Box<dyn DpcCall>>

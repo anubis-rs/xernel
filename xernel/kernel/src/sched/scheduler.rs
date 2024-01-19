@@ -99,5 +99,5 @@ fn register_reschedule_event(millis: u64) {
     let cpu = current_cpu();
     let mut timer_queue = cpu.timer_queue.write();
 
-    timer_queue.queue_event(event);
+    timer_queue.enqueue(event);
 }

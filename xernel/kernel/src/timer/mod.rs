@@ -59,5 +59,5 @@ pub fn hardclock(_: ()) {
     UPTIME.fetch_add(1, Ordering::SeqCst);
     let event = TimerEvent::new(hardclock, (), Duration::from_secs(1), false);
 
-    current_cpu().timer_queue.write().queue_event(event);
+    current_cpu().timer_queue.write().enqueue(event);
 }
