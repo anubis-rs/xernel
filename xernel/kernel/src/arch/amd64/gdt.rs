@@ -2,7 +2,7 @@ use alloc::alloc::alloc_zeroed;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::ptr::addr_of;
-use libxernel::sync::{Once, TicketMutex};
+use libxernel::sync::{Once, Spinlock};
 use x86_64::instructions::segmentation::{Segment, CS, DS, ES, SS};
 use x86_64::instructions::tables::load_tss;
 use x86_64::structures::gdt::SegmentSelector;
@@ -18,7 +18,7 @@ static mut BSP_IST_STACK: [u8; IST_STACK_SIZE] = [0; IST_STACK_SIZE];
 static TSS: Once<TaskStateSegment> = Once::new();
 pub static GDT_BSP: Once<(GlobalDescriptorTable, Selectors)> = Once::new();
 
-static GDT_AP: TicketMutex<Vec<Gdt>> = TicketMutex::new(Vec::new());
+static GDT_AP: Spinlock<Vec<Gdt>> = Spinlock::new(Vec::new());
 
 #[derive(Debug)]
 struct Gdt {
