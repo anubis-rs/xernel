@@ -1,8 +1,7 @@
 use core::arch::asm;
 
 use crate::cpu::current_cpu;
-
-use super::dpc::dpc_interrupt_dispatch;
+use crate::dpc::dpc_interrupt_dispatch;
 
 #[macro_export]
 macro_rules! lock_with_ipl {

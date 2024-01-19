@@ -1,5 +1,3 @@
-pub mod dpc;
-pub mod dpc_queue;
 pub mod idt;
 pub mod ipl;
 

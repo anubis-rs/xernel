@@ -1,4 +1,6 @@
-use alloc::boxed::Box;
+use core::ops::RangeBounds;
+
+use alloc::{boxed::Box, collections::VecDeque};
 
 use crate::{
     arch::amd64::interrupts::ipl::{raise_ipl, set_ipl, IPL},
@@ -24,6 +26,11 @@ pub struct Dpc<T> {
     state: DpcState,
 }
 
+pub struct DpcQueue {
+    pub dpcs: VecDeque<Box<dyn DpcCall>>,
+}
+
+
 impl<T> DpcCall for Dpc<T> {
     fn call(self: Box<Self>) {
         (self.callback)(self.arg)
@@ -37,6 +44,30 @@ impl<T> Dpc<T> {
             arg: data,
             state: DpcState::DPCUnbound,
         }
+    }
+}
+
+impl DpcQueue {
+    pub fn new() -> Self {
+        Self { dpcs: VecDeque::new() }
+    }
+
+    pub fn add_dpc(&mut self, dpc: Box<dyn DpcCall>) {
+        self.dpcs.push_front(dpc);
+    }
+
+    pub fn drain<R>(&mut self, range: R) -> VecDeque<Box<dyn DpcCall>>
+    where
+        R: RangeBounds<usize>,
+    {
+        let mut dpcs: VecDeque<Box<dyn DpcCall>> = VecDeque::new();
+
+        self.dpcs.drain(range).for_each(|dpc| dpcs.push_front(dpc));
+        dpcs
+    }
+
+    pub fn dequeue(&mut self) -> Option<Box<dyn DpcCall>> {
+        self.dpcs.pop_front()
     }
 }
 

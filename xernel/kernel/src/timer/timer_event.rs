@@ -1,9 +1,7 @@
 use core::time::Duration;
+use crate::dpc::{DpcCall, Dpc};
 
-use crate::{
-    arch::amd64::interrupts::dpc::{Dpc, DpcCall},
-    current_cpu,
-};
+use crate::current_cpu;
 use alloc::boxed::Box;
 
 pub trait EventExecutor {

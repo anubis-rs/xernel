@@ -31,6 +31,7 @@ mod mem;
 mod sched;
 mod syscall;
 mod timer;
+mod dpc;
 
 use alloc::sync::Arc;
 use core::arch::asm;
