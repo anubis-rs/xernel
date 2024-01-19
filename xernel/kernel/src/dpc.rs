@@ -71,6 +71,10 @@ impl DpcQueue {
     }
 }
 
+pub fn enqueue_dpc(dpc: Box<dyn DpcCall>) {
+    current_cpu().dpc_queue.write().enqueue(dpc)
+}
+
 pub fn dpc_interrupt_dispatch() {
     let cpu = current_cpu();
 

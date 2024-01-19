@@ -63,6 +63,7 @@ use crate::sched::process::Process;
 use crate::sched::process::KERNEL_PROCESS;
 use crate::sched::scheduler::reschedule;
 use crate::sched::thread::Thread;
+use crate::timer::enqueue_timer;
 use crate::timer::hardclock;
 use crate::timer::timer_event::TimerEvent;
 use crate::utils::backtrace;
@@ -193,11 +194,11 @@ extern "C" fn kernel_main() -> ! {
 
     let timekeeper = TimerEvent::new(hardclock, (), Duration::from_secs(1), false);
 
-    current_cpu().timer_queue.write().enqueue(timekeeper);
+    enqueue_timer(timekeeper);
 
-    let event = TimerEvent::new(reschedule, (), Duration::from_millis(5), false);
+    let resched = TimerEvent::new(reschedule, (), Duration::from_millis(5), false);
 
-    current_cpu().timer_queue.write().enqueue(event);
+    enqueue_timer(resched);
 
     amd64::interrupts::enable();
 

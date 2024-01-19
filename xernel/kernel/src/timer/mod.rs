@@ -54,6 +54,10 @@ pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
     timer_queue.unlock();
 }
 
+pub fn enqueue_timer(event: TimerEvent) {
+    current_cpu().timer_queue.write().enqueue(event);
+}
+
 pub fn hardclock(_: ()) {
     println!("hardclock event with uptime {:?}", UPTIME);
     UPTIME.fetch_add(1, Ordering::SeqCst);
