@@ -17,6 +17,9 @@ mod writer;
 #[macro_use]
 mod logger;
 
+#[macro_use]
+mod utils;
+
 mod acpi;
 mod allocator;
 mod arch;
@@ -28,7 +31,6 @@ mod mem;
 mod sched;
 mod syscall;
 mod timer;
-mod utils;
 
 use alloc::sync::Arc;
 use core::arch::asm;
