@@ -11,12 +11,17 @@ use super::MMAP_START_ADDR;
 
 pub struct VmEntry {
     start: VirtAddr,
-    end: VirtAddr, // TODO: remove end
     length: usize,
     pub prot: ProtectionFlags,
     pub flags: MapFlags,
     // TODO: add something to represent to which file this entry belongs to
     file: Option<()>,
+}
+
+impl VmEntry {
+    pub fn end(&self) -> VirtAddr {
+        self.start + self.length
+    }
 }
 
 pub struct Vm {
@@ -29,10 +34,8 @@ impl Vm {
     }
 
     pub fn add_entry(&mut self, start: VirtAddr, length: usize, prot: ProtectionFlags, flags: MapFlags) {
-        let end = start + length;
         self.entries.push(VmEntry {
             start,
-            end,
             length,
             prot,
             flags,
@@ -44,7 +47,7 @@ impl Vm {
         let last_entry = self.entries.last();
 
         if let Some(last_entry) = last_entry {
-            VirtAddr::new(align_up(last_entry.end.as_u64(), Size4KiB::SIZE))
+            VirtAddr::new(align_up(last_entry.end().as_u64(), Size4KiB::SIZE))
         } else {
             VirtAddr::new(MMAP_START_ADDR as u64)
         }
@@ -53,7 +56,7 @@ impl Vm {
     pub fn get_entry_from_address(&self, addr: VirtAddr) -> Option<&VmEntry> {
         self.entries
             .iter()
-            .find(|entry| entry.start <= addr && entry.end > addr)
+            .find(|entry| entry.start <= addr && entry.end() > addr)
     }
 
     pub fn clean_up(&mut self) {
