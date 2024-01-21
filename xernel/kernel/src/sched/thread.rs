@@ -50,14 +50,6 @@ pub struct KernelStack {
     pub kernel_stack_top: usize,
 }
 
-fn idle_thread_fn() {
-    loop {
-        unsafe {
-            core::arch::asm!("hlt");
-        }
-    }
-}
-
 pub struct Thread {
     pub id: usize,
     pub process: Weak<Spinlock<Process>>,
@@ -224,15 +216,6 @@ impl Thread {
             ptr.offset(frame_begin) as *mut TrapFrame,
             ptr.offset(ctx_begin) as *mut Context,
         )
-    }
-
-    pub fn new_idle_thread() -> Self {
-        // TODO: don't use a normal kernel task as a huge stack is allocated
-        let mut thread = Self::kernel_thread_from_fn(idle_thread_fn);
-
-        thread.priority = ThreadPriority::Low;
-
-        thread
     }
 
     pub fn idle_thread() -> Self {
