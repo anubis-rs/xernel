@@ -28,7 +28,6 @@ pub struct DpcQueue {
     pub dpcs: VecDeque<Box<dyn DpcCall>>,
 }
 
-
 impl<T> DpcCall for Dpc<T> {
     fn call(self: Box<Self>) {
         (self.callback)(self.arg)

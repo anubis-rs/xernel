@@ -24,6 +24,7 @@ mod acpi;
 mod allocator;
 mod arch;
 mod cpu;
+mod dpc;
 mod drivers;
 mod framebuffer;
 mod fs;
@@ -31,7 +32,6 @@ mod mem;
 mod sched;
 mod syscall;
 mod timer;
-mod dpc;
 
 use alloc::sync::Arc;
 use core::arch::asm;

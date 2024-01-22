@@ -1,5 +1,5 @@
+use crate::dpc::{Dpc, DpcCall};
 use core::time::Duration;
-use crate::dpc::{DpcCall, Dpc};
 
 use crate::current_cpu;
 use alloc::boxed::Box;

@@ -80,15 +80,15 @@ pub fn disable() {
 
 pub fn allocate_vector(ipl: IPL) -> Option<u8> {
     let starting = core::cmp::max((ipl as u8) << 4, 32);
-    
+
     let handlers = INTERRUPT_HANDLERS.lock();
-    
-    for i in starting..starting+16 {
+
+    for i in starting..starting + 16 {
         if let IRQHandler::None = handlers[i as usize] {
             return Some(i);
         }
     }
-    
+
     None
 }
 

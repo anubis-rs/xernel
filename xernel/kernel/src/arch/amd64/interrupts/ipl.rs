@@ -5,18 +5,18 @@ use crate::dpc::dpc_interrupt_dispatch;
 
 #[macro_export]
 macro_rules! lock_with_ipl {
-    ($name:ident) => {
-        {
-            let old = raise_ipl(IPL::DPC);
-            OnDrop::new($name.lock(), move || { set_ipl(old); })
-        }
-    };
-    ($name:ident, $ipl:expr) => {
-        {
-            let _ = raise_ipl(IPL::DPC);
-            OnDrop::new($name.lock(), || { set_ipl($ipl); })
-        }
-    };
+    ($name:ident) => {{
+        let old = raise_ipl(IPL::DPC);
+        OnDrop::new($name.lock(), move || {
+            set_ipl(old);
+        })
+    }};
+    ($name:ident, $ipl:expr) => {{
+        let _ = raise_ipl(IPL::DPC);
+        OnDrop::new($name.lock(), || {
+            set_ipl($ipl);
+        })
+    }};
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]

@@ -6,7 +6,10 @@ use core::{
     time::Duration,
 };
 
-use crate::{cpu::current_cpu, arch::amd64::interrupts::{allocate_vector, ipl::IPL}};
+use crate::{
+    arch::amd64::interrupts::{allocate_vector, ipl::IPL},
+    cpu::current_cpu,
+};
 
 use self::timer_event::TimerEvent;
 

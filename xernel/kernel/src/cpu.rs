@@ -1,6 +1,6 @@
 use crate::arch::amd64::apic::APIC;
-use crate::dpc::DpcQueue;
 use crate::arch::amd64::{rdmsr, wrmsr, KERNEL_GS_BASE};
+use crate::dpc::DpcQueue;
 use crate::sched::process::Process;
 use crate::sched::thread::Thread;
 use crate::timer::timer_queue::TimerQueue;

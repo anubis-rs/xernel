@@ -179,7 +179,7 @@ impl Thread {
         let end_of_combined_frame = -27;
 
         (ptr.offset(frame_begin) as *mut TrapFrame).write(trap_frame);
-           
+
         if is_user {
             ptr.offset(frame_begin + 19).write(trap_frame.rsp);
         } else {
