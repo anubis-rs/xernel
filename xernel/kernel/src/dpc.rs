@@ -4,11 +4,9 @@ use alloc::{boxed::Box, collections::VecDeque};
 
 use crate::{
     arch::amd64::interrupts::ipl::{raise_ipl, set_ipl, IPL},
-    cpu::{current_cpu, PerCpu},
+    cpu::current_cpu,
     sched::scheduler::switch_threads,
 };
-
-pub static DPC_VECTOR: PerCpu<u8> = PerCpu::new();
 
 pub trait DpcCall {
     fn call(self: Box<Self>);

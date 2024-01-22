@@ -6,7 +6,7 @@ use core::{
     time::Duration,
 };
 
-use crate::cpu::current_cpu;
+use crate::{cpu::current_cpu, arch::amd64::interrupts::{allocate_vector, ipl::IPL}};
 
 use self::timer_event::TimerEvent;
 
@@ -22,7 +22,11 @@ static TIMER_VECTOR: Once<u8> = Once::new();
 pub fn init() {
     tsc::calibrate_tsc();
 
-    TIMER_VECTOR.set_once(0xE0);
+    if let Some(vec) = allocate_vector(IPL::IPLClock) {
+        TIMER_VECTOR.set_once(vec);
+    } else {
+        panic!("Could not allocate timer vector");
+    }
 
     register_handler(*TIMER_VECTOR, timer_interrupt_handler);
 }

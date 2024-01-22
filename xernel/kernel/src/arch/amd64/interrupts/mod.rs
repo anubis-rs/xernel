@@ -12,7 +12,7 @@ use ipl::IPL;
 use self::ipl::{get_ipl, raise_ipl, set_ipl};
 
 use super::apic::apic_spurious_interrupt;
-use libxernel::sync::{Spinlock, SpinlockIRQ};
+use libxernel::sync::SpinlockIRQ;
 
 static INTERRUPT_HANDLERS: SpinlockIRQ<[IRQHandler; IDT_ENTRIES]> = SpinlockIRQ::new([IRQHandler::None; IDT_ENTRIES]);
 
@@ -78,44 +78,18 @@ pub fn disable() {
     }
 }
 
-// FIXME: Find solution for multi-core usage
 pub fn allocate_vector(ipl: IPL) -> Option<u8> {
-    static FREE_VECTORS_FOR_IPL: Spinlock<[u8; 16]> = Spinlock::new([
-        0x0 << 4,
-        0x1 << 4,
-        0x2 << 4,
-        0x3 << 4,
-        0x4 << 4,
-        0x5 << 4,
-        0x6 << 4,
-        0x7 << 4,
-        0x8 << 4,
-        0x9 << 4,
-        0xA << 4,
-        0xB << 4,
-        0xC << 4,
-        0xD << 4,
-        0xE << 4,
-        0xF << 4,
-    ]);
-
-    if (ipl as u8) > 15 {
-        return None;
+    let starting = core::cmp::max((ipl as u8) << 4, 32);
+    
+    let handlers = INTERRUPT_HANDLERS.lock();
+    
+    for i in starting..starting+16 {
+        if let IRQHandler::None = handlers[i as usize] {
+            return Some(i);
+        }
     }
-
-    let base_vector = (ipl as u8) << 4;
-
-    let mut free_vectors = FREE_VECTORS_FOR_IPL.lock();
-
-    let next_free_vector = free_vectors[ipl as usize];
-
-    if next_free_vector > base_vector + 15 {
-        return None;
-    }
-
-    free_vectors[ipl as usize] += 1;
-
-    Some(next_free_vector)
+    
+    return None;
 }
 
 pub fn register_handler(vector: u8, handler: fn(&mut TrapFrame)) {
