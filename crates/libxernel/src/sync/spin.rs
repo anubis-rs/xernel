@@ -66,6 +66,14 @@ impl<T: ?Sized> Spinlock<T> {
         None
     }
 
+    pub fn with_lock<F, U>(&self, function: F) -> U
+	where
+		F: FnOnce(&mut T) -> U,
+	{
+		let mut lock = self.lock();
+		function(&mut *lock)
+	}
+
     /// Unlocking a spinlock
     ///
     /// With the drop approach the lock only gets released when the [`MutexGuard`] value goes out of scope.

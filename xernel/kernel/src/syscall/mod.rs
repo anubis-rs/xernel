@@ -3,7 +3,7 @@ use alloc::{
     string::{String, ToString},
 };
 use core::{arch::asm, ffi::c_char};
-use libxernel::syscall::{SyscallError, SYS_CLOSE, SYS_OPEN, SYS_READ, SYS_WRITE};
+use libxernel::syscall::{SyscallError, SYS_CLOSE, SYS_MMAP, SYS_OPEN, SYS_READ, SYS_WRITE};
 use x86_64::{
     registers::{
         model_specific::{Efer, EferFlags, LStar, Star},
@@ -15,6 +15,7 @@ use x86_64::{
 use crate::{
     arch::amd64::gdt::GDT_BSP,
     fs::{self, vfs_syscalls},
+    mem::mmap::mmap,
 };
 
 impl From<fs::Error> for SyscallError {
@@ -173,6 +174,7 @@ extern "sysv64" fn general_syscall_handler(data: SyscallData) -> i64 {
             }
         }
         SYS_CLOSE => vfs_syscalls::sys_close(data.arg0),
+        SYS_MMAP => mmap(data.arg0, data.arg1, data.arg2, data.arg3, data.arg4, data.arg5),
         _ => {
             unimplemented!("unknown syscall: {:x?}", data);
         }

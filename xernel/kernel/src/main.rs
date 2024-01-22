@@ -1,8 +1,6 @@
 #![no_std]
 #![no_main]
 #![feature(abi_x86_interrupt)]
-#![feature(core_intrinsics)]
-#![feature(pointer_byte_offsets)]
 #![feature(naked_functions)]
 #![feature(exclusive_range_pattern)]
 #![feature(let_chains)]
@@ -155,13 +153,13 @@ extern "C" fn kernel_main() -> ! {
         }
     }
 
-    KERNEL_PROCESS.set_once(Arc::new(Spinlock::new(Process::new(None, true))));
+    KERNEL_PROCESS.set_once(Arc::new(Spinlock::new(Process::new(None))));
 
     wait_until_cpus_registered();
 
     scheduler::init();
 
-    let process = Arc::new(Spinlock::new(Process::new(Some(KERNEL_PROCESS.clone()), false)));
+    let process = Arc::new(Spinlock::new(Process::new(Some(KERNEL_PROCESS.clone()))));
 
     let _user_task = Thread::new_user_thread(process.clone(), VirtAddr::new(0x200000));
 

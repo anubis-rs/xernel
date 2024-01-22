@@ -295,6 +295,12 @@ impl Pagemap {
     }
 }
 
+impl Drop for Pagemap {
+    fn drop(&mut self) {
+        todo!("drop pagemap")
+    }
+}
+
 pub fn init() {
     unsafe {
         // create new pagetable and map the kernel + all memory maps in higher half

@@ -3,6 +3,7 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
+use libxernel::boot::InitAtBoot;
 use libxernel::sync::Spinlock;
 use libxernel::boot::InitAtBoot;
 

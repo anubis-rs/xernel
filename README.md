@@ -1,12 +1,11 @@
 # xernel
-A kernel that tries to support multiple architectures/platforms using a hybrid kernel architecture.
-It's using the limine protocol.
+A kernel for x86-64 (and maybe ARM/RISC-V later on) using the limine boot protocol.
 Mostly made for learning purposes, no real-world application.
 
 ![xernel](status_quo.png)
 
 ## Building
-For building, you simply need a working Rust installation with the nightly toolchain installed and the `mtools` package which we use for the generation of the disk image.
+For building, you simply need a working Rust installation with the nightly toolchain installed.
 We use xtask as our workflow for building and running the kernel.
 Therefore, the command `cargo kernel` is used.
 
@@ -16,6 +15,9 @@ You can simply use `cargo kernel build` or `cargo kernel run`, it is going to us
 
 ## Contact
 Feel free to reach out to `lockna` or `mp1310` on Discord
+or join our **Offical Discord Server:** https://discord.gg/e3gsmHX4w4
+
+Here you can talk to us in the `xernel-development` category.
 
 ## TODO
 Things that are still to do:
