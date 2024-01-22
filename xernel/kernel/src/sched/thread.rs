@@ -175,8 +175,8 @@ impl Thread {
         let frame_begin = -20;
         let end_of_combined_frame = -27;
 
-        ptr.offset(frame_begin + 20).write(trap_frame.ss);
-
+        (ptr.offset(frame_begin) as *mut TrapFrame).write(trap_frame);
+           
         if is_user {
             ptr.offset(frame_begin + 19).write(trap_frame.rsp);
         } else {
@@ -184,32 +184,7 @@ impl Thread {
                 .write(ptr.offset(end_of_combined_frame) as u64);
         }
 
-        ptr.offset(frame_begin + 18).write(trap_frame.rflags);
-        ptr.offset(frame_begin + 17).write(trap_frame.cs);
-        ptr.offset(frame_begin + 16).write(trap_frame.rip);
-        ptr.offset(frame_begin + 15).write(trap_frame.error_code);
-        ptr.offset(frame_begin + 14).write(trap_frame.r15);
-        ptr.offset(frame_begin + 13).write(trap_frame.r14);
-        ptr.offset(frame_begin + 12).write(trap_frame.r13);
-        ptr.offset(frame_begin + 11).write(trap_frame.r12);
-        ptr.offset(frame_begin + 10).write(trap_frame.r11);
-        ptr.offset(frame_begin + 9).write(trap_frame.r10);
-        ptr.offset(frame_begin + 8).write(trap_frame.r9);
-        ptr.offset(frame_begin + 7).write(trap_frame.r8);
-        ptr.offset(frame_begin + 6).write(trap_frame.rdi);
-        ptr.offset(frame_begin + 5).write(trap_frame.rsi);
-        ptr.offset(frame_begin + 4).write(trap_frame.rdx);
-        ptr.offset(frame_begin + 3).write(trap_frame.rcx);
-        ptr.offset(frame_begin + 2).write(trap_frame.rbx);
-        ptr.offset(frame_begin + 1).write(trap_frame.rax);
-        ptr.offset(frame_begin).write(trap_frame.rbp);
-
-        ptr.offset(ctx_begin + 6).write(ctx.rip);
-        ptr.offset(ctx_begin + 5).write(ctx.r15);
-        ptr.offset(ctx_begin + 4).write(ctx.r14);
-        ptr.offset(ctx_begin + 3).write(ctx.r13);
-        ptr.offset(ctx_begin + 2).write(ctx.r12);
-        ptr.offset(ctx_begin + 1).write(ctx.rbp);
+        (ptr.offset(ctx_begin) as *mut Context).write(ctx);
         ptr.offset(ctx_begin).write(ptr.offset(frame_begin) as u64);
 
         (
