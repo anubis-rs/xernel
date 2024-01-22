@@ -63,6 +63,9 @@ pub struct Thread {
     pub kernel_stack: Option<Pin<Box<KernelStack>>>,
 }
 
+unsafe impl Sync for Thread {}
+unsafe impl Send for Thread {}
+
 impl Thread {
     pub fn new_kernel_thread(entry_point: VirtAddr) -> Self {
         let thread_stack = KERNEL_PROCESS.lock().new_kernel_stack();

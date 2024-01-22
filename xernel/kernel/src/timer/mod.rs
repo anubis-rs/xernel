@@ -22,7 +22,7 @@ static TIMER_VECTOR: Once<u8> = Once::new();
 pub fn init() {
     tsc::calibrate_tsc();
 
-    if let Some(vec) = allocate_vector(IPL::IPLClock) {
+    if let Some(vec) = allocate_vector(IPL::Clock) {
         TIMER_VECTOR.set_once(vec);
     } else {
         panic!("Could not allocate timer vector");

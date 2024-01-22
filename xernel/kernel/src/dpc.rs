@@ -13,9 +13,9 @@ pub trait DpcCall {
 }
 
 pub enum DpcState {
-    DPCUnbound,
-    DPCBound,
-    DPCRunning,
+    Unbound,
+    Bound,
+    Running,
 }
 
 pub struct Dpc<T> {
@@ -40,7 +40,7 @@ impl<T> Dpc<T> {
         Self {
             callback,
             arg: data,
-            state: DpcState::DPCUnbound,
+            state: DpcState::Unbound,
         }
     }
 }
@@ -76,10 +76,10 @@ pub fn enqueue_dpc(dpc: Box<dyn DpcCall>) {
 pub fn dpc_interrupt_dispatch() {
     let cpu = current_cpu();
 
-    let ipl = raise_ipl(IPL::IPLDPC);
+    let ipl = raise_ipl(IPL::DPC);
 
     while let Some(dpc) = {
-        let old = raise_ipl(IPL::IPLHigh);
+        let old = raise_ipl(IPL::High);
         let mut lock = cpu.dpc_queue.write();
         let dpc = lock.dequeue();
         set_ipl(old);

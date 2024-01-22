@@ -13,7 +13,7 @@ pub static APIC: Once<LocalApic> = Once::new();
 pub fn init() {
     let mut io_apics = IOAPICS.lock();
 
-    ioapic::init(&mut *io_apics);
+    ioapic::init(&mut io_apics);
 
     APIC.set_once(LocalApic::new());
 }

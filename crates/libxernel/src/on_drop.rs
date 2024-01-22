@@ -2,7 +2,7 @@ use core::mem::ManuallyDrop;
 
 use core::ops::{Deref, DerefMut};
 
-struct OnDrop<T, F>
+pub struct OnDrop<T, F>
 where
     F: FnOnce(),
 {

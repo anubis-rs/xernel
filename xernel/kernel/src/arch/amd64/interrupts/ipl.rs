@@ -7,13 +7,13 @@ use crate::dpc::dpc_interrupt_dispatch;
 macro_rules! lock_with_ipl {
     ($name:ident) => {
         {
-            let old = raise_ipl(IPL::IPLDPC);
+            let old = raise_ipl(IPL::DPC);
             OnDrop::new($name.lock(), move || { set_ipl(old); })
         }
     };
     ($name:ident, $ipl:expr) => {
         {
-            let _ = raise_ipl(IPL::IPLDPC);
+            let _ = raise_ipl(IPL::DPC);
             OnDrop::new($name.lock(), || { set_ipl($ipl); })
         }
     };
@@ -21,24 +21,25 @@ macro_rules! lock_with_ipl {
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[repr(u8)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum IPL {
-    IPL0 = 0,
-    IPLAPC = 1,
-    IPLDPC = 2,
-    IPLDevice = 13,
-    IPLClock = 14,
-    IPLHigh = 15,
+    Passive = 0,
+    APC = 1,
+    DPC = 2,
+    Device = 13,
+    Clock = 14,
+    High = 15,
 }
 
 impl From<usize> for IPL {
     fn from(value: usize) -> Self {
         match value {
-            0 => IPL::IPL0,
-            1 => IPL::IPLAPC,
-            2 => IPL::IPLDPC,
-            13 => IPL::IPLDevice,
-            14 => IPL::IPLClock,
-            15 => IPL::IPLHigh,
+            0 => IPL::Passive,
+            1 => IPL::APC,
+            2 => IPL::DPC,
+            13 => IPL::Device,
+            14 => IPL::Clock,
+            15 => IPL::High,
             _ => panic!("Bad IPL"),
         }
     }
@@ -94,7 +95,7 @@ pub fn raise_ipl(ipl: IPL) -> IPL {
 }
 
 pub fn ipl_lowered(_from: IPL, to: IPL) {
-    if (to as u8) < (IPL::IPLDPC as u8) && current_cpu().dpc_queue.read().dpcs.len() > 0 {
+    if (to as u8) < (IPL::DPC as u8) && !current_cpu().dpc_queue.read().dpcs.is_empty() {
         dpc_interrupt_dispatch();
     }
 }

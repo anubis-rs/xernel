@@ -41,7 +41,7 @@ impl Rtc {
     fn read_cmos(reg: u8) -> u8 {
         unsafe {
             outb(CMOSAddress, reg);
-            return inb(CMOSData);
+            inb(CMOSData)
         }
     }
 }

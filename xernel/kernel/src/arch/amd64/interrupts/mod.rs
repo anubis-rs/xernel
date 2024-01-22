@@ -89,7 +89,7 @@ pub fn allocate_vector(ipl: IPL) -> Option<u8> {
         }
     }
     
-    return None;
+    None
 }
 
 pub fn register_handler(vector: u8, handler: fn(&mut TrapFrame)) {
