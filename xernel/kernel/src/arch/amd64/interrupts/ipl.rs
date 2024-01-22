@@ -8,7 +8,7 @@ macro_rules! lock_with_ipl {
     ($name:ident) => {
         {
             let old = raise_ipl(IPL::IPLDPC);
-            OnDrop::new($name.lock(), || { set_ipl(old); })
+            OnDrop::new($name.lock(), move || { set_ipl(old); })
         }
     };
     ($name:ident, $ipl:expr) => {
