@@ -5,7 +5,7 @@ Mostly made for learning purposes, no real-world application.
 ![xernel](status_quo.png)
 
 ## Building
-For building, you simply need a working Rust installation with the nightly toolchain installed and the `mtools` package which we use for the generation of the disk image.
+For building, you simply need a working Rust installation with the nightly toolchain installed.
 We use xtask as our workflow for building and running the kernel.
 Therefore, the command `cargo kernel` is used.
 

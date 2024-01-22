@@ -1,8 +1,10 @@
 use anyhow::{bail, Result};
 use dotenv::dotenv;
+use fatfs::{format_volume, FormatVolumeOptions};
 use pico_args::Arguments;
-use std::env;
+use std::io::{Cursor, Read, Seek, Write};
 use std::path::{Path, PathBuf};
+use std::{env, fs, vec};
 use xshell::{cmd, Shell};
 
 const HELP: &str = "\
@@ -115,18 +117,30 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
     let build_dir = if rl { "release" } else { "debug" };
 
     let diskname = "xernel.hdd";
-    let disksize = 64.to_string();
+    let disksize = 64 * 1024 * 1024; // 64 MB
 
-    cmd!(sh, "dd if=/dev/zero of={diskname} bs=1M count=0 seek={disksize}").run()?;
+    let data_vec = vec![0_u8; disksize];
+    let mut disk = Cursor::new(data_vec);
 
-    cmd!(sh, "mformat -i {diskname} -F").run()?;
-    cmd!(sh, "mcopy -i {diskname} ./target/{target}/{build_dir}/xernel ::/xernel").run()?;
-    cmd!(sh, "mcopy -i {diskname} xernel/kernel/limine.cfg ::/limine.cfg").run()?;
+    format_volume(&mut disk, FormatVolumeOptions::new().fat_type(fatfs::FatType::Fat32))?;
 
-    cmd!(sh, "mcopy -i {diskname} ./logo.bmp ::/logo.bmp").run()?;
-    cmd!(sh, "mmd -i {diskname} ::/EFI").run()?;
-    cmd!(sh, "mmd -i {diskname} ::/EFI/BOOT").run()?;
-    cmd!(sh, "mcopy -i {diskname} xernel/kernel/limine/BOOTX64.EFI ::/EFI/BOOT").run()?;
+    let fs = fatfs::FileSystem::new(&mut disk, fatfs::FsOptions::new())?;
+    {
+        let root_dir = fs.root_dir();
+
+        copy_to_image(&root_dir, &format!("./target/{target}/{build_dir}/xernel"), "xernel")?;
+
+        copy_to_image(&root_dir, "./logo.bmp", "logo.bmp")?;
+
+        let dir = root_dir.create_dir("EFI")?;
+        let dir = dir.create_dir("BOOT")?;
+
+        copy_to_image(&dir, "./xernel/kernel/limine/BOOTX64.EFI", "BOOTX64.EFI")?;
+        copy_to_image(&dir, "./xernel/kernel/limine.cfg", "limine.cfg")?;
+    }
+    fs.unmount()?;
+
+    fs::write(diskname, disk.into_inner())?;
 
     Ok(())
 }
@@ -219,4 +233,12 @@ fn root() -> PathBuf {
     path.pop();
     path.pop();
     path
+}
+
+fn copy_to_image<T: Seek + Write + Read>(dir: &fatfs::Dir<T>, src_path: &str, dst_path: &str) -> Result<()> {
+    let data = fs::read(src_path)?;
+
+    dir.create_file(dst_path)?.write_all(&data)?;
+
+    Ok(())
 }
