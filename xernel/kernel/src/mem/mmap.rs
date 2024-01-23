@@ -30,8 +30,7 @@ pub fn mmap(
 
     match flags {
         MapFlags::ANONYMOUS => {
-            let start_address = process.vm().find_next_start_address();
-            process.vm().add_entry(start_address, len, prot, flags);
+            let start_address = process.vm().create_entry_at(addr, len, prot, flags);
 
             Ok(start_address.as_u64() as isize)
         }
@@ -60,7 +59,7 @@ pub fn handle_page_fault(addr: VirtAddr, error_code: PageFaultErrorCode) -> bool
         let base_addr = addr.align_down(Size4KiB::SIZE);
         let frame = FRAME_ALLOCATOR.lock().allocate_frame::<Size4KiB>().unwrap();
 
-        let pt_flags = ptflags_from_protflags(vm_entry.prot);
+        let pt_flags = ptflags_from_protflags(vm_entry.prot, true); // TODO: don't hardcode user_accessible
         let mut pt = process.get_page_table().unwrap();
 
         pt.map::<Size4KiB>(frame, Page::from_start_address(base_addr).unwrap(), pt_flags, true);

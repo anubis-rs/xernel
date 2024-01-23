@@ -1,17 +1,18 @@
-use alloc::vec::Vec;
+use alloc::collections::BTreeMap;
 use libxernel::syscall::{MapFlags, ProtectionFlags};
-use x86_64::align_up;
 use x86_64::structures::paging::PageTableFlags;
 use x86_64::{
     structures::paging::{PageSize, Size4KiB},
     VirtAddr,
 };
 
-use super::MMAP_START_ADDR;
+use crate::mem::PROCESS_END;
+
+use super::{PROCESS_START, STACK_SIZE};
 
 pub struct VmEntry {
-    start: VirtAddr,
-    length: usize,
+    pub start: VirtAddr,
+    pub length: usize,
     pub prot: ProtectionFlags,
     pub flags: MapFlags,
     // TODO: add something to represent to which file this entry belongs to
@@ -25,38 +26,136 @@ impl VmEntry {
 }
 
 pub struct Vm {
-    entries: Vec<VmEntry>,
+    entries: BTreeMap<VirtAddr, VmEntry>,
 }
 
 impl Vm {
     pub const fn new() -> Self {
-        Self { entries: Vec::new() }
+        Self {
+            entries: BTreeMap::new(),
+        }
     }
 
-    pub fn add_entry(&mut self, start: VirtAddr, length: usize, prot: ProtectionFlags, flags: MapFlags) {
-        self.entries.push(VmEntry {
+    fn add_entry(&mut self, start: VirtAddr, length: usize, prot: ProtectionFlags, flags: MapFlags) {
+        let entry = VmEntry {
             start,
             length,
             prot,
             flags,
             file: None,
-        });
+        };
+
+        self.entries.insert(start, entry);
     }
 
-    pub fn find_next_start_address(&self) -> VirtAddr {
-        let last_entry = self.entries.last();
+    pub fn is_available(&self, start: VirtAddr, length: usize) -> bool {
+        self.entries.iter().any(|(_, entry)| {
+            entry.start < start && entry.end() + Size4KiB::SIZE > start
+                || start + length + Size4KiB::SIZE > entry.start
+                    && (start + length + Size4KiB::SIZE).as_u64() < Size4KiB::SIZE
+        })
+    }
 
-        if let Some(last_entry) = last_entry {
-            VirtAddr::new(align_up(last_entry.end().as_u64(), Size4KiB::SIZE))
-        } else {
-            VirtAddr::new(MMAP_START_ADDR as u64)
+    pub fn create_entry_low(&mut self, length: usize, prot: ProtectionFlags, flags: MapFlags) -> VirtAddr {
+        self.create_entry_at(VirtAddr::new(PROCESS_START), length, prot, flags)
+    }
+
+    pub fn create_entry_high(&mut self, length: usize, prot: ProtectionFlags, flags: MapFlags) -> VirtAddr {
+        let mut start_address = VirtAddr::new(PROCESS_END - length as u64);
+
+        loop {
+            if self.is_available(start_address, length) {
+                if start_address.as_u64() < PROCESS_START {
+                    panic!(
+                        "create_entry_high: {:x}(length = {}) is out of bounds",
+                        start_address, length
+                    );
+                }
+
+                self.add_entry(start_address, length, prot, flags);
+                return start_address;
+            }
+
+            // NOTE: at the moment only a stack should be create at the high end of the process address space
+            start_address -= STACK_SIZE;
+        }
+    }
+
+    /// A new entry is created at the given address or higher
+    pub fn create_entry_at(
+        &mut self,
+        mut start: VirtAddr,
+        length: usize,
+        prot: ProtectionFlags,
+        flags: MapFlags,
+    ) -> VirtAddr {
+        if start.as_u64() + length as u64 > PROCESS_END {
+            panic!("create_entry_at: {:x}(length = {}) is out of bounds", start, length);
+        }
+
+        if !start.is_aligned(Size4KiB::SIZE) {
+            panic!("create_entry_at: {:x} is not aligned", start);
+        }
+
+        if start.as_u64() < PROCESS_START {
+            start = VirtAddr::new(PROCESS_START);
+        }
+
+        if self.is_available(start, length) {
+            self.add_entry(start, length, prot, flags);
+            return start;
+        }
+
+        let mut values_iter = self.entries.values();
+        let mut previous = values_iter.next().unwrap();
+        let current = values_iter.next();
+
+        if current.is_none() {
+            let new_start = previous.end() + Size4KiB::SIZE;
+            let new_start = new_start.align_up(Size4KiB::SIZE);
+
+            self.add_entry(new_start, length, prot, flags);
+            return new_start;
+        }
+
+        let mut current = current.unwrap();
+
+        loop {
+            if current.start - previous.end() >= length as u64 + 2 * Size4KiB::SIZE {
+                let new_start = previous.end() + Size4KiB::SIZE;
+                let new_start = new_start.align_up(Size4KiB::SIZE);
+
+                self.add_entry(new_start, length, prot, flags);
+                return new_start;
+            }
+
+            previous = current;
+            let current_opt = values_iter.next();
+
+            if current_opt.is_none() {
+                let new_start = previous.end() + Size4KiB::SIZE;
+                let new_start = new_start.align_up(Size4KiB::SIZE);
+
+                if new_start.as_u64() + length as u64 > PROCESS_END {
+                    panic!(
+                        "create_entry_at: {:x}(length = {}) is out of bounds! Vm space is exhausted",
+                        new_start, length
+                    );
+                }
+
+                self.add_entry(new_start, length, prot, flags);
+                return new_start;
+            }
+
+            current = current_opt.unwrap();
         }
     }
 
     pub fn get_entry_from_address(&self, addr: VirtAddr) -> Option<&VmEntry> {
         self.entries
             .iter()
-            .find(|entry| entry.start <= addr && entry.end() > addr)
+            .find(|(_, entry)| entry.start <= addr && entry.end() > addr)
+            .map(|(_, entry)| entry)
     }
 
     pub fn clean_up(&mut self) {
@@ -65,12 +164,15 @@ impl Vm {
     }
 }
 
-pub fn ptflags_from_protflags(flags: ProtectionFlags) -> PageTableFlags {
+pub fn ptflags_from_protflags(flags: ProtectionFlags, user_accessible: bool) -> PageTableFlags {
     let mut new_flags = PageTableFlags::PRESENT;
 
-    if flags.contains(ProtectionFlags::READ) {
-        // TODO: how to handle this??
-        todo!("PageTableFlags::READ")
+    if user_accessible {
+        new_flags |= PageTableFlags::USER_ACCESSIBLE;
+    }
+
+    if !flags.contains(ProtectionFlags::READ) {
+        // NOTE: it is not possible to remove read access from a page
     }
 
     if flags.contains(ProtectionFlags::WRITE) {
