@@ -1,13 +1,15 @@
 use alloc::collections::BTreeMap;
 use libxernel::syscall::{MapFlags, ProtectionFlags};
-use x86_64::structures::paging::PageTableFlags;
+use x86_64::structures::paging::{PageTableFlags, PhysFrame};
 use x86_64::{
     structures::paging::{PageSize, Size4KiB},
     VirtAddr,
 };
 
 use crate::mem::PROCESS_END;
+use crate::sched::scheduler::Scheduler;
 
+use super::frame::FRAME_ALLOCATOR;
 use super::{PROCESS_START, STACK_SIZE};
 
 pub struct VmEntry {
@@ -22,6 +24,25 @@ pub struct VmEntry {
 impl VmEntry {
     pub fn end(&self) -> VirtAddr {
         self.start + self.length
+    }
+
+    pub fn unmap(&self) {
+        let process = Scheduler::current_process();
+        let process = process.lock();
+
+        // SAFETY: only userspace processes should have Vm mappings
+        let mut page_mapper = process.get_page_table().unwrap();
+        let mut frame_allocator = FRAME_ALLOCATOR.lock();
+
+        for page in (self.start..self.end()).step_by(Size4KiB::SIZE as usize) {
+            if let Some(phys_addr) = page_mapper.translate(page) {
+                unsafe {
+                    frame_allocator.deallocate_frame(PhysFrame::<Size4KiB>::containing_address(phys_addr));
+                }
+            }
+
+            page_mapper.unmap(page);
+        }
     }
 }
 
@@ -64,7 +85,7 @@ impl Vm {
         let mut start_address = VirtAddr::new(PROCESS_END - length as u64);
 
         loop {
-                        if self.is_available(start_address, length) {
+            if self.is_available(start_address, length) {
                 if start_address.as_u64() < PROCESS_START {
                     panic!(
                         "create_entry_high: {:x}(length = {}) is out of bounds",
@@ -159,8 +180,8 @@ impl Vm {
     }
 
     pub fn clean_up(&mut self) {
-        todo!("clean up all mappings and free memory")
-        // NOTE: don't forget to remove the entries from the vector
+        self.entries.values().for_each(|value| value.unmap());
+        self.entries.clear();
     }
 }
 

@@ -293,6 +293,37 @@ impl Pagemap {
             (*pml1)[virt.p1_index()].set_unused();
         }
     }
+
+    /// Only works with 4KiB pages
+    pub fn translate(&self, virt: VirtAddr) -> Option<PhysAddr> {
+        let pml4 = self.page_table;
+
+        unsafe {
+            if !(*pml4)[virt.p4_index()].flags().contains(PageTableFlags::PRESENT) {
+                return None;
+            }
+
+            let pml3 = (*pml4)[virt.p4_index()].addr().as_u64() as *mut PageTable;
+
+            if !(*pml3)[virt.p3_index()].flags().contains(PageTableFlags::PRESENT) {
+                return None;
+            }
+
+            let pml2 = (*pml3)[virt.p3_index()].addr().as_u64() as *mut PageTable;
+
+            if !(*pml2)[virt.p2_index()].flags().contains(PageTableFlags::PRESENT) {
+                return None;
+            }
+
+            let pml1 = (*pml2)[virt.p2_index()].addr().as_u64() as *mut PageTable;
+
+            if !(*pml1)[virt.p1_index()].flags().contains(PageTableFlags::PRESENT) {
+                return None;
+            }
+
+            Some((*pml1)[virt.p1_index()].addr() + u64::from(virt.page_offset()))
+        }
+    }
 }
 
 impl Drop for Pagemap {
