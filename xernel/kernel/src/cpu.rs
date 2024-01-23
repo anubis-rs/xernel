@@ -155,6 +155,10 @@ pub fn register_cpu() {
 }
 
 pub fn current_cpu() -> Pin<&'static Cpu> {
+    if !CPU_COUNT.is_completed() || *CPU_COUNT != CPU_ID_COUNTER.load(Ordering::SeqCst) {
+        panic!("current_cpu called before all cpus registered");
+    }
+
     unsafe { Pin::new_unchecked(&*core::ptr::from_exposed_addr(rdmsr(KERNEL_GS_BASE) as usize)) }
 }
 
