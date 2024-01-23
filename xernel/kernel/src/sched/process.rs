@@ -82,7 +82,7 @@ impl Process {
             );
         }
 
-        // TODO: how to unmap this page later??
+        // TODO: how to unmap this stack later??
         // We can't add it to Vm because it's not in the lower half of the address space
 
         stack_top
