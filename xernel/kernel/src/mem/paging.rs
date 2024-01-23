@@ -324,11 +324,48 @@ impl Pagemap {
             Some((*pml1)[virt.p1_index()].addr() + u64::from(virt.page_offset()))
         }
     }
+
+    fn deallocate_pt(pt: *mut PageTable, level: u8) {
+        let mut frame_allocator = FRAME_ALLOCATOR.lock();
+        if level == 1 {
+            for i in 0..128 {
+                unsafe {
+                    if (*pt)[i].flags().contains(PageTableFlags::PRESENT) {
+                        let pt = ((*pt)[i].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
+
+                        Self::deallocate_pt(pt, level + 1);
+                    }
+                }
+            }
+
+            unsafe {
+                frame_allocator.deallocate_frame(
+                    PhysFrame::<Size4KiB>::from_start_address(PhysAddr::new(pt as u64 - *HIGHER_HALF_OFFSET)).unwrap(),
+                );
+            }
+        } else if level <= 3 {
+            for i in 0..256 {
+                unsafe {
+                    if (*pt)[i].flags().contains(PageTableFlags::PRESENT) {
+                        let pt = ((*pt)[i].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
+
+                        Self::deallocate_pt(pt, level + 1);
+                    }
+                }
+            }
+
+            unsafe {
+                frame_allocator.deallocate_frame(
+                    PhysFrame::<Size4KiB>::from_start_address(PhysAddr::new(pt as u64 - *HIGHER_HALF_OFFSET)).unwrap(),
+                );
+            }
+        }
+    }
 }
 
 impl Drop for Pagemap {
     fn drop(&mut self) {
-        todo!("drop pagemap")
+        Self::deallocate_pt(self.page_table, 1);
     }
 }
 
