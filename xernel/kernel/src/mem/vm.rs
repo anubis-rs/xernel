@@ -49,7 +49,7 @@ impl Vm {
     }
 
     pub fn is_available(&self, start: VirtAddr, length: usize) -> bool {
-        self.entries.iter().any(|(_, entry)| {
+        !self.entries.iter().any(|(_, entry)| {
             entry.start < start && entry.end() + Size4KiB::SIZE > start
                 || start + length + Size4KiB::SIZE > entry.start
                     && (start + length + Size4KiB::SIZE).as_u64() < Size4KiB::SIZE
@@ -64,7 +64,7 @@ impl Vm {
         let mut start_address = VirtAddr::new(PROCESS_END - length as u64);
 
         loop {
-            if self.is_available(start_address, length) {
+                        if self.is_available(start_address, length) {
                 if start_address.as_u64() < PROCESS_START {
                     panic!(
                         "create_entry_high: {:x}(length = {}) is out of bounds",
