@@ -18,7 +18,7 @@ pub const MMAP_START_ADDR: usize = 0x0000_7000_0000_0000;
 
 // NOTE: stack grows down
 pub const KERNEL_THREAD_STACK_TOP: u64 = 0xffff_a000_0000_0000;
-pub const USER_THREAD_STACK_TOP: u64 = 0x0000_ffff_ffff_f000;
+pub const USER_THREAD_STACK_TOP: u64 = 0x0000_7FFF_FFFF_F000;
 
 pub const STACK_SIZE: u64 = 0x40000;
 pub const FRAME_SIZE: u64 = 4096;

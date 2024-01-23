@@ -7,7 +7,7 @@ use x86_64::{
     VirtAddr,
 };
 
-use crate::{allocator::align_up, sched::scheduler::Scheduler};
+use crate::{allocator::align_up, cpu::current_process};
 
 use super::{frame::FRAME_ALLOCATOR, vm::ptflags_from_protflags};
 
@@ -25,7 +25,7 @@ pub fn mmap(
     let flags = MapFlags::from_bits(flags as u8).ok_or(SyscallError::InvalidArgument)?;
     let len = align_up(len, Size4KiB::SIZE as usize);
 
-    let process = Scheduler::current_process();
+    let process = current_process();
     let mut process = process.lock();
 
     match flags {
@@ -41,7 +41,7 @@ pub fn mmap(
 
 /// Handles a page fault and returns whether the fault was handled successfully
 pub fn handle_page_fault(addr: VirtAddr, error_code: PageFaultErrorCode) -> bool {
-    let process = Scheduler::current_process();
+    let process = current_process();
     let mut process = process.lock();
 
     let vm_entry = process.vm().get_entry_from_address(addr);

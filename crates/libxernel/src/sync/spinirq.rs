@@ -3,7 +3,7 @@ use core::arch::asm;
 use core::ops::{Deref, DerefMut};
 use core::sync::atomic::{compiler_fence, Ordering};
 
-use super::MutexGuard;
+use super::SpinlockGuard;
 
 /// A handle for interrupt state
 pub struct HeldIRQ(bool);
@@ -36,9 +36,9 @@ impl<T> SpinlockIRQ<T> {
     pub fn unlock(_guard: SpinlockIRQGuard<'_, T>) {}
 }
 
-/// Wrapper Type over MutexGuard and HeldIRQ
+/// Wrapper Type over SpinlockGuard and HeldIRQ
 pub struct SpinlockIRQGuard<'a, T: 'a> {
-    guard: MutexGuard<'a, T>,
+    guard: SpinlockGuard<'a, T>,
     _held_irq: HeldIRQ,
 }
 
