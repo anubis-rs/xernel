@@ -59,7 +59,7 @@ pub fn handle_page_fault(addr: VirtAddr, error_code: PageFaultErrorCode) -> bool
         let base_addr = addr.align_down(Size4KiB::SIZE);
         let frame = FRAME_ALLOCATOR.lock().allocate_frame::<Size4KiB>().unwrap();
 
-        let pt_flags = ptflags_from_protflags(vm_entry.prot, true); // TODO: don't hardcode user_accessible
+        let pt_flags = ptflags_from_protflags(vm_entry.prot, process.page_table.is_some());
         let mut pt = process.get_page_table().unwrap();
 
         pt.map::<Size4KiB>(frame, Page::from_start_address(base_addr).unwrap(), pt_flags, true);
