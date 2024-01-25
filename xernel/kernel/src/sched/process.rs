@@ -1,5 +1,6 @@
 use alloc::sync::Weak;
 use core::sync::atomic::{AtomicUsize, Ordering};
+use libxernel::syscall::{MapFlags, ProtectionFlags};
 use x86_64::structures::paging::{Page, PageSize, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
 
@@ -7,7 +8,7 @@ use crate::fs::file::File;
 use crate::fs::vnode::VNode;
 use crate::mem::frame::FRAME_ALLOCATOR;
 use crate::mem::vm::Vm;
-use crate::mem::{KERNEL_THREAD_STACK_TOP, STACK_SIZE, USER_THREAD_STACK_TOP};
+use crate::mem::{KERNEL_THREAD_STACK_TOP, STACK_SIZE};
 use crate::VFS;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -17,8 +18,6 @@ use libxernel::sync::{Once, Spinlock};
 
 use crate::mem::paging::{Pagemap, KERNEL_PAGE_MAPPER};
 use crate::sched::thread::Thread;
-
-use libxernel::syscall::{MapFlags, ProtectionFlags};
 
 /// Ongoing counter for the ProcessID
 static PROCESS_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -34,7 +33,6 @@ pub struct Process {
     pub threads: Vec<Arc<Spinlock<Thread>>>,
     pub fds: BTreeMap<usize, File>,
     pub kernel_thread_stack_top: usize,
-    pub user_thread_stack_top: usize,
     pub thread_id_counter: usize,
     pub vm: Vm,
     pub cwd: Arc<Spinlock<VNode>>,
@@ -58,7 +56,6 @@ impl Process {
             threads: Vec::new(),
             fds: BTreeMap::new(),
             kernel_thread_stack_top: KERNEL_THREAD_STACK_TOP as usize,
-            user_thread_stack_top: USER_THREAD_STACK_TOP as usize,
             thread_id_counter: 0,
             vm: Vm::new(),
             cwd: VFS.lock().root_node(),
@@ -85,23 +82,19 @@ impl Process {
             );
         }
 
-        self.vm.add_entry(
-            VirtAddr::new(stack_bottom as u64),
-            STACK_SIZE as usize,
-            ProtectionFlags::READ | ProtectionFlags::WRITE,
-            MapFlags::ANONYMOUS,
-        );
-
         stack_top
     }
 
     pub fn new_user_stack(&mut self) -> usize {
-        let stack_top = self.user_thread_stack_top;
-        self.user_thread_stack_top -= STACK_SIZE as usize;
-        let stack_bottom = self.user_thread_stack_top;
-
-        // create guard page
-        self.user_thread_stack_top -= Size4KiB::SIZE as usize;
+        let stack_bottom = self
+            .vm
+            .create_entry_high(
+                STACK_SIZE as usize,
+                ProtectionFlags::READ | ProtectionFlags::WRITE,
+                MapFlags::ANONYMOUS,
+            )
+            .as_u64() as usize;
+        let stack_top = STACK_SIZE as usize + stack_bottom;
 
         for addr in (stack_bottom..stack_top).step_by(Size4KiB::SIZE as usize) {
             let phys_page = FRAME_ALLOCATOR.lock().allocate_frame::<Size4KiB>().unwrap();
@@ -117,13 +110,6 @@ impl Process {
                 false,
             );
         }
-
-        self.vm.add_entry(
-            VirtAddr::new(stack_bottom as u64),
-            STACK_SIZE as usize,
-            ProtectionFlags::READ | ProtectionFlags::WRITE,
-            MapFlags::ANONYMOUS,
-        );
 
         stack_top
     }
