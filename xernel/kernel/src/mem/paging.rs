@@ -332,7 +332,7 @@ impl Pagemap {
     fn deallocate_pt(pt: *mut PageTable, level: u8) {
         let mut frame_allocator = FRAME_ALLOCATOR.lock();
         if level == 4 {
-            for i in 0..128 {
+            for i in 0..256 {
                 unsafe {
                     if (*pt)[i].flags().contains(PageTableFlags::PRESENT) {
                         let pt = ((*pt)[i].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
@@ -348,7 +348,7 @@ impl Pagemap {
                 );
             }
         } else if level > 1 {
-            for i in 0..256 {
+            for i in 0..512 {
                 unsafe {
                     if (*pt)[i].flags().contains(PageTableFlags::PRESENT) {
                         let pt = ((*pt)[i].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
