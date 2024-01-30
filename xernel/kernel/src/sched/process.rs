@@ -6,6 +6,7 @@ use x86_64::VirtAddr;
 
 use crate::fs::file::File;
 use crate::fs::vnode::VNode;
+use crate::VFS;
 use crate::mem::frame::FRAME_ALLOCATOR;
 use crate::mem::vm::Vm;
 use crate::mem::{KERNEL_THREAD_STACK_TOP, STACK_SIZE};
@@ -32,6 +33,7 @@ pub struct Process {
     pub children: Vec<Arc<Spinlock<Process>>>,
     pub threads: Vec<Arc<Spinlock<Thread>>>,
     pub fds: BTreeMap<usize, File>,
+    pub is_kernel_process: bool,
     pub kernel_thread_stack_top: usize,
     pub thread_id_counter: usize,
     pub vm: Vm,

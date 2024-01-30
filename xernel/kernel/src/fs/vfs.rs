@@ -5,12 +5,13 @@ use alloc::{
 };
 use libxernel::boot::InitAtBoot;
 use libxernel::sync::Spinlock;
+use libxernel::boot::InitAtBoot;
 
 use super::{
     mount::{Mount, VfsOps},
     pathbuf::PathBuf,
     tmpfs::Tmpfs,
-    vnode::VNode,
+    vnode::{VNode, VNodeOperations},
     {Error, Result},
 };
 
