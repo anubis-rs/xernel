@@ -3,6 +3,7 @@ use elf::abi::{ET_EXEC, PT_LOAD};
 use elf::endian::LittleEndian;
 use elf::ElfBytes;
 use libxernel::sync::Spinlock;
+use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{Page, PageSize, PageTableFlags, PhysFrame, Size4KiB};
 
 use crate::allocator::align_up;
@@ -202,7 +203,7 @@ impl Thread {
 
         for segment in segments {
             if segment.p_type == PT_LOAD {
-                dbg!("{:#x?}", segment);
+                dbg!("{:x?}", segment);
                 let file_size = segment.p_filesz as usize;
                 let mem_size = segment.p_memsz as usize;
                 let vaddr = segment.p_vaddr as usize;
@@ -220,7 +221,11 @@ impl Thread {
                     let process = self.get_process().unwrap();
                     let process = process.lock();
 
-                    dbg!("before mapping");
+                    // we need to use the page table of the process to copy the content of the segment into the memory
+                    assert!(
+                        process.get_page_table().unwrap().pml4().as_u64() == Cr3::read().0.start_address().as_u64()
+                    );
+
                     process.get_page_table().unwrap().map(
                         frame,
                         page,
@@ -230,12 +235,18 @@ impl Thread {
                             | PageTableFlags::WRITABLE, // TODO: make this depend on the elf flags, currently we need it to write the content of the segment ==> make it read-only after writing
                         true,
                     );
-                    dbg!("after mapping");
 
                     unsafe {
                         write_bytes(page.start_address().as_mut_ptr::<u8>(), 0, Size4KiB::SIZE as usize);
                     }
                 }
+
+                dbg!(
+                    "{:x} - {:x}; executable: {}",
+                    vaddr,
+                    vaddr + file_size,
+                    segment.p_flags & 1 == 1
+                );
 
                 unsafe {
                     core::ptr::copy_nonoverlapping(

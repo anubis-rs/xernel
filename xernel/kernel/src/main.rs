@@ -32,6 +32,7 @@ use alloc::string::ToString;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
+use x86_64::VirtAddr;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use libxernel::sync::Spinlock;
@@ -154,6 +155,13 @@ extern "C" fn kernel_main() -> ! {
     scheduler::init();
 
     let process = Arc::new(Spinlock::new(Process::new(Some(KERNEL_PROCESS.clone()))));
+    dbg!("before pt load");
+    unsafe {
+        process.lock().page_table.as_ref().unwrap().load_pt();
+        dbg!("ffffffff80016140 => {:x}", KERNEL_PAGE_MAPPER.lock().translate(VirtAddr::new(0xffffffff80016140)).unwrap().as_u64());
+        dbg!("ffffffff80016140 => {:x}", process.lock().page_table.as_ref().unwrap().translate(VirtAddr::new(0xffffffff80016140)).unwrap().as_u64());
+    }
+    dbg!("after pt load");
 
     let test_elf = include_bytes!("../test-elfloader");
     let user_task = Thread::new_user_thread_from_elf(process.clone(), test_elf);
