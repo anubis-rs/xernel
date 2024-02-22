@@ -1,5 +1,5 @@
+use crate::arch::amd64::ports::outb;
 use crate::sched::context::CpuContext;
-use crate::{arch::amd64::ports::outb, mem::mmap::handle_page_fault};
 use core::arch::asm;
 use core::mem::size_of;
 use core::ptr::addr_of;
@@ -243,11 +243,13 @@ fn page_fault_handler(frame: CpuContext) {
     let addr = read_cr2();
     let error_code = PageFaultErrorCode::from_bits_truncate(frame.error_code);
 
-    let handled_successfully = handle_page_fault(addr, error_code);
+    // TODO: this does currently not work when there is no process currently executing ==> we need to propagate the option and don't panic in executing_thread
+    // NOTE: this might be fixed in the scheduler branch
+    let handled_successfully = false; // handle_page_fault(addr, error_code);
 
     if !handled_successfully {
         dbg!("EXCEPTION: PAGE FAULT");
-        dbg!("Accessed Address: {:?}", read_cr2());
+        dbg!("Accessed Address: {:?}", addr);
         dbg!("Error Code: {:?}", frame.error_code);
         dbg!("{:#?}", frame);
 

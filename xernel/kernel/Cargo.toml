@@ -15,3 +15,4 @@ libxernel = { path = "../../crates/libxernel", features = ["kernel"] }
 linked_list_allocator = { version = "0.10.3", features = [] }
 paste = "1.0.14"
 seq-macro = "0.3.5"
+elf = { version="0.7.4", features = ["nightly"], default-features = false}

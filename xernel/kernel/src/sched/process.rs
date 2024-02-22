@@ -1,7 +1,7 @@
 use alloc::sync::Weak;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use libxernel::syscall::{MapFlags, ProtectionFlags};
-use x86_64::structures::paging::{Page, PageSize, PageTableFlags, Size4KiB};
+use x86_64::structures::paging::{Page, PageSize, PageTable, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
 
 use crate::fs::file::File;
@@ -154,5 +154,12 @@ impl Process {
 impl Drop for Process {
     fn drop(&mut self) {
         self.vm.clean_up();
+
+        match &self.page_table {
+            Some(pt) => {
+                Pagemap::deallocate_pt(pt.pml4().as_u64() as *mut PageTable, 4);
+            }
+            None => {}
+        }
     }
 }

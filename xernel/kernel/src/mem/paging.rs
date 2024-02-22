@@ -166,6 +166,7 @@ impl Pagemap {
                 self.flush(virt.start_address());
             }
         }
+        dbg!("end map");
     }
 
     pub fn flush(&self, addr: VirtAddr) {
@@ -329,7 +330,7 @@ impl Pagemap {
         }
     }
 
-    fn deallocate_pt(pt: *mut PageTable, level: u8) {
+    pub fn deallocate_pt(pt: *mut PageTable, level: u8) {
         let mut frame_allocator = FRAME_ALLOCATOR.lock();
         if level == 4 {
             for i in 0..256 {
@@ -364,12 +365,6 @@ impl Pagemap {
                 );
             }
         }
-    }
-}
-
-impl Drop for Pagemap {
-    fn drop(&mut self) {
-        Self::deallocate_pt(self.page_table, 4);
     }
 }
 

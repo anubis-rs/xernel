@@ -41,11 +41,6 @@ use x86_64::instructions::interrupts;
 use arch::amd64::gdt;
 use arch::amd64::idt;
 
-use x86_64::structures::paging::Page;
-use x86_64::structures::paging::PageTableFlags;
-use x86_64::structures::paging::Size2MiB;
-use x86_64::VirtAddr;
-
 use crate::acpi::hpet;
 use crate::arch::amd64::apic;
 use crate::cpu::register_cpu;
@@ -53,7 +48,6 @@ use crate::cpu::wait_until_cpus_registered;
 use crate::cpu::CPU_COUNT;
 use crate::fs::vfs;
 use crate::fs::vfs::VFS;
-use crate::mem::frame::FRAME_ALLOCATOR;
 use crate::mem::paging::KERNEL_PAGE_MAPPER;
 use crate::sched::process::Process;
 use crate::sched::process::KERNEL_PROCESS;
@@ -161,43 +155,14 @@ extern "C" fn kernel_main() -> ! {
 
     let process = Arc::new(Spinlock::new(Process::new(Some(KERNEL_PROCESS.clone()))));
 
-    let _user_task = Thread::new_user_thread(process.clone(), VirtAddr::new(0x200000));
-
-    let page = FRAME_ALLOCATOR.lock().allocate_frame::<Size2MiB>().unwrap();
-    KERNEL_PAGE_MAPPER.lock().map(
-        page,
-        Page::from_start_address(VirtAddr::new(0x200000)).unwrap(),
-        PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::PRESENT,
-        true,
-    );
-    let mut pm = process.lock().get_page_table().unwrap();
-    pm.map(
-        page,
-        Page::from_start_address(VirtAddr::new(0x200000)).unwrap(),
-        PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::PRESENT,
-        true,
-    );
-
-    unsafe {
-        let start_address_fn = test_userspace_fn as usize;
-
-        // the `test_userspace_fn` is very small and should fit in 512 bytes
-        for i in 0..512 {
-            let ptr = (0x200000 + i) as *mut u8;
-            let val = (start_address_fn + i) as *mut u8;
-
-            ptr.write_volatile(val.read_volatile());
-        }
-    }
-
+    let test_elf = include_bytes!("../test-elfloader");
+    let user_task = Thread::new_user_thread_from_elf(process.clone(), test_elf);
     let main_task = Thread::kernel_thread_from_fn(kernel_main_task);
-
     let kernel_task = Thread::kernel_thread_from_fn(task1);
-
     let kernel_task2 = Thread::kernel_thread_from_fn(task2);
 
     Scheduler::add_thread_balanced(Arc::new(Spinlock::new(main_task)));
-    //Scheduler::add_task_balanced(Arc::new(Spinlock::new(user_task)));
+    Scheduler::add_thread_balanced(Arc::new(Spinlock::new(user_task)));
     Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task)));
     Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task2)));
 
@@ -225,25 +190,6 @@ pub fn kernel_main_task() {
         dbg!("hello from main {}", var);
         var += 1;
     }
-}
-
-#[naked]
-pub extern "C" fn test_userspace_fn() {
-    //loop {
-    unsafe {
-        asm!(
-            "\
-                mov rax, 0
-                mov rdi, 2
-                mov rsi, 3
-                mov rdx, 4
-                syscall
-                mov rax, 0
-            ",
-            options(noreturn)
-        );
-    }
-    //}
 }
 
 #[no_mangle]

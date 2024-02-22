@@ -1,0 +1,1 @@
+gcc -O3 -ffreestanding -nostdlib -fno-builtin -mno-red-zone -no-pie -Wall -Werror -pedantic -o test-elfloader test-elfloader.c
