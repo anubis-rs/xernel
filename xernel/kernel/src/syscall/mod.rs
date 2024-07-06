@@ -185,7 +185,7 @@ extern "sysv64" fn general_syscall_handler(data: SyscallData) -> i64 {
                 }
                 None => Err(SyscallError::InvalidArgument),
             }
-        },
+        }
         _ => {
             unimplemented!("unknown syscall: {:x?}", data);
         }
