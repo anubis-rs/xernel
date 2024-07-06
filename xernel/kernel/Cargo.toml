@@ -8,7 +8,7 @@ repository = "https://github.com/anubis-rs/xernel"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-limine = { git = "https://github.com/limine-bootloader/limine-rs" }
+limine = "0.1.12" 
 x86_64 = { git = "https://github.com/rust-osdev/x86_64" }
 acpi_parsing = { package = "acpi", version = "4.1.1" }
 libxernel = { path = "../../crates/libxernel", features = ["kernel"] }

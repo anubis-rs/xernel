@@ -9,7 +9,7 @@ use limine::KernelAddressRequest;
 use x86_64::{
     align_down,
     registers::control::{Cr3, Cr3Flags},
-    structures::paging::{Page, PageSize, Size1GiB, Size2MiB, Size4KiB},
+    structures::paging::{Page, PageSize, PageTableIndex, Size1GiB, Size2MiB, Size4KiB},
 };
 use x86_64::{
     structures::paging::{PageTable, PageTableFlags, PhysFrame},
@@ -293,11 +293,83 @@ impl Pagemap {
             (*pml1)[virt.p1_index()].set_unused();
         }
     }
+
+    unsafe fn get_pt(pt: *mut PageTable, pt_index: PageTableIndex) -> *mut PageTable {
+        (*pt)[pt_index].addr().as_u64() as *mut PageTable
+    }
+
+    /// Only works with 4KiB pages
+    pub fn translate(&self, virt: VirtAddr) -> Option<PhysAddr> {
+        let pml4 = self.page_table;
+
+        unsafe {
+            if !(*pml4)[virt.p4_index()].flags().contains(PageTableFlags::PRESENT) {
+                return None;
+            }
+
+            let pml3 = Self::get_pt(pml4, virt.p4_index());
+
+            if !(*pml3)[virt.p3_index()].flags().contains(PageTableFlags::PRESENT) {
+                return None;
+            }
+
+            let pml2 = Self::get_pt(pml3, virt.p3_index());
+
+            if !(*pml2)[virt.p2_index()].flags().contains(PageTableFlags::PRESENT) {
+                return None;
+            }
+
+            let pml1 = Self::get_pt(pml2, virt.p2_index());
+
+            if !(*pml1)[virt.p1_index()].flags().contains(PageTableFlags::PRESENT) {
+                return None;
+            }
+
+            Some((*pml1)[virt.p1_index()].addr() + u64::from(virt.page_offset()))
+        }
+    }
+
+    fn deallocate_pt(pt: *mut PageTable, level: u8) {
+        let mut frame_allocator = FRAME_ALLOCATOR.lock();
+        if level == 4 {
+            for i in 0..256 {
+                unsafe {
+                    if (*pt)[i].flags().contains(PageTableFlags::PRESENT) {
+                        let pt = ((*pt)[i].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
+
+                        Self::deallocate_pt(pt, level - 1);
+                    }
+                }
+            }
+
+            unsafe {
+                frame_allocator.deallocate_frame(
+                    PhysFrame::<Size4KiB>::from_start_address(PhysAddr::new(pt as u64 - *HIGHER_HALF_OFFSET)).unwrap(),
+                );
+            }
+        } else if level > 1 {
+            for i in 0..512 {
+                unsafe {
+                    if (*pt)[i].flags().contains(PageTableFlags::PRESENT) {
+                        let pt = ((*pt)[i].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
+
+                        Self::deallocate_pt(pt, level - 1);
+                    }
+                }
+            }
+
+            unsafe {
+                frame_allocator.deallocate_frame(
+                    PhysFrame::<Size4KiB>::from_start_address(PhysAddr::new(pt as u64 - *HIGHER_HALF_OFFSET)).unwrap(),
+                );
+            }
+        }
+    }
 }
 
 impl Drop for Pagemap {
     fn drop(&mut self) {
-        //todo!("drop pagemap")
+        Self::deallocate_pt(self.page_table, 4);
     }
 }
 

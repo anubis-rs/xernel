@@ -7,6 +7,11 @@ use core::pin::Pin;
 use x86_64::VirtAddr;
 
 use libxernel::sync::Spinlock;
+use x86_64::structures::paging::{Page, PageSize, PhysFrame, Size4KiB};
+
+use crate::mem::frame::FRAME_ALLOCATOR;
+use crate::mem::paging::KERNEL_PAGE_MAPPER;
+use crate::mem::STACK_SIZE;
 
 use super::context::thread_trampoline;
 use super::context::{Context, TrapFrame};
@@ -231,5 +236,24 @@ impl Thread {
 
     pub fn get_process(&self) -> Option<Arc<Spinlock<Process>>> {
         self.process.upgrade()
+    }
+}
+
+impl Drop for Thread {
+    fn drop(&mut self) {
+        if self.is_kernel_thread() {
+            let mut page_mapper = KERNEL_PAGE_MAPPER.lock();
+            let mut frame_allocator = FRAME_ALLOCATOR.lock();
+
+            for addr in (self.thread_stack..self.thread_stack + STACK_SIZE as usize).step_by(Size4KiB::SIZE as usize) {
+                unsafe {
+                    let page = Page::<Size4KiB>::from_start_address(VirtAddr::new(addr as u64)).unwrap();
+                    let phys_addr = page_mapper.translate(page.start_address()).unwrap();
+
+                    frame_allocator.deallocate_frame(PhysFrame::<Size4KiB>::containing_address(phys_addr));
+                    page_mapper.unmap(page.start_address());
+                }
+            }
+        }
     }
 }

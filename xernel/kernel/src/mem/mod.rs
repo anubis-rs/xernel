@@ -13,12 +13,12 @@ pub static HIGHER_HALF_OFFSET: Once<u64> = Once::new();
 
 pub const KERNEL_OFFSET: u64 = 0xffff_ffff_8000_0000;
 pub const HEAP_START_ADDR: usize = 0xffff_9000_0000_0000;
-// NOTE: there are 16 TB available for mmap until it overflows into the non-canonical address space
-pub const MMAP_START_ADDR: usize = 0x0000_7000_0000_0000;
 
 // NOTE: stack grows down
 pub const KERNEL_THREAD_STACK_TOP: u64 = 0xffff_a000_0000_0000;
-pub const USER_THREAD_STACK_TOP: u64 = 0x0000_7FFF_FFFF_F000;
+
+pub const PROCESS_START: u64 = 0x0000_0000_0040_0000;
+pub const PROCESS_END: u64 = 0x0000_ffff_ffff_f000;
 
 pub const STACK_SIZE: u64 = 0x40000;
 pub const FRAME_SIZE: u64 = 4096;
