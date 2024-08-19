@@ -23,7 +23,7 @@ pub struct VmEntry {
 
 impl VmEntry {
     pub fn end(&self) -> VirtAddr {
-        self.start + self.length
+        self.start + self.length as u64
     }
 
     pub fn unmap(&self) {
@@ -72,8 +72,8 @@ impl Vm {
     pub fn is_available(&self, start: VirtAddr, length: usize) -> bool {
         !self.entries.iter().any(|(_, entry)| {
             entry.start < start && entry.end() + Size4KiB::SIZE > start
-                || start + length + Size4KiB::SIZE > entry.start
-                    && (start + length + Size4KiB::SIZE).as_u64() < Size4KiB::SIZE
+                || start + length as u64 + Size4KiB::SIZE > entry.start
+                    && (start + length as u64 + Size4KiB::SIZE).as_u64() < Size4KiB::SIZE
         })
     }
 

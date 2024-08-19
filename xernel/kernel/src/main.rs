@@ -2,7 +2,6 @@
 #![no_main]
 #![feature(abi_x86_interrupt)]
 #![feature(naked_functions)]
-#![feature(exclusive_range_pattern)]
 #![feature(let_chains)]
 #![feature(strict_provenance)]
 #![feature(exposed_provenance)]

@@ -151,7 +151,7 @@ pub fn register_cpu() {
     }));
 
     // use KERNEL_GS_BASE to store the cpu_data
-    unsafe { wrmsr(KERNEL_GS_BASE, (cpu_data as *const Cpu).expose_addr() as u64) }
+    unsafe { wrmsr(KERNEL_GS_BASE, (cpu_data as *const Cpu).expose_provenance() as u64) }
 }
 
 pub fn current_cpu() -> Pin<&'static Cpu> {
@@ -159,7 +159,7 @@ pub fn current_cpu() -> Pin<&'static Cpu> {
         panic!("current_cpu called before all cpus registered");
     }
 
-    unsafe { Pin::new_unchecked(&*core::ptr::from_exposed_addr(rdmsr(KERNEL_GS_BASE) as usize)) }
+    unsafe { Pin::new_unchecked(&*core::ptr::with_exposed_provenance(rdmsr(KERNEL_GS_BASE) as usize)) }
 }
 
 pub fn current_thread() -> Arc<Thread> {

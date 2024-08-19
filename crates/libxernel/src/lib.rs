@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(inline_const)]
 #![allow(unused)]
 
 pub mod boot;
