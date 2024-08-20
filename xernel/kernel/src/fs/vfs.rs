@@ -1,6 +1,7 @@
 use alloc::{
     string::{String, ToString},
     sync::Arc,
+    vec,
     vec::Vec,
 };
 use libxernel::boot::InitAtBoot;
@@ -154,4 +155,25 @@ pub fn init() {
     vfs.root = InitAtBoot::Initialized(tmpfs.lock().vfs_root().unwrap());
 
     vfs.vn_mount("tmpfs", "/").expect("Mounting tmpfs on / failed");
+}
+
+pub fn test() {
+    let t = VFS.lock().vn_open("/test.txt".to_string(), 0).unwrap();
+
+    let mut write_buf: Vec<u8> = vec![5; 10];
+
+    VFS.lock()
+        .vn_write(t.clone(), &mut write_buf)
+        .expect("write to file failed");
+
+    let mut read_buf: Vec<u8> = vec![0; 5];
+
+    VFS.lock().vn_read(t.clone(), &mut read_buf).expect("read failed");
+
+    println!(
+        "name of fs where node is mounted: {}",
+        t.lock().vfsp.upgrade().unwrap().lock().vfs_name()
+    );
+    println!("{:?}", write_buf);
+    println!("{:?}", read_buf);
 }

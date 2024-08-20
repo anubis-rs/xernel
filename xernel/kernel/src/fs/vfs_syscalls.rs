@@ -1,6 +1,6 @@
 use alloc::string::String;
 
-use crate::{sched::scheduler::Scheduler, syscall::Result};
+use crate::{cpu::current_process, syscall::Result};
 
 use super::{file::File, vfs::VFS};
 
@@ -11,7 +11,7 @@ pub fn sys_open(path: String, mode: u64) -> Result<isize> {
 
     let file_handle = File::new(node);
 
-    let process = Scheduler::current_process();
+    let process = current_process();
     let mut process = process.lock();
 
     let fd = process.append_fd(file_handle);
@@ -20,7 +20,7 @@ pub fn sys_open(path: String, mode: u64) -> Result<isize> {
 }
 
 pub fn sys_close(fd: usize) -> Result<isize> {
-    let process = Scheduler::current_process();
+    let process = current_process();
     let process = process.lock();
 
     let file_handle = process.get_filehandle_from_fd(fd);
@@ -35,7 +35,7 @@ pub fn sys_close(fd: usize) -> Result<isize> {
 pub fn sys_read(fd: usize, buf: &mut [u8]) -> Result<isize> {
     let vfs = VFS.lock();
 
-    let process = Scheduler::current_process();
+    let process = current_process();
     let process = process.lock();
 
     let file_handle = process.get_filehandle_from_fd(fd);
@@ -50,7 +50,7 @@ pub fn sys_read(fd: usize, buf: &mut [u8]) -> Result<isize> {
 pub fn sys_write(fd: usize, buf: &mut [u8]) -> Result<isize> {
     let vfs = VFS.lock();
 
-    let process = Scheduler::current_process();
+    let process = current_process();
     let process = process.lock();
 
     let file_handle = process.get_filehandle_from_fd(fd);

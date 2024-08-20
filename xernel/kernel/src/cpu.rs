@@ -1,12 +1,18 @@
-use alloc::boxed::Box;
-use alloc::vec::Vec;
-use core::cell::UnsafeCell;
-use core::sync::atomic::{AtomicUsize, Ordering};
-use libxernel::sync::Once;
-use x86_64::registers::model_specific::KernelGsBase;
-use x86_64::VirtAddr;
-
 use crate::arch::amd64::apic::APIC;
+use crate::arch::amd64::{rdmsr, wrmsr, KERNEL_GS_BASE};
+use crate::dpc::DpcQueue;
+use crate::sched::process::Process;
+use crate::sched::thread::Thread;
+use crate::timer::timer_queue::TimerQueue;
+use alloc::boxed::Box;
+use alloc::collections::VecDeque;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
+use core::cell::{Cell, UnsafeCell};
+use core::ops::Deref;
+use core::pin::Pin;
+use core::sync::atomic::{AtomicUsize, Ordering};
+use libxernel::sync::{Once, RwLock, Spinlock};
 
 static CPU_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
@@ -57,7 +63,7 @@ impl<T> PerCpu<T> {
     pub fn get(&self) -> &T {
         self.check_initialized();
 
-        let cpu_id = get_per_cpu_data().get_cpu_id();
+        let cpu_id = current_cpu().cpu_id;
         let vec = unsafe { &mut *self.data.get() };
         &vec[cpu_id]
     }
@@ -66,7 +72,7 @@ impl<T> PerCpu<T> {
     pub fn get_mut(&self) -> &mut T {
         self.check_initialized();
 
-        let cpu_id = get_per_cpu_data().get_cpu_id();
+        let cpu_id = current_cpu().cpu_id;
         let vec = unsafe { &mut *self.data.get() };
         &mut vec[cpu_id]
     }
@@ -100,44 +106,74 @@ impl<T> PerCpu<T> {
     }
 }
 
-#[repr(C, packed)]
-pub struct PerCpuData {
-    // NOTE: don't move these variables as we need to access them from assembly
-    user_space_stack: usize,
-    kernel_stack: usize,
+impl<T> Deref for PerCpu<T> {
+    type Target = T;
 
-    cpu_id: usize,
-    lapic_id: u32,
+    fn deref(&self) -> &Self::Target {
+        self.get()
+    }
 }
 
-impl PerCpuData {
-    pub fn set_kernel_stack(&mut self, kernel_stack: usize) {
-        self.kernel_stack = kernel_stack;
-    }
+#[repr(C, align(8))]
+pub struct Cpu {
+    // NOTE: don't move these variables as we need to access them from assembly
+    user_space_stack: usize,
+    pub kernel_stack: Cell<usize>,
 
-    pub fn get_cpu_id(&self) -> usize {
-        self.cpu_id
-    }
+    cpu_id: usize,
+    pub lapic_id: u32,
+    pub run_queue: RwLock<VecDeque<Arc<Thread>>>,
+    pub wait_queue: RwLock<VecDeque<Arc<Thread>>>,
+    pub current_thread: RwLock<Option<Arc<Thread>>>,
+    pub idle_thread: Arc<Thread>,
+
+    pub timer_queue: RwLock<TimerQueue>,
+    pub dpc_queue: RwLock<DpcQueue>,
+    pub next: RwLock<Option<Arc<Thread>>>,
 }
 
 pub fn register_cpu() {
     let cpu_id = CPU_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
     let lapic_id = APIC.lapic_id();
 
-    let cpu_data = Box::leak(Box::new(PerCpuData {
+    let cpu_data = Box::leak(Box::new(Cpu {
         user_space_stack: 0,
-        kernel_stack: 0,
+        kernel_stack: Cell::new(0),
         cpu_id,
         lapic_id,
+        run_queue: RwLock::new(VecDeque::new()),
+        wait_queue: RwLock::new(VecDeque::new()),
+        current_thread: RwLock::new(None),
+        idle_thread: Arc::new(Thread::idle_thread()),
+        timer_queue: RwLock::new(TimerQueue::new()),
+        dpc_queue: RwLock::new(DpcQueue::new()),
+        next: RwLock::new(None),
     }));
 
     // use KERNEL_GS_BASE to store the cpu_data
-    KernelGsBase::write(VirtAddr::new(cpu_data as *const _ as u64));
+    unsafe { wrmsr(KERNEL_GS_BASE, (cpu_data as *const Cpu).expose_provenance() as u64) }
 }
 
-pub fn get_per_cpu_data() -> &'static mut PerCpuData {
-    let cpu_data = KernelGsBase::read().as_u64() as *mut PerCpuData;
-    unsafe { &mut *cpu_data }
+pub fn current_cpu() -> Pin<&'static Cpu> {
+    if !CPU_COUNT.is_completed() || *CPU_COUNT != CPU_ID_COUNTER.load(Ordering::SeqCst) {
+        panic!("current_cpu called before all cpus registered");
+    }
+
+    unsafe { Pin::new_unchecked(&*core::ptr::with_exposed_provenance(rdmsr(KERNEL_GS_BASE) as usize)) }
+}
+
+pub fn current_thread() -> Arc<Thread> {
+    current_cpu()
+        .current_thread
+        .read()
+        .clone()
+        .unwrap_or(current_cpu().idle_thread.clone())
+}
+
+pub fn current_process() -> Arc<Spinlock<Process>> {
+    current_thread()
+        .get_process()
+        .unwrap_or_else(|| panic!("current_process called with no current process"))
 }
 
 pub fn wait_until_cpus_registered() {

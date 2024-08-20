@@ -1,5 +1,4 @@
-//! The design and implementaiton of this virtual file system is heavily influenced by BSD.
-//! BSD was chosen over Linux since the architecture of the VFS made more sense in regards of naming and so on.
+//! The design and implementation of this virtual file system is heavily influenced by BSD.
 
 #[derive(Debug)]
 pub enum Error {

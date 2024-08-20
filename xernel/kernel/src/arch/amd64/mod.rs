@@ -1,15 +1,25 @@
 pub mod apic;
+pub mod cpuid;
 pub mod gdt;
-pub mod idt;
+pub mod interrupts;
+mod ioapic;
+mod lapic;
 pub mod ports;
+pub mod tsc;
 
 use crate::arch::amd64::apic::APIC;
 use crate::cpu::register_cpu;
-use crate::sched::scheduler::{Scheduler, SCHEDULER};
+use crate::sched::context::Context;
 use crate::KERNEL_PAGE_MAPPER;
-use core::arch::asm;
+use core::arch::{asm, global_asm};
 use limine::SmpInfo;
 use x86_64::VirtAddr;
+
+global_asm!(include_str!("switch.S"));
+
+extern "C" {
+    pub fn switch_context(old: *mut *mut Context, new: *const Context);
+}
 
 #[no_mangle]
 pub extern "C" fn x86_64_ap_main(boot_info: *const SmpInfo) -> ! {
@@ -28,21 +38,16 @@ pub extern "C" fn x86_64_ap_main(boot_info: *const SmpInfo) -> ! {
     gdt::init_ap(ap_id);
     info!("CPU{}: gdt initialized", ap_id);
 
-    idt::init();
+    interrupts::init();
     info!("CPU{}: idt initialized", ap_id);
 
     register_cpu();
     info!("CPU{}: cpu registered", ap_id);
 
-    // wait until all CPUs are registered before scheduling
-    SCHEDULER.wait_until_initialized();
-
     APIC.enable_apic();
     info!("CPU{}: apic initialized", ap_id);
 
-    Scheduler::hand_over();
-
-    unreachable!()
+    hcf();
 }
 
 #[inline]
@@ -53,5 +58,33 @@ pub fn read_cr2() -> VirtAddr {
         asm!("mov {}, cr2", out(reg) value, options(nomem, nostack, preserves_flags));
 
         VirtAddr::new(value)
+    }
+}
+
+pub const FS_BASE: u32 = 0xC0000100;
+pub const GS_BASE: u32 = 0xC0000101;
+pub const KERNEL_GS_BASE: u32 = 0xC0000102;
+
+#[inline]
+pub unsafe fn wrmsr(msr: u32, value: u64) {
+    let low = value as u32;
+    let high = (value >> 32) as u32;
+    asm!("wrmsr", in("ecx") msr, in("eax") low, in("edx") high);
+}
+
+#[inline]
+pub unsafe fn rdmsr(msr: u32) -> u64 {
+    let (high, low): (u32, u32);
+    unsafe {
+        asm!("rdmsr", out("eax") low, out("edx") high, in("ecx") msr);
+    }
+    ((high as u64) << 32) | (low as u64)
+}
+
+pub fn hcf() -> ! {
+    unsafe {
+        loop {
+            asm!("hlt");
+        }
     }
 }

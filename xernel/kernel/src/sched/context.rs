@@ -2,8 +2,35 @@ use core::arch::asm;
 
 #[derive(Debug, Clone, Copy, Default)]
 #[repr(C)]
-/// Represents a Cpu Context which gets saved on a context switch
-pub struct CpuContext {
+pub struct Context {
+    pub rbx: u64,
+    pub rbp: u64,
+
+    pub r12: u64,
+    pub r13: u64,
+    pub r14: u64,
+    pub r15: u64,
+
+    pub rip: u64,
+}
+
+impl Context {
+    pub const fn new() -> Self {
+        Self {
+            r15: 0,
+            r14: 0,
+            r13: 0,
+            r12: 0,
+            rbx: 0,
+            rbp: 0,
+            rip: 0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+#[repr(C)]
+pub struct TrapFrame {
     pub rbp: u64,
     pub rax: u64,
     pub rbx: u64,
@@ -27,7 +54,7 @@ pub struct CpuContext {
     pub ss: u64,
 }
 
-impl CpuContext {
+impl TrapFrame {
     /// Creates a new, zero-initialized context
     pub const fn new() -> Self {
         Self {
@@ -57,11 +84,12 @@ impl CpuContext {
 }
 
 #[naked]
-/// Restores the gives context and jumps to new RIP via iretq
-pub extern "C" fn restore_context(ctx: *const CpuContext) -> ! {
+/// Restores the gives TrapFrame and jumps to new RIP via iretq
+/// Is used to startup a new thread when it's first executed
+pub extern "C" fn thread_trampoline() -> ! {
     unsafe {
         asm!(
-            "mov rsp, rdi;
+            "mov rsp, rbx;
             pop rbp;
             pop rax;
             pop rbx;
@@ -80,6 +108,6 @@ pub extern "C" fn restore_context(ctx: *const CpuContext) -> ! {
             add rsp, 0x8;
             iretq;",
             options(noreturn)
-        );
+        )
     }
 }

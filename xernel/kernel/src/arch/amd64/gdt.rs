@@ -2,7 +2,7 @@ use alloc::alloc::alloc_zeroed;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::ptr::addr_of;
-use libxernel::sync::{Once, TicketMutex};
+use libxernel::sync::{Once, Spinlock};
 use x86_64::instructions::segmentation::{Segment, CS, DS, ES, SS};
 use x86_64::instructions::tables::load_tss;
 use x86_64::structures::gdt::SegmentSelector;
@@ -18,7 +18,7 @@ static mut BSP_IST_STACK: [u8; IST_STACK_SIZE] = [0; IST_STACK_SIZE];
 static TSS: Once<TaskStateSegment> = Once::new();
 pub static GDT_BSP: Once<(GlobalDescriptorTable, Selectors)> = Once::new();
 
-static GDT_AP: TicketMutex<Vec<Gdt>> = TicketMutex::new(Vec::new());
+static GDT_AP: Spinlock<Vec<Gdt>> = Spinlock::new(Vec::new());
 
 #[derive(Debug)]
 struct Gdt {
@@ -40,25 +40,25 @@ pub struct Selectors {
 pub fn init() {
     let mut tss = TaskStateSegment::new();
     tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = {
-        let stack_start = VirtAddr::from_ptr(unsafe { addr_of!(BSP_IST_STACK) });
-        stack_start + IST_STACK_SIZE
+        let stack_start = VirtAddr::from_ptr(addr_of!(BSP_IST_STACK));
+        stack_start + IST_STACK_SIZE as u64
     };
 
     TSS.set_once(tss);
 
     let mut gdt = GlobalDescriptorTable::new();
 
-    let code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
-    let data_selector = gdt.add_entry(Descriptor::kernel_data_segment());
+    let code_selector = gdt.append(Descriptor::kernel_code_segment());
+    let data_selector = gdt.append(Descriptor::kernel_data_segment());
 
     // let kernel_data_flags = DescriptorFlags::USER_SEGMENT | DescriptorFlags::PRESENT | DescriptorFlags::WRITABLE;
     // let data_selector = gdt.add_entry(Descriptor::UserSegment(kernel_data_flags.bits()));
 
     // System segment descriptors (which the TSS descriptor is) are 16-bytes and take up 2 slots in the GDT
     // This results in user code having index 5, user data index 6
-    let tss_selector = gdt.add_entry(Descriptor::tss_segment(&TSS));
-    let user_data_selector = gdt.add_entry(Descriptor::user_data_segment());
-    let user_code_selector = gdt.add_entry(Descriptor::user_code_segment());
+    let tss_selector = gdt.append(Descriptor::tss_segment(&TSS));
+    let user_data_selector = gdt.append(Descriptor::user_data_segment());
+    let user_code_selector = gdt.append(Descriptor::user_code_segment());
     GDT_BSP.set_once((
         gdt,
         Selectors {
@@ -85,10 +85,10 @@ pub fn init_ap(ap_id: usize) {
     let mut gdt_ap = GDT_AP.lock();
 
     let gdt: &'static mut GlobalDescriptorTable = Box::leak(Box::new(GlobalDescriptorTable::new()));
-    let code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
-    let data_selector = gdt.add_entry(Descriptor::kernel_data_segment());
-    let user_data_selector = gdt.add_entry(Descriptor::user_data_segment());
-    let user_code_selector = gdt.add_entry(Descriptor::user_code_segment());
+    let code_selector = gdt.append(Descriptor::kernel_code_segment());
+    let data_selector = gdt.append(Descriptor::kernel_data_segment());
+    let user_data_selector = gdt.append(Descriptor::user_data_segment());
+    let user_code_selector = gdt.append(Descriptor::user_code_segment());
 
     let mut boxed_tss = Box::new(TaskStateSegment::new());
 
@@ -97,7 +97,7 @@ pub fn init_ap(ap_id: usize) {
         unsafe { VirtAddr::from_ptr(ist0.add(IST_STACK_SIZE)) };
 
     let tss: &'static mut TaskStateSegment = Box::leak(boxed_tss);
-    let tss_selector = gdt.add_entry(Descriptor::tss_segment(tss));
+    let tss_selector = gdt.append(Descriptor::tss_segment(tss));
 
     gdt_ap.push(Gdt {
         gdt,

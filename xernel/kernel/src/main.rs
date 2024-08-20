@@ -2,10 +2,12 @@
 #![no_main]
 #![feature(abi_x86_interrupt)]
 #![feature(naked_functions)]
-#![feature(exclusive_range_pattern)]
 #![feature(let_chains)]
+#![feature(strict_provenance)]
+#![feature(exposed_provenance)]
 #![allow(dead_code)]
 #![allow(clippy::fn_to_numeric_cast)]
+#![allow(non_upper_case_globals)]
 extern crate alloc;
 
 #[macro_use]
@@ -14,32 +16,31 @@ mod writer;
 #[macro_use]
 mod logger;
 
+#[macro_use]
+mod utils;
+
 mod acpi;
 mod allocator;
 mod arch;
-mod backtrace;
 mod cpu;
+mod dpc;
 mod drivers;
 mod framebuffer;
 mod fs;
-mod limine_module;
+mod mem;
 mod sched;
 mod syscall;
+mod timer;
 
-mod mem;
-
-use alloc::string::ToString;
 use alloc::sync::Arc;
-use alloc::vec;
-use alloc::vec::Vec;
 use core::arch::asm;
 use core::panic::PanicInfo;
+use core::time::Duration;
 use libxernel::sync::Spinlock;
 use limine::*;
 use x86_64::instructions::interrupts;
 
 use arch::amd64::gdt;
-use arch::amd64::idt;
 
 use x86_64::structures::paging::Page;
 use x86_64::structures::paging::PageTableFlags;
@@ -47,20 +48,25 @@ use x86_64::structures::paging::Size2MiB;
 use x86_64::VirtAddr;
 
 use crate::acpi::hpet;
+use crate::arch::amd64;
 use crate::arch::amd64::apic;
-use crate::cpu::register_cpu;
+use crate::arch::amd64::hcf;
 use crate::cpu::wait_until_cpus_registered;
 use crate::cpu::CPU_COUNT;
+use crate::cpu::{current_cpu, register_cpu};
 use crate::fs::vfs;
 use crate::fs::vfs::VFS;
 use crate::mem::frame::FRAME_ALLOCATOR;
 use crate::mem::paging::KERNEL_PAGE_MAPPER;
 use crate::sched::process::Process;
 use crate::sched::process::KERNEL_PROCESS;
-use crate::sched::scheduler;
-use crate::sched::scheduler::{Scheduler, SCHEDULER};
+use crate::sched::scheduler::reschedule;
 use crate::sched::thread::Thread;
-
+use crate::timer::enqueue_timer;
+use crate::timer::hardclock;
+use crate::timer::timer_event::TimerEvent;
+use crate::utils::backtrace;
+use crate::utils::rtc::Rtc;
 static BOOTLOADER_INFO: BootInfoRequest = BootInfoRequest::new(0);
 static SMP_REQUEST: SmpRequest = SmpRequest::new(0);
 
@@ -89,9 +95,9 @@ extern "C" fn kernel_main() -> ! {
 
     gdt::init();
     info!("GDT loaded");
-    idt::init();
+    amd64::interrupts::init();
     info!("IDT loaded");
-    idt::disable_pic();
+    amd64::interrupts::disable_pic();
 
     mem::init();
 
@@ -109,24 +115,7 @@ extern "C" fn kernel_main() -> ! {
 
     vfs::init();
 
-    let t = VFS.lock().vn_open("/test.txt".to_string(), 0).unwrap();
-
-    let mut write_buf: Vec<u8> = vec![5; 10];
-
-    VFS.lock()
-        .vn_write(t.clone(), &mut write_buf)
-        .expect("write to file failed");
-
-    let mut read_buf: Vec<u8> = vec![0; 5];
-
-    VFS.lock().vn_read(t.clone(), &mut read_buf).expect("read failed");
-
-    println!(
-        "name of fs where node is mounted: {}",
-        t.lock().vfsp.upgrade().unwrap().lock().vfs_name()
-    );
-    println!("{:?}", write_buf);
-    println!("{:?}", read_buf);
+    vfs::test();
 
     let bootloader_info = BOOTLOADER_INFO
         .get_response()
@@ -138,6 +127,10 @@ extern "C" fn kernel_main() -> ! {
         bootloader_info.name.to_str().unwrap(),
         bootloader_info.version.to_str().unwrap()
     );
+
+    Rtc::read();
+
+    KERNEL_PROCESS.set_once(Arc::new(Spinlock::new(Process::new(None))));
 
     let smp_response = SMP_REQUEST.get_response().get_mut().unwrap();
 
@@ -153,17 +146,18 @@ extern "C" fn kernel_main() -> ! {
         }
     }
 
-    KERNEL_PROCESS.set_once(Arc::new(Spinlock::new(Process::new(None))));
-
     wait_until_cpus_registered();
 
-    scheduler::init();
+    timer::init();
+    info!("scheduler initialized");
 
     let process = Arc::new(Spinlock::new(Process::new(Some(KERNEL_PROCESS.clone()))));
 
-    let _user_task = Thread::new_user_thread(process.clone(), VirtAddr::new(0x200000));
+    // FIXME: If used in code, code panics with error "virtual address must be sign extended in bits 48 to 64"
+    //let _user_task = Thread::new_user_thread(process.clone(), VirtAddr::new(0x200000));
 
     let page = FRAME_ALLOCATOR.lock().allocate_frame::<Size2MiB>().unwrap();
+
     KERNEL_PAGE_MAPPER.lock().map(
         page,
         Page::from_start_address(VirtAddr::new(0x200000)).unwrap(),
@@ -178,41 +172,42 @@ extern "C" fn kernel_main() -> ! {
         true,
     );
 
-    unsafe {
-        let start_address_fn = test_userspace_fn as usize;
+    // unsafe {
+    //     let start_address_fn = test_userspace_fn as usize;
 
-        // the `test_userspace_fn` is very small and should fit in 512 bytes
-        for i in 0..512 {
-            let ptr = (0x200000 + i) as *mut u8;
-            let val = (start_address_fn + i) as *mut u8;
+    //     // the `test_userspace_fn` is very small and should fit in 512 bytes
+    //     for i in 0..512 {
+    //         let ptr = (0x200000 + i) as *mut u8;
+    //         let val = (start_address_fn + i) as *mut u8;
 
-            ptr.write_volatile(val.read_volatile());
-        }
-    }
+    //         ptr.write_volatile(val.read_volatile());
+    //     }
+    // }
 
-    let main_task = Thread::kernel_thread_from_fn(kernel_main_task);
+    let main_task = Thread::kernel_thread_from_fn(kmain_thread);
 
     let kernel_task = Thread::kernel_thread_from_fn(task1);
 
     let kernel_task2 = Thread::kernel_thread_from_fn(task2);
 
-    Scheduler::add_thread_balanced(Arc::new(Spinlock::new(main_task)));
-    //Scheduler::add_task_balanced(Arc::new(Spinlock::new(user_task)));
-    Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task)));
-    Scheduler::add_thread_balanced(Arc::new(Spinlock::new(kernel_task2)));
+    current_cpu().run_queue.write().push_back(Arc::new(main_task));
+    current_cpu().run_queue.write().push_back(Arc::new(kernel_task));
+    current_cpu().run_queue.write().push_back(Arc::new(kernel_task2));
 
-    unsafe {
-        for (i, sched) in SCHEDULER.get_all().iter().enumerate() {
-            println!("cpu {} has {} tasks", i, sched.lock().threads.len());
-        }
-    }
+    let timekeeper = TimerEvent::new(hardclock, (), Duration::from_secs(1), false);
 
-    Scheduler::hand_over();
+    enqueue_timer(timekeeper);
 
-    unreachable!();
+    let resched = TimerEvent::new(reschedule, (), Duration::from_millis(5), false);
+
+    enqueue_timer(resched);
+
+    amd64::interrupts::enable();
+
+    hcf();
 }
 
-pub fn kernel_main_task() {
+pub fn kmain_thread() {
     let mut var = 1;
 
     loop {
