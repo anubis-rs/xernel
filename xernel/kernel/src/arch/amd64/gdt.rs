@@ -40,7 +40,7 @@ pub struct Selectors {
 pub fn init() {
     let mut tss = TaskStateSegment::new();
     tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = {
-        let stack_start = VirtAddr::from_ptr(unsafe { addr_of!(BSP_IST_STACK) });
+        let stack_start = VirtAddr::from_ptr(addr_of!(BSP_IST_STACK));
         stack_start + IST_STACK_SIZE as u64
     };
 
