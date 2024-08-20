@@ -26,6 +26,7 @@ SUBCOMMANDS:
     fmt             Run cargo fmt
     clippy          Run clippy
     lint            Run clippy and cargo fmt
+    clean           Cleans the limine clone and runs cargo clean
 ";
 
 fn main() -> Result<()> {
@@ -74,6 +75,11 @@ fn main() -> Result<()> {
 
         Some("help") => {
             print!("{}", HELP);
+        }
+
+        Some("clean") => {
+            cmd!(sh, "rm -rf xernel/kernel/limine").run()?;
+            cmd!(sh, "cargo clean").run()?;
         }
 
         Some(cmd) => bail!("Unknown subcommand: '{}'", cmd),
