@@ -153,9 +153,11 @@ extern "C" fn kernel_main() -> ! {
 
     let process = Arc::new(Spinlock::new(Process::new(Some(KERNEL_PROCESS.clone()))));
 
-    let _user_task = Thread::new_user_thread(process.clone(), VirtAddr::new(0x200000));
+    // FIXME: If used in code, code panics with error "virtual address must be sign extended in bits 48 to 64"
+    //let _user_task = Thread::new_user_thread(process.clone(), VirtAddr::new(0x200000));
 
     let page = FRAME_ALLOCATOR.lock().allocate_frame::<Size2MiB>().unwrap();
+
     KERNEL_PAGE_MAPPER.lock().map(
         page,
         Page::from_start_address(VirtAddr::new(0x200000)).unwrap(),
