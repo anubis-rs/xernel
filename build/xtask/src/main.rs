@@ -99,7 +99,7 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
         cmd!(
             sh,
             "git clone https://github.com/limine-bootloader/limine.git 
-                    --branch=v6.x-branch-binary
+                    --branch=v8.x-binary
                     --depth=1"
         )
         .run()?;
@@ -142,7 +142,7 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
         let dir = dir.create_dir("BOOT")?;
 
         copy_to_image(&dir, "./xernel/kernel/limine/BOOTX64.EFI", "BOOTX64.EFI")?;
-        copy_to_image(&dir, "./xernel/kernel/limine.cfg", "limine.cfg")?;
+        copy_to_image(&dir, "./xernel/kernel/limine.conf", "limine.conf")?;
     }
     fs.unmount()?;
 
