@@ -67,8 +67,11 @@ pub fn switch_threads(old: Arc<Thread>, new: Arc<Thread>) {
 
     if !new.is_kernel_thread() {
         unsafe {
+            let process = new.process.upgrade().unwrap();
+            let mut process = process.lock();
+
             // SAFETY: A user thread always has a page table
-            let pt = new.process.upgrade().unwrap().lock().get_page_table().unwrap();
+            let pt = process.get_page_table().as_mut().unwrap();
 
             let cr3 = Cr3::read_raw();
 

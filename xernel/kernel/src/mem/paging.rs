@@ -20,7 +20,7 @@ static KERNEL_ADDRESS_REQUEST: KernelAddressRequest = KernelAddressRequest::new(
 
 pub static KERNEL_PAGE_MAPPER: Spinlock<InitAtBoot<Pagemap>> = Spinlock::new(InitAtBoot::Uninitialized);
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Pagemap {
     page_table: *mut PageTable,
 }
@@ -337,6 +337,7 @@ impl Pagemap {
                     if (*pt)[i].flags().contains(PageTableFlags::PRESENT) {
                         let pt = ((*pt)[i].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
 
+                        // FIXME: this will deadlock, because the frame allocator is already locked
                         Self::deallocate_pt(pt, level - 1);
                     }
                 }

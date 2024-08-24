@@ -164,7 +164,9 @@ extern "C" fn kernel_main() -> ! {
         PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::PRESENT,
         true,
     );
-    let mut pm = process.lock().get_page_table().unwrap();
+
+    let mut process = process.lock();
+    let pm = process.get_page_table().as_mut().unwrap();
     pm.map(
         page,
         Page::from_start_address(VirtAddr::new(0x200000)).unwrap(),
