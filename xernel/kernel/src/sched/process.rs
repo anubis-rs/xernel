@@ -100,7 +100,7 @@ impl Process {
             let phys_page = FRAME_ALLOCATOR.lock().allocate_frame::<Size4KiB>().unwrap();
             let virt_page = Page::from_start_address(VirtAddr::new(addr as u64)).unwrap();
 
-            self.page_table.clone().unwrap().map(
+            self.page_table.as_mut().unwrap().map(
                 phys_page,
                 virt_page,
                 PageTableFlags::PRESENT
@@ -142,8 +142,8 @@ impl Process {
         handle
     }
 
-    pub fn get_page_table(&self) -> Option<Pagemap> {
-        self.page_table.clone()
+    pub fn get_page_table(&mut self) -> &mut Option<Pagemap> {
+        &mut self.page_table
     }
 
     pub fn vm(&mut self) -> &mut Vm {

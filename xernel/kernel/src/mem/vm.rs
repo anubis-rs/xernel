@@ -28,10 +28,10 @@ impl VmEntry {
 
     pub fn unmap(&self) {
         let process = current_process();
-        let process = process.lock();
+        let mut process = process.lock();
 
         // SAFETY: only userspace processes should have Vm mappings
-        let mut page_mapper = process.get_page_table().unwrap();
+        let page_mapper = process.get_page_table().as_mut().unwrap();
         let mut frame_allocator = FRAME_ALLOCATOR.lock();
 
         for page in (self.start..self.end()).step_by(Size4KiB::SIZE as usize) {

@@ -60,7 +60,7 @@ pub fn handle_page_fault(addr: VirtAddr, error_code: PageFaultErrorCode) -> bool
         let frame = FRAME_ALLOCATOR.lock().allocate_frame::<Size4KiB>().unwrap();
 
         let pt_flags = ptflags_from_protflags(vm_entry.prot, process.page_table.is_some());
-        let mut pt = process.get_page_table().unwrap();
+        let pt = process.get_page_table().as_mut().unwrap();
 
         pt.map::<Size4KiB>(frame, Page::from_start_address(base_addr).unwrap(), pt_flags, true);
 
