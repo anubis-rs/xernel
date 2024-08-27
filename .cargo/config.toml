@@ -3,6 +3,7 @@ kernel = "run -p xtask --"
 kb = "kernel build"
 kr = "kernel run"
 kl = "kernel lint"
+kc = "kernel clean"
 
 [build]
 rustflags = ["-Z", "threads=8"]
