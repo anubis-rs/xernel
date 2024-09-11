@@ -1,15 +1,18 @@
 use crate::arch::amd64::gdt::GDT_BSP;
 use crate::arch::amd64::switch_context;
 use crate::cpu::current_cpu;
+use crate::timer::enqueue_timer;
 use crate::timer::timer_event::TimerEvent;
 use alloc::sync::Arc;
 use core::time::Duration;
+use libxernel::ipl::get_ipl;
 use x86_64::registers::control::Cr3;
 use x86_64::registers::segmentation::{Segment, DS};
 
 use super::thread::{Thread, ThreadStatus};
 
 pub fn reschedule(_: ()) {
+    log!("reschedule {:?}", get_ipl());
     let cpu = current_cpu();
 
     let next_ref = cpu.run_queue.write().pop_front();
@@ -97,9 +100,11 @@ pub fn switch_threads(old: Arc<Thread>, new: Arc<Thread>) {
 }
 
 fn register_reschedule_event(millis: u64) {
+    log!("register reschedule {:?}", get_ipl());
     let event = TimerEvent::new(reschedule, (), Duration::from_millis(millis), false);
 
     let cpu = current_cpu();
+
     let mut timer_queue = cpu.timer_queue.write();
 
     timer_queue.enqueue(event);

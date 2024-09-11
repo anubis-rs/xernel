@@ -1,7 +1,13 @@
 use core::{
+    arch::asm,
     cell::UnsafeCell,
     ops::{Deref, DerefMut},
     sync::atomic::{AtomicBool, Ordering},
+};
+
+use crate::{
+    ipl::{raise_ipl, IPL},
+    on_drop::OnDrop,
 };
 
 /// Simple data locking structure using a spin loop.
@@ -74,6 +80,14 @@ impl<T: ?Sized> Spinlock<T> {
         function(&mut *lock)
     }
 
+    pub fn aquire(&self) -> OnDrop<SpinlockGuard<'_, T>, impl FnOnce()> {
+        let ipl = raise_ipl(IPL::DPC);
+        let callback = move || write_cr8(ipl);
+        OnDrop::new(self.lock(), callback)
+    }
+
+    //pub fn aquire_at(&self, ipl: IPL) -> OnDrop<T, F> {}
+
     /// Unlocking a spinlock
     ///
     /// With the drop approach the lock only gets released when the [`SpinlockGuard`] value goes out of scope.
@@ -110,5 +124,12 @@ impl<'a, T: ?Sized> Deref for SpinlockGuard<'a, T> {
 impl<'a, T: ?Sized> DerefMut for SpinlockGuard<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.lock.data.get() }
+    }
+}
+
+#[inline]
+fn write_cr8(ipl: IPL) {
+    unsafe {
+        asm!("mov cr8, {}", in(reg) ipl as u64, options(nomem, nostack, preserves_flags));
     }
 }

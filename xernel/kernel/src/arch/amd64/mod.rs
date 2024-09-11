@@ -12,6 +12,7 @@ use crate::cpu::register_cpu;
 use crate::sched::context::Context;
 use crate::KERNEL_PAGE_MAPPER;
 use core::arch::{asm, global_asm};
+use libxernel::ipl::IPL;
 use limine::SmpInfo;
 use x86_64::VirtAddr;
 
@@ -58,6 +59,23 @@ pub fn read_cr2() -> VirtAddr {
         asm!("mov {}, cr2", out(reg) value, options(nomem, nostack, preserves_flags));
 
         VirtAddr::new(value)
+    }
+}
+
+#[inline]
+pub fn read_cr8() -> IPL {
+    let value: u64;
+
+    unsafe {
+        asm!("mov {}, cr8", out(reg) value, options(nomem, nostack, preserves_flags));
+    }
+    IPL::from(value)
+}
+
+#[inline]
+pub fn write_cr8(ipl: IPL) {
+    unsafe {
+        asm!("mov cr8, {}", in(reg) ipl as u64, options(nomem, nostack, preserves_flags));
     }
 }
 

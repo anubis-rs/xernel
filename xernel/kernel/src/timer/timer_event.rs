@@ -1,4 +1,4 @@
-use crate::dpc::{Dpc, DpcCall};
+use crate::dpc::{enqueue_dpc, Dpc, DpcCall};
 use core::time::Duration;
 
 use crate::current_cpu;
@@ -24,7 +24,7 @@ pub struct TimerEvent {
 
 impl EventExecutor for TimerEvent {
     fn dispatch(self) {
-        current_cpu().dpc_queue.write().enqueue(self.dpc);
+        enqueue_dpc(self.dpc)
     }
 }
 

@@ -46,11 +46,13 @@ impl TimerQueue {
 
     pub fn enqueue(&mut self, event: TimerEvent) {
         if self.events.is_empty() {
+            debug!("setting apic {:#?}", event.deadline);
             APIC.oneshot(*TIMER_VECTOR, &event.deadline);
             self.events.push_front(event);
         } else {
             if event.deadline < self.events.front().unwrap().deadline {
                 APIC.stop();
+                debug!("stopping apic and setting new {:#?}", event.deadline);
                 APIC.oneshot(*TIMER_VECTOR, &event.deadline);
             }
 

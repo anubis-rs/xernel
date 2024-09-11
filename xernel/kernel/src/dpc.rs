@@ -1,11 +1,12 @@
 use core::ops::RangeBounds;
 
 use alloc::{boxed::Box, collections::VecDeque};
+use libxernel::ipl::{get_ipl, raise_ipl, splx, IPL};
 
 use crate::{
-    arch::amd64::interrupts::ipl::{raise_ipl, set_ipl, IPL},
+    arch::amd64::{apic::APIC, write_cr8},
     cpu::current_cpu,
-    sched::scheduler::switch_threads,
+    sched::{context::TrapFrame, scheduler::switch_threads},
 };
 
 pub trait DpcCall {
@@ -69,31 +70,51 @@ impl DpcQueue {
 }
 
 pub fn enqueue_dpc(dpc: Box<dyn DpcCall>) {
-    current_cpu().dpc_queue.write().enqueue(dpc)
+    if get_ipl() < IPL::DPC {
+        let ipl = raise_ipl(IPL::DPC);
+
+        log!("calling dpc directly");
+        dpc.call();
+
+        splx(ipl);
+        return;
+    }
+
+    current_cpu().dpc_queue.write().enqueue(dpc);
+    raise_dpc_interrupt()
 }
 
-pub fn dpc_interrupt_dispatch() {
+pub fn raise_dpc_interrupt() {
+    log!("raise dpc");
+    warning!("{:?}", get_ipl());
+    APIC.send_ipi(current_cpu().lapic_id, 0x2f)
+}
+
+pub fn dispatch_dpcs(_: &mut TrapFrame) {
+    log!("working off dpcs");
     let cpu = current_cpu();
 
-    let ipl = raise_ipl(IPL::DPC);
+    assert!(get_ipl() == IPL::DPC);
 
     while let Some(dpc) = {
         let old = raise_ipl(IPL::High);
         let mut lock = cpu.dpc_queue.write();
         let dpc = lock.dequeue();
-        set_ipl(old);
+        write_cr8(old);
         dpc
     } {
         dpc.call();
     }
 
-    set_ipl(ipl);
-
     let old = cpu.current_thread.read().clone();
     let new = cpu.next.read().clone();
 
+    debug!("switching to thread");
+
     if old.is_some() && new.is_some() {
         *cpu.next.write() = None;
+        let ipl = get_ipl();
         switch_threads(old.unwrap(), new.unwrap());
+        splx(ipl);
     }
 }

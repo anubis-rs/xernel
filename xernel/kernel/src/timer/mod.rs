@@ -6,10 +6,7 @@ use core::{
     time::Duration,
 };
 
-use crate::{
-    arch::amd64::interrupts::{allocate_vector, ipl::IPL},
-    cpu::current_cpu,
-};
+use crate::{arch::amd64::interrupts::allocate_vector, cpu::current_cpu};
 
 use self::timer_event::TimerEvent;
 
@@ -17,7 +14,10 @@ use crate::amd64::interrupts::register_handler;
 use crate::amd64::tsc;
 use crate::apic::APIC;
 use crate::sched::context::TrapFrame;
-use libxernel::sync::Once;
+use libxernel::{
+    ipl::{get_ipl, IPL},
+    sync::Once,
+};
 
 static UPTIME: AtomicUsize = AtomicUsize::new(0);
 static TIMER_VECTOR: Once<u8> = Once::new();
@@ -35,6 +35,7 @@ pub fn init() {
 }
 
 pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
+    log!("timer_interrupt {:?}", get_ipl());
     // if periodic, add again to queue
     // set timer to next event in queue
 
@@ -44,11 +45,13 @@ pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
 
     //timer_queue.deadlines();
 
+    //log!("calling event aka adding dpc to queue");
     timer_queue.event_dispatch();
 
     let next_event = timer_queue.events.front();
 
     if let Some(event) = next_event {
+        debug!("{:?}", event.deadline);
         APIC.oneshot(*TIMER_VECTOR, &event.deadline);
 
         if event.periodic {
