@@ -7,10 +7,9 @@ use crate::sched::context::TrapFrame;
 use core::arch::asm;
 use core::sync::atomic::{compiler_fence, Ordering};
 use idt::{IRQHandler, IDT_ENTRIES};
-use libxernel::ipl::{get_ipl, IPL};
+use libxernel::ipl::{get_ipl, raise_ipl, splx, IPL};
 
 use super::apic::apic_spurious_interrupt;
-use super::write_cr8;
 use libxernel::sync::SpinlockIRQ;
 
 static INTERRUPT_HANDLERS: SpinlockIRQ<[IRQHandler; IDT_ENTRIES]> = SpinlockIRQ::new([IRQHandler::None; IDT_ENTRIES]);
@@ -32,21 +31,20 @@ extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
     let new_ipl = IPL::from(isr >> 4);
     let current_ipl = get_ipl();
 
-    debug!(
-        "getting interrupted with vector {} and dpc level {:?} on current level {:?}",
-        isr, new_ipl, current_ipl
-    );
-
     if (new_ipl as u8) < (current_ipl as u8) {
         panic!("IPL not less or equal");
     }
 
-    write_cr8(new_ipl);
+    raise_ipl(new_ipl);
     enable();
 
     let handlers = INTERRUPT_HANDLERS.lock();
 
     let ctx = unsafe { &mut *ctx };
+
+    if isr == 0x2f {
+        APIC.eoi();
+    }
 
     match &handlers[isr] {
         IRQHandler::Handler(handler) => {
@@ -64,9 +62,7 @@ extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
 
     disable();
 
-    debug!("returning from interrupt with ipl {:?}", current_ipl);
-
-    write_cr8(current_ipl);
+    splx(current_ipl);
 }
 
 #[inline]

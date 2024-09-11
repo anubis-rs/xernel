@@ -73,7 +73,6 @@ pub fn enqueue_dpc(dpc: Box<dyn DpcCall>) {
     if get_ipl() < IPL::DPC {
         let ipl = raise_ipl(IPL::DPC);
 
-        log!("calling dpc directly");
         dpc.call();
 
         splx(ipl);
@@ -85,13 +84,10 @@ pub fn enqueue_dpc(dpc: Box<dyn DpcCall>) {
 }
 
 pub fn raise_dpc_interrupt() {
-    log!("raise dpc");
-    warning!("{:?}", get_ipl());
     APIC.send_ipi(current_cpu().lapic_id, 0x2f)
 }
 
 pub fn dispatch_dpcs(_: &mut TrapFrame) {
-    log!("working off dpcs");
     let cpu = current_cpu();
 
     assert!(get_ipl() == IPL::DPC);
@@ -109,11 +105,10 @@ pub fn dispatch_dpcs(_: &mut TrapFrame) {
     let old = cpu.current_thread.read().clone();
     let new = cpu.next.read().clone();
 
-    debug!("switching to thread");
-
     if old.is_some() && new.is_some() {
         *cpu.next.write() = None;
         let ipl = get_ipl();
+
         switch_threads(old.unwrap(), new.unwrap());
         splx(ipl);
     }

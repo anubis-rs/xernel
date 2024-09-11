@@ -35,7 +35,6 @@ pub fn init() {
 }
 
 pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
-    log!("timer_interrupt {:?}", get_ipl());
     // if periodic, add again to queue
     // set timer to next event in queue
 
@@ -45,13 +44,11 @@ pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
 
     //timer_queue.deadlines();
 
-    //log!("calling event aka adding dpc to queue");
     timer_queue.event_dispatch();
 
     let next_event = timer_queue.events.front();
 
     if let Some(event) = next_event {
-        debug!("{:?}", event.deadline);
         APIC.oneshot(*TIMER_VECTOR, &event.deadline);
 
         if event.periodic {

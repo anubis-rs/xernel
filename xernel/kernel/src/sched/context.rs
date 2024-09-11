@@ -1,5 +1,7 @@
 use core::arch::asm;
 
+use crate::arch::amd64::write_cr8;
+
 #[derive(Debug, Clone, Copy, Default)]
 #[repr(C)]
 pub struct Context {
@@ -89,7 +91,9 @@ impl TrapFrame {
 pub extern "C" fn thread_trampoline() -> ! {
     unsafe {
         asm!(
-            "mov rsp, rbx;
+            "mov rax, 0;
+            mov cr8, rax;
+            mov rsp, rbx;
             pop rbp;
             pop rax;
             pop rbx;
