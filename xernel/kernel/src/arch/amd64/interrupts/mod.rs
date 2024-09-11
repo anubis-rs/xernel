@@ -24,6 +24,7 @@ pub fn init() {
     handlers[0xE] = IRQHandler::Handler(page_fault_handler);
     handlers[0x8] = IRQHandler::Handler(double_fault_handler);
     handlers[0xF0] = IRQHandler::Handler(apic_spurious_interrupt);
+    // TODO: allocate vectors accordingly or manually set all known interrupt handlers here
     handlers[0x2f] = IRQHandler::Handler(dispatch_dpcs);
     handlers[0xd0] = IRQHandler::Handler(keyboard);
 }

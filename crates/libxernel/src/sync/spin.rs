@@ -6,7 +6,7 @@ use core::{
 };
 
 use crate::{
-    ipl::{raise_ipl, IPL},
+    ipl::{raise_ipl, splx, IPL},
     on_drop::OnDrop,
 };
 
@@ -82,7 +82,7 @@ impl<T: ?Sized> Spinlock<T> {
 
     pub fn aquire(&self) -> OnDrop<SpinlockGuard<'_, T>, impl FnOnce()> {
         let ipl = raise_ipl(IPL::DPC);
-        let callback = move || write_cr8(ipl);
+        let callback = move || splx(ipl);
         OnDrop::new(self.lock(), callback)
     }
 

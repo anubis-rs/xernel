@@ -14,10 +14,7 @@ use crate::amd64::interrupts::register_handler;
 use crate::amd64::tsc;
 use crate::apic::APIC;
 use crate::sched::context::TrapFrame;
-use libxernel::{
-    ipl::{get_ipl, IPL},
-    sync::Once,
-};
+use libxernel::{ipl::IPL, sync::Once};
 
 static UPTIME: AtomicUsize = AtomicUsize::new(0);
 static TIMER_VECTOR: Once<u8> = Once::new();
@@ -51,6 +48,7 @@ pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
     if let Some(event) = next_event {
         APIC.oneshot(*TIMER_VECTOR, &event.deadline);
 
+        // TODO: Find a way to clone event
         if event.periodic {
             //timer_queue.queue_event(event.clone());
         }
@@ -70,5 +68,6 @@ pub fn hardclock(_: ()) {
     UPTIME.fetch_add(1, Ordering::SeqCst);
     let event = TimerEvent::new(hardclock, (), Duration::from_secs(1), false);
 
+    // TODO: use convenience functions
     current_cpu().timer_queue.write().enqueue(event);
 }

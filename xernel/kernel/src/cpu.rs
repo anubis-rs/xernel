@@ -114,6 +114,8 @@ impl<T> Deref for PerCpu<T> {
     }
 }
 
+// TODO: Replace RwLock with spinlock to use aquire functionality
+// TODO: Create helper methods for cpu struct (add_dpc, add_timer, ...)
 #[repr(C, align(8))]
 pub struct Cpu {
     // NOTE: don't move these variables as we need to access them from assembly

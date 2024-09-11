@@ -1,7 +1,5 @@
 use core::arch::asm;
 
-use crate::arch::amd64::write_cr8;
-
 #[derive(Debug, Clone, Copy, Default)]
 #[repr(C)]
 pub struct Context {
@@ -85,6 +83,8 @@ impl TrapFrame {
     }
 }
 
+// TODO: Maybe rework switching to new thread
+// TODO: Move to switch.S since platform dependant
 #[naked]
 /// Restores the gives TrapFrame and jumps to new RIP via iretq
 /// Is used to startup a new thread when it's first executed
