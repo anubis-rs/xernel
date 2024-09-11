@@ -3,6 +3,7 @@ pub mod idt;
 use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::{ports::outb, read_cr2};
 use crate::dpc::dispatch_dpcs;
+use crate::drivers::ps2::keyboard::keyboard;
 use crate::sched::context::TrapFrame;
 use core::arch::asm;
 use core::sync::atomic::{compiler_fence, Ordering};
@@ -24,6 +25,7 @@ pub fn init() {
     handlers[0x8] = IRQHandler::Handler(double_fault_handler);
     handlers[0xF0] = IRQHandler::Handler(apic_spurious_interrupt);
     handlers[0x2f] = IRQHandler::Handler(dispatch_dpcs);
+    handlers[0xd0] = IRQHandler::Handler(keyboard);
 }
 
 #[no_mangle]
