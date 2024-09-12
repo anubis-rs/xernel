@@ -101,6 +101,7 @@ impl<T: ?Sized> Spinlock<T> {
 }
 
 impl<T: ?Sized> SpinlockGuard<'_, T> {
+    // FIXME: Find a way to unlock when aquire is used. Since the spinlockguard can't be moved out of the OnDrop Type
     /// Unlocking a spinlock
     ///
     /// Sometimes it is nice to be able to unlock a lock when you want to.

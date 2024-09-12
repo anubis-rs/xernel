@@ -11,7 +11,7 @@ use crate::allocator::align_up;
 use super::HEAP_START_ADDR;
 use super::{frame::FRAME_ALLOCATOR, paging::KERNEL_PAGE_MAPPER};
 
-// TODO: Replace heap by Buddy Allocator
+// TODO: Replace heap by self written slap allocator
 static HEAP: Spinlock<Heap> = Spinlock::new(Heap::empty());
 
 const HEAP_INITIAL_PAGE_COUNT: u64 = 2; // 4 MiB
