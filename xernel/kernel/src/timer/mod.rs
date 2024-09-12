@@ -37,7 +37,7 @@ pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
 
     let cpu = current_cpu();
 
-    let mut timer_queue = cpu.timer_queue.write();
+    let mut timer_queue = cpu.timer_queue.aquire_at(IPL::High);
 
     //timer_queue.deadlines();
 
@@ -55,12 +55,6 @@ pub fn timer_interrupt_handler(_frame: &mut TrapFrame) {
     } else {
         // No event in event queue?
     }
-
-    timer_queue.unlock();
-}
-
-pub fn enqueue_timer(event: TimerEvent) {
-    current_cpu().timer_queue.write().enqueue(event);
 }
 
 pub fn hardclock(_: ()) {
@@ -68,6 +62,5 @@ pub fn hardclock(_: ()) {
     UPTIME.fetch_add(1, Ordering::SeqCst);
     let event = TimerEvent::new(hardclock, (), Duration::from_secs(1), false);
 
-    // TODO: use convenience functions
-    current_cpu().timer_queue.write().enqueue(event);
+    current_cpu().enqueue_timer(event);
 }

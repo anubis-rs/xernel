@@ -86,7 +86,11 @@ impl<T: ?Sized> Spinlock<T> {
         OnDrop::new(self.lock(), callback)
     }
 
-    //pub fn aquire_at(&self, ipl: IPL) -> OnDrop<T, F> {}
+    pub fn aquire_at(&self, ipl: IPL) -> OnDrop<SpinlockGuard<'_, T>, impl FnOnce()> {
+        let ipl = raise_ipl(ipl);
+        let callback = move || splx(ipl);
+        OnDrop::new(self.lock(), callback)
+    }
 
     /// Unlocking a spinlock
     ///

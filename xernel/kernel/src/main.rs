@@ -62,7 +62,6 @@ use crate::sched::process::Process;
 use crate::sched::process::KERNEL_PROCESS;
 use crate::sched::scheduler::reschedule;
 use crate::sched::thread::Thread;
-use crate::timer::enqueue_timer;
 use crate::timer::hardclock;
 use crate::timer::timer_event::TimerEvent;
 use crate::utils::backtrace;
@@ -193,18 +192,17 @@ extern "C" fn kernel_main() -> ! {
 
     let kernel_task2 = Thread::kernel_thread_from_fn(task2);
 
-    // TODO: use convenience functions
-    current_cpu().run_queue.write().push_back(Arc::new(main_task));
-    current_cpu().run_queue.write().push_back(Arc::new(kernel_task));
-    current_cpu().run_queue.write().push_back(Arc::new(kernel_task2));
+    current_cpu().enqueue_thread(Arc::new(main_task));
+    current_cpu().enqueue_thread(Arc::new(kernel_task));
+    current_cpu().enqueue_thread(Arc::new(kernel_task2));
 
     let timekeeper = TimerEvent::new(hardclock, (), Duration::from_secs(1), false);
 
-    enqueue_timer(timekeeper);
+    current_cpu().enqueue_timer(timekeeper);
 
     let resched = TimerEvent::new(reschedule, (), Duration::from_millis(5), false);
 
-    enqueue_timer(resched);
+    current_cpu().enqueue_timer(resched);
 
     amd64::interrupts::enable();
 

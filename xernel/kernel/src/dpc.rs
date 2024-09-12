@@ -79,7 +79,7 @@ pub fn enqueue_dpc(dpc: Box<dyn DpcCall>) {
         return;
     }
 
-    current_cpu().dpc_queue.write().enqueue(dpc);
+    current_cpu().enqueue_dpc(dpc);
     raise_dpc_interrupt()
 }
 
@@ -94,7 +94,7 @@ pub fn dispatch_dpcs(_: &mut TrapFrame) {
 
     while let Some(dpc) = {
         let old = raise_ipl(IPL::High);
-        let mut lock = cpu.dpc_queue.write();
+        let mut lock = cpu.dpc_queue.lock();
         let dpc = lock.dequeue();
         write_cr8(old);
         dpc
@@ -102,11 +102,11 @@ pub fn dispatch_dpcs(_: &mut TrapFrame) {
         dpc.call();
     }
 
-    let old = cpu.current_thread.read().clone();
-    let new = cpu.next.read().clone();
+    let old = cpu.current_thread.aquire().clone();
+    let new = cpu.next.aquire().clone();
 
     if old.is_some() && new.is_some() {
-        *cpu.next.write() = None;
+        **cpu.next.aquire() = None;
         let ipl = get_ipl();
 
         switch_threads(old.unwrap(), new.unwrap());
