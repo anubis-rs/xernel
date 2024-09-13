@@ -38,6 +38,12 @@ impl From<u8> for IPL {
     }
 }
 
+fn set_ipl(ipl: IPL) {
+    unsafe {
+        asm!("mov cr8, {}", in(reg) ipl as u64, options(nomem, nostack, preserves_flags));
+    }
+}
+
 pub fn get_ipl() -> IPL {
     let ipl: u64;
 
@@ -53,9 +59,7 @@ pub fn raise_ipl(ipl: IPL) -> IPL {
 
     assert!(old_ipl as u64 <= ipl as u64);
 
-    unsafe {
-        asm!("mov cr8, {}", in(reg) ipl as u64, options(nomem, nostack, preserves_flags));
-    }
+    set_ipl(ipl);
 
     old_ipl
 }
@@ -63,7 +67,5 @@ pub fn raise_ipl(ipl: IPL) -> IPL {
 pub fn splx(ipl: IPL) {
     assert!(ipl as u64 <= get_ipl() as u64);
 
-    unsafe {
-        asm!("mov cr8, {}", in(reg) ipl as u64, options(nomem, nostack, preserves_flags));
-    }
+    set_ipl(ipl);
 }
