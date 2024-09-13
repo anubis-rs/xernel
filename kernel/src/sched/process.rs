@@ -32,7 +32,6 @@ pub struct Process {
     pub children: Vec<Arc<Spinlock<Process>>>,
     pub threads: Vec<Arc<Spinlock<Thread>>>,
     pub fds: BTreeMap<usize, File>,
-    pub is_kernel_process: bool,
     pub kernel_thread_stack_top: usize,
     pub thread_id_counter: usize,
     pub vm: Vm,
