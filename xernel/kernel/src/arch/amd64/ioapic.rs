@@ -84,7 +84,7 @@ impl IOApic {
         );
 
         unsafe {
-            self.write_irq(1, 0x47, 0, false, true);
+            self.write_irq(1, 0xd0, 0, false, true);
             debug!("IOAPICID: {:b}", self.read(0));
             debug!("IOAPICVER: {:b}", self.read(1));
             debug!("IOAPICARB: {:b}", self.read(2));

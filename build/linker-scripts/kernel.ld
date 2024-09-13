@@ -46,6 +46,10 @@ SECTIONS
         *(.bss .bss.*)
     } :data
 
+    .got : {
+        *(.got)
+    } :data
+
     . += CONSTANT(MAXPAGESIZE);
 
     _kernel_end = .;

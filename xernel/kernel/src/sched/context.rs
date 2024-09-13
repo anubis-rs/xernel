@@ -83,13 +83,17 @@ impl TrapFrame {
     }
 }
 
+// TODO: Maybe rework switching to new thread
+// TODO: Move to switch.S since platform dependant
 #[naked]
 /// Restores the gives TrapFrame and jumps to new RIP via iretq
 /// Is used to startup a new thread when it's first executed
 pub extern "C" fn thread_trampoline() -> ! {
     unsafe {
         asm!(
-            "mov rsp, rbx;
+            "mov rax, 0;
+            mov cr8, rax;
+            mov rsp, rbx;
             pop rbp;
             pop rax;
             pop rbx;

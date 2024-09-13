@@ -7,6 +7,7 @@ use crate::acpi::hpet;
 
 pub static TSC_TICKS_PER_MS: AtomicU64 = AtomicU64::new(0);
 
+// TODO: Use TSC Deadshot mode for apic
 pub fn calibrate_tsc() {
     let start: u64 = rdtsc();
     hpet::sleep(10_000_000);

@@ -62,7 +62,6 @@ use crate::sched::process::Process;
 use crate::sched::process::KERNEL_PROCESS;
 use crate::sched::scheduler::reschedule;
 use crate::sched::thread::Thread;
-use crate::timer::enqueue_timer;
 use crate::timer::hardclock;
 use crate::timer::timer_event::TimerEvent;
 use crate::utils::backtrace;
@@ -153,18 +152,18 @@ extern "C" fn kernel_main() -> ! {
 
     let process = Arc::new(Spinlock::new(Process::new(Some(KERNEL_PROCESS.clone()))));
 
-    // FIXME: If used in code, code panics with error "virtual address must be sign extended in bits 48 to 64"
     let _user_task = Thread::new_user_thread(process.clone(), VirtAddr::new(0x200000));
 
-    let page = FRAME_ALLOCATOR.lock().allocate_frame::<Size2MiB>().unwrap();
+    let page = FRAME_ALLOCATOR.aquire().allocate_frame::<Size2MiB>().unwrap();
 
-    KERNEL_PAGE_MAPPER.lock().map(
+    KERNEL_PAGE_MAPPER.aquire().map(
         page,
         Page::from_start_address(VirtAddr::new(0x200000)).unwrap(),
         PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::PRESENT,
         true,
     );
 
+    // FIXME: If aquire is used probably deadlock
     let mut process = process.lock();
     let pm = process.get_page_table().as_mut().unwrap();
     pm.map(
@@ -192,17 +191,17 @@ extern "C" fn kernel_main() -> ! {
 
     let kernel_task2 = Thread::kernel_thread_from_fn(task2);
 
-    current_cpu().run_queue.write().push_back(Arc::new(main_task));
-    current_cpu().run_queue.write().push_back(Arc::new(kernel_task));
-    current_cpu().run_queue.write().push_back(Arc::new(kernel_task2));
+    current_cpu().enqueue_thread(Arc::new(main_task));
+    current_cpu().enqueue_thread(Arc::new(kernel_task));
+    current_cpu().enqueue_thread(Arc::new(kernel_task2));
 
     let timekeeper = TimerEvent::new(hardclock, (), Duration::from_secs(1), false);
 
-    enqueue_timer(timekeeper);
+    current_cpu().enqueue_timer(timekeeper);
 
     let resched = TimerEvent::new(reschedule, (), Duration::from_millis(5), false);
 
-    enqueue_timer(resched);
+    current_cpu().enqueue_timer(resched);
 
     amd64::interrupts::enable();
 

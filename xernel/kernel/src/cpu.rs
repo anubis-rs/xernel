@@ -1,8 +1,9 @@
 use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::{rdmsr, wrmsr, KERNEL_GS_BASE};
-use crate::dpc::DpcQueue;
+use crate::dpc::{DpcCall, DpcQueue};
 use crate::sched::process::Process;
 use crate::sched::thread::Thread;
+use crate::timer::timer_event::TimerEvent;
 use crate::timer::timer_queue::TimerQueue;
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
@@ -12,7 +13,8 @@ use core::cell::{Cell, UnsafeCell};
 use core::ops::Deref;
 use core::pin::Pin;
 use core::sync::atomic::{AtomicUsize, Ordering};
-use libxernel::sync::{Once, RwLock, Spinlock};
+use libxernel::ipl::IPL;
+use libxernel::sync::{Once, Spinlock};
 
 static CPU_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
@@ -122,14 +124,28 @@ pub struct Cpu {
 
     cpu_id: usize,
     pub lapic_id: u32,
-    pub run_queue: RwLock<VecDeque<Arc<Thread>>>,
-    pub wait_queue: RwLock<VecDeque<Arc<Thread>>>,
-    pub current_thread: RwLock<Option<Arc<Thread>>>,
+    pub run_queue: Spinlock<VecDeque<Arc<Thread>>>,
+    pub wait_queue: Spinlock<VecDeque<Arc<Thread>>>,
+    pub current_thread: Spinlock<Option<Arc<Thread>>>,
     pub idle_thread: Arc<Thread>,
 
-    pub timer_queue: RwLock<TimerQueue>,
-    pub dpc_queue: RwLock<DpcQueue>,
-    pub next: RwLock<Option<Arc<Thread>>>,
+    pub timer_queue: Spinlock<TimerQueue>,
+    pub dpc_queue: Spinlock<DpcQueue>,
+    pub next: Spinlock<Option<Arc<Thread>>>,
+}
+
+impl Cpu {
+    pub fn enqueue_timer(&self, event: TimerEvent) {
+        self.timer_queue.aquire_at(IPL::High).enqueue(event);
+    }
+
+    pub fn enqueue_dpc(&self, dpc: Box<dyn DpcCall>) {
+        self.dpc_queue.aquire_at(IPL::High).enqueue(dpc);
+    }
+
+    pub fn enqueue_thread(&self, thread: Arc<Thread>) {
+        self.run_queue.aquire().push_back(thread)
+    }
 }
 
 pub fn register_cpu() {
@@ -141,13 +157,13 @@ pub fn register_cpu() {
         kernel_stack: Cell::new(0),
         cpu_id,
         lapic_id,
-        run_queue: RwLock::new(VecDeque::new()),
-        wait_queue: RwLock::new(VecDeque::new()),
-        current_thread: RwLock::new(None),
+        run_queue: Spinlock::new(VecDeque::new()),
+        wait_queue: Spinlock::new(VecDeque::new()),
+        current_thread: Spinlock::new(None),
         idle_thread: Arc::new(Thread::idle_thread()),
-        timer_queue: RwLock::new(TimerQueue::new()),
-        dpc_queue: RwLock::new(DpcQueue::new()),
-        next: RwLock::new(None),
+        timer_queue: Spinlock::new(TimerQueue::new()),
+        dpc_queue: Spinlock::new(DpcQueue::new()),
+        next: Spinlock::new(None),
     }));
 
     // use KERNEL_GS_BASE to store the cpu_data
@@ -165,7 +181,7 @@ pub fn current_cpu() -> Pin<&'static Cpu> {
 pub fn current_thread() -> Arc<Thread> {
     current_cpu()
         .current_thread
-        .read()
+        .aquire()
         .clone()
         .unwrap_or(current_cpu().idle_thread.clone())
 }

@@ -47,6 +47,12 @@ macro_rules! print {
     ($($arg:tt)*) => ($crate::writer::_print(format_args!($($arg)*)));
 }
 
+#[macro_export]
+macro_rules! log {
+    () => { $crate::writer::_log_print(format_args!(""), file!(), 0xFF, 0xFF, 0xFF) };
+    ($($arg:tt)*) =>  { $crate::writer::_log_print(format_args!($($arg)*), file!(), 0xFF, 0xFF, 0xFF) };
+}
+
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
     let mut writer = WRITER.lock();

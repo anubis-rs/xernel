@@ -1,15 +1,14 @@
 pub mod idt;
-pub mod ipl;
 
 use crate::arch::amd64::apic::APIC;
 use crate::arch::amd64::{ports::outb, read_cr2};
+use crate::dpc::dispatch_dpcs;
+use crate::drivers::ps2::keyboard::keyboard;
 use crate::sched::context::TrapFrame;
 use core::arch::asm;
 use core::sync::atomic::{compiler_fence, Ordering};
 use idt::{IRQHandler, IDT_ENTRIES};
-use ipl::IPL;
-
-use self::ipl::{get_ipl, raise_ipl, set_ipl};
+use libxernel::ipl::{get_ipl, raise_ipl, splx, IPL};
 
 use super::apic::apic_spurious_interrupt;
 use libxernel::sync::SpinlockIRQ;
@@ -25,23 +24,26 @@ pub fn init() {
     handlers[0xE] = IRQHandler::Handler(page_fault_handler);
     handlers[0x8] = IRQHandler::Handler(double_fault_handler);
     handlers[0xF0] = IRQHandler::Handler(apic_spurious_interrupt);
+    // TODO: allocate vectors accordingly or manually set all known interrupt handlers here
+    handlers[0x2f] = IRQHandler::Handler(dispatch_dpcs);
+    handlers[0xd0] = IRQHandler::Handler(keyboard);
 }
 
 #[no_mangle]
 extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
-    let mut ipl = IPL::from(isr >> 4);
+    let new_ipl = IPL::from(isr >> 4);
+    let current_ipl = get_ipl();
 
-    if (ipl as u8) < (get_ipl() as u8) {
+    if (new_ipl as u8) < (current_ipl as u8) {
         panic!("IPL not less or equal");
     }
 
-    ipl = raise_ipl(ipl);
+    raise_ipl(new_ipl);
+    enable();
 
     let handlers = INTERRUPT_HANDLERS.lock();
 
     let ctx = unsafe { &mut *ctx };
-
-    enable();
 
     match &handlers[isr] {
         IRQHandler::Handler(handler) => {
@@ -59,7 +61,7 @@ extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
 
     disable();
 
-    set_ipl(ipl);
+    splx(current_ipl);
 }
 
 #[inline]
