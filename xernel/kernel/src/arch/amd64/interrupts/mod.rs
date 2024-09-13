@@ -45,10 +45,6 @@ extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
 
     let ctx = unsafe { &mut *ctx };
 
-    if isr == 0x2f {
-        APIC.eoi();
-    }
-
     match &handlers[isr] {
         IRQHandler::Handler(handler) => {
             let handler = *handler;

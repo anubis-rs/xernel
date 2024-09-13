@@ -88,6 +88,7 @@ pub fn raise_dpc_interrupt() {
 }
 
 pub fn dispatch_dpcs(_: &mut TrapFrame) {
+    APIC.eoi();
     let cpu = current_cpu();
 
     assert!(get_ipl() == IPL::DPC);
