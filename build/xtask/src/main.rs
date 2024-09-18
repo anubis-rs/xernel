@@ -78,7 +78,7 @@ fn main() -> Result<()> {
         }
 
         Some("clean") => {
-            cmd!(sh, "rm -rf xernel/kernel/limine").run()?;
+            cmd!(sh, "rm -rf kernel/limine").run()?;
             cmd!(sh, "cargo clean").run()?;
         }
 
@@ -94,8 +94,8 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
         .opt_value_from_str::<_, String>("--target")?
         .unwrap_or_else(|| "x86_64".to_string());
 
-    if !Path::new(sh.current_dir().as_path().join("xernel/kernel/limine").as_path()).exists() {
-        sh.change_dir(sh.current_dir().as_path().join("xernel/kernel"));
+    if !Path::new(sh.current_dir().as_path().join("kernel/limine").as_path()).exists() {
+        sh.change_dir(sh.current_dir().as_path().join("kernel"));
         cmd!(
             sh,
             "git clone https://github.com/limine-bootloader/limine.git 
@@ -154,8 +154,8 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
         let dir = root_dir.create_dir("EFI")?;
         let dir = dir.create_dir("BOOT")?;
 
-        copy_to_image(&dir, "./xernel/kernel/limine/BOOTX64.EFI", "BOOTX64.EFI")?;
-        copy_to_image(&dir, "./xernel/kernel/limine.conf", "limine.conf")?;
+        copy_to_image(&dir, "./kernel/limine/BOOTX64.EFI", "BOOTX64.EFI")?;
+        copy_to_image(&dir, "./kernel/limine.conf", "limine.conf")?;
     }
     fs.unmount()?;
 
@@ -199,7 +199,7 @@ fn run(sh: &Shell, gdb: bool, mut args: Arguments) -> Result<()> {
     cmd!(
         sh,
         "qemu-system-x86_64{file_extension}  
-                -bios ./xernel/kernel/uefi-edk2/OVMF.fd 
+                -bios ./kernel/uefi-edk2/OVMF.fd 
                 -m {ram}
                 -smp {cpus}
                 -cdrom xernel.hdd 
