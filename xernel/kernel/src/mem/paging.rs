@@ -330,21 +330,19 @@ impl Pagemap {
     }
 
     fn deallocate_pt(pt: *mut PageTable, level: u8) {
-        let mut frame_allocator = FRAME_ALLOCATOR.lock();
         if level == 4 {
             for i in 0..256 {
                 unsafe {
                     if (*pt)[i].flags().contains(PageTableFlags::PRESENT) {
                         let pt = ((*pt)[i].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
 
-                        // FIXME: this will deadlock, because the frame allocator is already locked
                         Self::deallocate_pt(pt, level - 1);
                     }
                 }
             }
 
             unsafe {
-                frame_allocator.deallocate_frame(
+                FRAME_ALLOCATOR.lock().deallocate_frame(
                     PhysFrame::<Size4KiB>::from_start_address(PhysAddr::new(pt as u64 - *HIGHER_HALF_OFFSET)).unwrap(),
                 );
             }
@@ -360,7 +358,7 @@ impl Pagemap {
             }
 
             unsafe {
-                frame_allocator.deallocate_frame(
+                FRAME_ALLOCATOR.lock().deallocate_frame(
                     PhysFrame::<Size4KiB>::from_start_address(PhysAddr::new(pt as u64 - *HIGHER_HALF_OFFSET)).unwrap(),
                 );
             }
