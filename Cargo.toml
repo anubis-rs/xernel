@@ -3,5 +3,6 @@ members = [
   "build/xtask",
   "xernel/kernel",
   "crates/libxernel",
+  "userland/init",
 ]
 resolver = "2"

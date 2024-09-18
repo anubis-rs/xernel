@@ -120,7 +120,20 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
     )
     .run()?;
 
+    cmd!(
+        sh,
+        "cargo build
+                {release...}
+                -p init
+                --target x86_64-unknown-none
+                -Z build-std=core,alloc,compiler_builtins
+                -Z build-std-features=compiler-builtins-mem"
+    )
+    .run()?;
+
     let build_dir = if rl { "release" } else { "debug" };
+
+    cmd!(sh, "cp ./target/x86_64-unknown-none/{build_dir}/init ./target/").run()?;
 
     let diskname = "xernel.hdd";
     let disksize = 64 * 1024 * 1024; // 64 MB
