@@ -40,10 +40,6 @@ impl Mount {
         self.mnt_op_data.lock().vfs_root()
     }
 
-    pub fn vfs_quotactl(&self) {
-        self.mnt_op_data.lock().vfs_quotactl()
-    }
-
     pub fn vfs_statvfs(&self) {
         self.mnt_op_data.lock().vfs_statvfs()
     }
@@ -60,24 +56,12 @@ impl Mount {
         self.mnt_op_data.lock().vfs_lookup(path)
     }
 
-    pub fn vfs_fhtovp(&self) {
-        self.mnt_op_data.lock().vfs_fhtovp()
-    }
-
-    pub fn vfs_vptofh(&self) {
-        self.mnt_op_data.lock().vfs_vptofh()
-    }
-
     pub fn vfs_init(&mut self) {
         self.mnt_op_data.lock().vfs_init()
     }
 
     pub fn vfs_done(&self) {
         self.mnt_op_data.lock().vfs_done()
-    }
-
-    pub fn vfs_extattrctl(&self) {
-        self.mnt_op_data.lock().vfs_extattrctl()
     }
 
     pub fn vfs_name(&self) -> String {
@@ -100,14 +84,9 @@ pub trait VfsOps {
     /// Gets the file system root vnode.
     fn vfs_root(&self) -> Result<Arc<Spinlock<VNode>>>;
 
-    /// Queries or modifies space quotas.
-    fn vfs_quotactl(&self) {
-        unimplemented!("{} does not implement vfs_quotactl", self.vfs_name());
-    }
-
     /// Gets file system statistics.
     fn vfs_statvfs(&self) {
-        unimplemented!("{} does not implement vfs_statvfs", self.vfs_name());
+        todo!("{} does not implement vfs_statvfs", self.vfs_name());
     }
 
     /// Flushes file system buffers.
@@ -118,22 +97,12 @@ pub trait VfsOps {
 
     fn vfs_lookup(&self, path: &PathBuf) -> Result<Arc<Spinlock<VNode>>>;
 
-    /// Converts a NFS file handle to a vnode.
-    fn vfs_fhtovp(&self) {
-        unimplemented!("{} does not implement vfs_fhtovp", self.vfs_name());
-    }
-
-    /// Converts a vnode to a NFS file handle.
-    fn vfs_vptofh(&self) {
-        unimplemented!("{} does not implement vfs_vptofh", self.vfs_name());
-    }
-
     /// Initializes the file system driver.
     fn vfs_init(&mut self);
 
     /// Reinitializes the file system driver.
     fn vfs_reinit(&self) {
-        unimplemented!("{} does not implement vfs_reinit", self.vfs_name());
+        todo!("{} does not implement vfs_reinit", self.vfs_name());
     }
 
     /// Finalizes the file system driver.
@@ -141,14 +110,7 @@ pub trait VfsOps {
 
     /// Mounts an instance of the file system as the root file system.
     fn vfs_mountroot(&self) {
-        unimplemented!("{} does not implement vfs_mountroot", self.vfs_name());
-    }
-
-    /// Controls extended attributes.
-    // The generic vfs_stdextattrctl function is provided as a simple hook for file system that do not support this operation
-    // TODO: create a generic vfs_stdextattrctl function
-    fn vfs_extattrctl(&self) {
-        unimplemented!("{} does not implement vfs_extattrctl", self.vfs_name());
+        todo!("{} does not implement vfs_mountroot", self.vfs_name());
     }
 
     /// Returns the name of the file system

@@ -6,7 +6,7 @@ use alloc::{
 };
 use libxernel::{boot::InitAtBoot, sync::Spinlock};
 
-use crate::{fs::Error, fs::Result};
+use crate::{fs::Result, fs::VfsError};
 
 use super::{
     mount::{Mount, VfsOps},
@@ -137,7 +137,7 @@ impl VNodeOperations for TmpfsNode {
         if let TmpfsNodeData::Directory(children) = &mut self.data {
             children.push((PathBuf::from(file_name), new_node.clone()));
         } else {
-            return Err(Error::NotADirectory);
+            return Err(VfsError::NotADirectory);
         }
 
         Ok(new_node)
@@ -165,7 +165,7 @@ impl VNodeOperations for TmpfsNode {
                         .iter()
                         .find(|(pt, _)| pt == components[0])
                         .map(|(_, node)| node.clone());
-                    node.ok_or(Error::EntryNotFound)
+                    node.ok_or(VfsError::EntryNotFound)
                 }
                 core::cmp::Ordering::Greater => {
                     let node = children
@@ -176,13 +176,13 @@ impl VNodeOperations for TmpfsNode {
                     if let Some(node) = node {
                         return node.lock().lookup(&stripped_path);
                     } else {
-                        Err(Error::EntryNotFound)
+                        Err(VfsError::EntryNotFound)
                     }
                 }
                 core::cmp::Ordering::Less => todo!(),
             }
         } else {
-            Err(Error::NotADirectory)
+            Err(VfsError::NotADirectory)
         }
     }
 
@@ -202,12 +202,12 @@ impl VNodeOperations for TmpfsNode {
 
             Ok(max_read)
         } else {
-            Err(Error::IsADirectory)
+            Err(VfsError::IsADirectory)
         }
     }
 
     fn write(&mut self, buf: &mut [u8]) -> Result<usize> {
-        if let TmpfsNodeData::File(ref mut data) = &mut self.data {
+        if let TmpfsNodeData::File(data) = &mut self.data {
             data.resize(data.len() + buf.len(), 0);
 
             let max_write = if buf.len() > data.len() { data.len() } else { buf.len() };
@@ -218,7 +218,7 @@ impl VNodeOperations for TmpfsNode {
 
             Ok(max_write)
         } else {
-            Err(Error::IsADirectory)
+            Err(VfsError::IsADirectory)
         }
     }
 

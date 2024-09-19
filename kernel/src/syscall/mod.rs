@@ -18,17 +18,17 @@ use crate::{
     mem::mmap::mmap,
 };
 
-impl From<fs::Error> for SyscallError {
-    fn from(err: fs::Error) -> SyscallError {
+impl From<fs::VfsError> for SyscallError {
+    fn from(err: fs::VfsError) -> SyscallError {
         match err {
-            fs::Error::VNodeNotFound => SyscallError::VNodeNotFound,
-            fs::Error::NotADirectory => SyscallError::NotADirectory,
-            fs::Error::IsADirectory => SyscallError::IsADirectory,
-            fs::Error::NoSpace => SyscallError::NoSpace,
-            fs::Error::NotEmpty => SyscallError::NotEmpty,
-            fs::Error::EntryNotFound => SyscallError::EntryNotFound,
-            fs::Error::MountPointNotFound => SyscallError::MountPointNotFound,
-            fs::Error::FileSystemNotFound => SyscallError::FileSystemNotFound,
+            fs::VfsError::VNodeNotFound => SyscallError::VNodeNotFound,
+            fs::VfsError::NotADirectory => SyscallError::NotADirectory,
+            fs::VfsError::IsADirectory => SyscallError::IsADirectory,
+            fs::VfsError::NoSpace => SyscallError::NoSpace,
+            fs::VfsError::NotEmpty => SyscallError::NotEmpty,
+            fs::VfsError::EntryNotFound => SyscallError::EntryNotFound,
+            fs::VfsError::MountPointNotFound => SyscallError::MountPointNotFound,
+            fs::VfsError::FileSystemNotFound => SyscallError::FileSystemNotFound,
         }
     }
 }

@@ -1,7 +1,9 @@
 //! The design and implementation of this virtual file system is heavily influenced by BSD.
 
+use core::{error::Error, fmt::Display};
+
 #[derive(Debug)]
-pub enum Error {
+pub enum VfsError {
     VNodeNotFound,
     NotADirectory,
     IsADirectory,
@@ -12,7 +14,15 @@ pub enum Error {
     FileSystemNotFound,
 }
 
-pub type Result<T, E = Error> = core::result::Result<T, E>;
+impl Display for VfsError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for VfsError {}
+
+pub type Result<T, E = VfsError> = core::result::Result<T, E>;
 
 pub mod file;
 pub mod initramfs;
@@ -22,3 +32,7 @@ pub mod tmpfs;
 pub mod vfs;
 pub mod vfs_syscalls;
 pub mod vnode;
+
+// todo: create fs init function which initializes vfs and initramfs
+
+pub fn init() {}
