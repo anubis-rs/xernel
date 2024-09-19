@@ -2,6 +2,8 @@ use core::mem::ManuallyDrop;
 
 use core::ops::{Deref, DerefMut};
 
+use crate::sync::SpinlockGuard;
+
 pub struct OnDrop<T, F>
 where
     F: FnOnce(),
@@ -32,6 +34,13 @@ where
             (ManuallyDrop::<F>::take(&mut self.callback))();
         }
     }
+}
+
+impl<'a, T, F> OnDrop<SpinlockGuard<'a, T>, F>
+where
+    F: FnOnce(),
+{
+    pub fn unlock(self) {}
 }
 
 impl<T, F> Deref for OnDrop<T, F>
