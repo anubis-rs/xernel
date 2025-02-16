@@ -1,4 +1,4 @@
-use core::arch::asm;
+use core::arch::naked_asm;
 
 #[derive(Debug, Clone, Copy, Default)]
 #[repr(C)]
@@ -90,7 +90,7 @@ impl TrapFrame {
 /// Is used to startup a new thread when it's first executed
 pub extern "C" fn thread_trampoline() -> ! {
     unsafe {
-        asm!(
+        naked_asm!(
             "mov rax, 0;
             mov cr8, rax;
             mov rsp, rbx;
@@ -110,8 +110,7 @@ pub extern "C" fn thread_trampoline() -> ! {
             pop r14;
             pop r15;
             add rsp, 0x8;
-            iretq;",
-            options(noreturn)
+            iretq;"
         )
     }
 }

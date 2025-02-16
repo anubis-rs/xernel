@@ -12,6 +12,7 @@
   "disable-redzone": true,
   "panic-strategy": "abort",
   "features": "-mmx,-sse,+soft-float",
+  "rustc-abi": "x86-softfloat",
   "code-model": "kernel",
   "pre-link-args": {
     "ld.lld": [

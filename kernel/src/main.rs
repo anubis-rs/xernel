@@ -3,8 +3,6 @@
 #![feature(abi_x86_interrupt)]
 #![feature(naked_functions)]
 #![feature(let_chains)]
-#![feature(strict_provenance)]
-#![feature(exposed_provenance)]
 #![allow(dead_code)]
 #![allow(clippy::fn_to_numeric_cast)]
 #![allow(non_upper_case_globals)]
@@ -33,7 +31,7 @@ mod syscall;
 mod timer;
 
 use alloc::sync::Arc;
-use core::arch::asm;
+use core::arch::{asm, naked_asm};
 use core::panic::PanicInfo;
 use core::time::Duration;
 use libxernel::sync::Spinlock;
@@ -227,7 +225,7 @@ pub fn kmain_thread() {
 pub extern "C" fn test_userspace_fn() {
     //loop {
     unsafe {
-        asm!(
+        naked_asm!(
             "\
                 mov rax, 0
                 mov rdi, 2
@@ -235,8 +233,7 @@ pub extern "C" fn test_userspace_fn() {
                 mov rdx, 4
                 syscall
                 mov rax, 0
-            ",
-            options(noreturn)
+            "
         );
     }
     //}

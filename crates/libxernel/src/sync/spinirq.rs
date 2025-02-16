@@ -49,7 +49,7 @@ impl<T> SpinlockIRQGuard<'_, T> {
     pub fn unlock(self) {}
 }
 
-impl<'a, T> Deref for SpinlockIRQGuard<'a, T> {
+impl<T> Deref for SpinlockIRQGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -57,7 +57,7 @@ impl<'a, T> Deref for SpinlockIRQGuard<'a, T> {
     }
 }
 
-impl<'a, T> DerefMut for SpinlockIRQGuard<'a, T> {
+impl<T> DerefMut for SpinlockIRQGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut (self.guard)
     }

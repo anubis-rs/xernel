@@ -1,5 +1,5 @@
 use crate::sched::context::TrapFrame;
-use core::arch::asm;
+use core::arch::{asm, naked_asm};
 use core::mem::size_of;
 use core::ptr::addr_of;
 
@@ -23,7 +23,7 @@ macro_rules! interrupt_handler {
             #[naked]
             extern "C" fn [<interrupt_handler $interrupt_number>]() {
                 unsafe {
-                    asm!(
+                    naked_asm!(
                         has_error_code_macro!($has_error_code),
                         "push r15",
                         "push r14",
@@ -59,8 +59,7 @@ macro_rules! interrupt_handler {
                         "pop r14",
                         "pop r15",
                         "add rsp, 0x8", // skip error code
-                        "iretq",
-                        options(noreturn)
+                        "iretq"
                     )
                 }
             }
@@ -118,7 +117,7 @@ pub(super) enum IRQHandler {
     None,
 }
 
-#[repr(packed)]
+#[repr(C, packed)]
 pub struct IDTEntry {
     offset_low: u16,
     selector: u16,
@@ -160,7 +159,7 @@ pub fn init() {
         });
 
         let idtr = Idtr::new(
-            ((IDT.len() * size_of::<IDTEntry>()) - 1) as u16,
+            (IDT_ENTRIES * size_of::<IDTEntry>() - 1) as u16,
             (addr_of!(IDT) as *const _) as u64,
         );
 

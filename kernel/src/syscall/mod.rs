@@ -2,7 +2,7 @@ use alloc::{
     ffi::CString,
     string::{String, ToString},
 };
-use core::{arch::asm, ffi::c_char};
+use core::{arch::naked_asm, ffi::c_char};
 use libxernel::syscall::{SyscallError, SYS_CLOSE, SYS_LOG, SYS_MMAP, SYS_OPEN, SYS_READ, SYS_WRITE};
 use x86_64::{
     registers::{
@@ -85,7 +85,7 @@ struct SyscallData {
 
 #[naked]
 unsafe extern "C" fn asm_syscall_handler() {
-    asm!(
+    naked_asm!(
         "
     swapgs # gs contains the stackpointer for this thread now
 
@@ -141,8 +141,7 @@ unsafe extern "C" fn asm_syscall_handler() {
 
     swapgs
     sysretq
-    ",
-        options(noreturn)
+    "
     );
 }
 

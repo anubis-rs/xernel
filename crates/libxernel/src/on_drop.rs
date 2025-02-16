@@ -36,7 +36,7 @@ where
     }
 }
 
-impl<'a, T, F> OnDrop<SpinlockGuard<'a, T>, F>
+impl<T, F> OnDrop<SpinlockGuard<'_, T>, F>
 where
     F: FnOnce(),
 {
