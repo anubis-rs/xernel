@@ -12,7 +12,7 @@ use super::{
     pathbuf::PathBuf,
     tmpfs::Tmpfs,
     vnode::VNode,
-    {Error, Result},
+    {Result, VfsError},
 };
 
 pub static VFS: Spinlock<Vfs> = Spinlock::new(Vfs::new());
@@ -45,7 +45,7 @@ impl Vfs {
             .iter()
             .find(|(pt, _)| pt == mounted_on)
             .map(|(_, mnt)| mnt)
-            .ok_or(Error::MountPointNotFound)
+            .ok_or(VfsError::MountPointNotFound)
             .cloned()
     }
 
@@ -59,7 +59,7 @@ impl Vfs {
             .iter()
             .find(|(name, _)| name == name_of_fs)
             .map(|(_, driver)| driver)
-            .ok_or(Error::FileSystemNotFound)?;
+            .ok_or(VfsError::FileSystemNotFound)?;
 
         let node_covered = if where_to_mount == "/" {
             None
@@ -68,7 +68,7 @@ impl Vfs {
             if let Ok(node) = self.lookuppn(where_to_mount.to_string()) {
                 Some(node)
             } else {
-                return Err(Error::EntryNotFound);
+                return Err(VfsError::EntryNotFound);
             }
         };
 
@@ -98,7 +98,7 @@ impl Vfs {
             .iter()
             .find(|(pt, _)| pt == mnt_point)
             .map(|(_, mnt)| mnt)
-            .ok_or(Error::MountPointNotFound)?;
+            .ok_or(VfsError::MountPointNotFound)?;
 
         mnt.lock().vfs_lookup(&path.strip_prefix(mnt_point))
     }
@@ -110,7 +110,7 @@ impl Vfs {
             .filter(|(pt, _)| path.starts_with(pt))
             .max_by_key(|(pt, _)| pt.len())
             .map(|(pt, _)| pt)
-            .ok_or(Error::MountPointNotFound)?;
+            .ok_or(VfsError::MountPointNotFound)?;
 
         Ok(mnt_point)
     }
