@@ -135,6 +135,8 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
 
     cmd!(sh, "cp ./target/x86_64-unknown-none/{build_dir}/init ./target/").run()?;
 
+    create_initramfs()?;
+
     let diskname = "xernel.hdd";
     let disksize = 64 * 1024 * 1024; // 64 MB
 
@@ -150,6 +152,7 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
         copy_to_image(&root_dir, &format!("./target/{target}/{build_dir}/xernel"), "xernel")?;
 
         copy_to_image(&root_dir, "./logo.bmp", "logo.bmp")?;
+        copy_to_image(&root_dir, "./target/initramfs", "initramfs")?;
 
         let dir = root_dir.create_dir("EFI")?;
         let dir = dir.create_dir("BOOT")?;
@@ -160,6 +163,38 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
     fs.unmount()?;
 
     fs::write(diskname, disk.into_inner())?;
+
+    Ok(())
+}
+
+fn create_initramfs() -> Result<()> {
+    // file format of the initramfs:
+    // 1. name of the file (16 byte)
+    // 2. size of the file (u64)
+    // 3. the file data
+    // 4. ... the next files until the end of the initramfs file
+
+    let mut data = Vec::new();
+
+    // (name, path)
+    let files = vec![
+        ("init", "./target/init")
+    ];
+
+    for file in files {
+        let name = file.0;
+        let path = file.1;
+
+        let file_data = fs::read(path)?;
+        let mut name_vec = name.as_bytes().to_vec();
+        name_vec.resize(16, 0);
+
+        data.extend(&name_vec);
+        data.extend(&(file_data.len() as u64).to_le_bytes());
+        data.extend(&file_data);
+    }
+
+    fs::write("target/initramfs", data)?;
 
     Ok(())
 }

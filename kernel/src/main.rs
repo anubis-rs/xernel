@@ -34,6 +34,7 @@ use alloc::sync::Arc;
 use core::arch::{asm, naked_asm};
 use core::panic::PanicInfo;
 use core::time::Duration;
+use fs::initramfs;
 use libxernel::sync::Spinlock;
 use limine::*;
 use x86_64::instructions::interrupts;
@@ -113,6 +114,9 @@ extern "C" fn kernel_main() -> ! {
     vfs::init();
 
     vfs::test();
+
+    initramfs::load_initramfs();
+    info!("initramfs loaded");
 
     let bootloader_info = BOOTLOADER_INFO
         .get_response()

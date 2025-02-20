@@ -15,6 +15,7 @@ pub enum Error {
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
 pub mod file;
+pub mod initramfs;
 mod mount;
 pub mod pathbuf;
 pub mod tmpfs;
