@@ -1,4 +1,4 @@
-use alloc::{collections::btree_map::BTreeMap, string::String, vec::Vec};
+use alloc::{collections::btree_map::BTreeMap, string::{String, ToString}, vec::Vec};
 use libxernel::sync::Spinlock;
 
 use crate::utils::limine_module;
@@ -12,8 +12,13 @@ pub fn load_initramfs() {
     let mut idx: usize = 0;
 
     while idx < file.length as usize {
-        let name =
-            String::from_utf8(data[idx..idx + 16].to_vec()).expect("Invalid UTF-8 in the name of a file in initramfs");
+        let name = String::from_utf8(
+            data[idx..idx + 16]
+                .iter()
+                .take_while(|&&b| b != 0)
+                .copied()
+                .collect()
+        ).expect("Invalid UTF-8 in the name of a file in initramfs");
         idx += 16;
 
         let size = u64::from_le_bytes([
@@ -36,5 +41,5 @@ pub fn load_initramfs() {
 }
 
 pub fn initramfs_read(path: &str) -> Option<Vec<u8>> {
-    initramfs.lock().get(path).cloned()
+    initramfs.lock().get(&path.to_string()).cloned()
 }
