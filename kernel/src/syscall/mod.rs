@@ -1,8 +1,8 @@
-use alloc::{
-    ffi::CString,
-    string::{String, ToString},
+use alloc::string::{String, ToString};
+use core::{
+    arch::naked_asm,
+    ffi::{c_char, CStr},
 };
-use core::{arch::naked_asm, ffi::c_char};
 use libxernel::syscall::{SyscallError, SYS_CLOSE, SYS_LOG, SYS_MMAP, SYS_OPEN, SYS_READ, SYS_WRITE};
 use x86_64::{
     registers::{
@@ -92,6 +92,8 @@ unsafe extern "C" fn asm_syscall_handler() {
     mov gs:0, rsp # save the stackpointer for this task
     mov rsp, gs:8 # load the kernel stackpointer for this task
 
+    swapgs # TODO: fix the kernel to not rely on the KERNEL_GS_BASE MSR containing the cpu_data
+
     # backup registers for sysretq
     push rbp
     push rbx # save callee-saved registers
@@ -137,6 +139,8 @@ unsafe extern "C" fn asm_syscall_handler() {
     pop rbx
     pop rbp # restore stack and registers for sysretq
 
+    swapgs # TODO: fix the kernel to not rely on the KERNEL_GS_BASE MSR containing the cpu_data
+
     mov rsp, gs:0 # load the stackpointer for this task
 
     swapgs
@@ -154,7 +158,12 @@ fn syscall_arg_to_reference<'a, T>(ptr: usize) -> &'a mut T {
 }
 
 fn syscall_arg_to_string(ptr: usize) -> Option<String> {
-    unsafe { Some(CString::from_raw(ptr as *mut c_char).to_str().ok()?.to_string()) }
+    unsafe {
+        CStr::from_ptr(ptr as *const c_char)
+            .to_str()
+            .ok()
+            .map(|s| s.to_string())
+    }
 }
 
 #[no_mangle]
@@ -179,7 +188,7 @@ extern "sysv64" fn general_syscall_handler(data: SyscallData) -> i64 {
 
             match message {
                 Some(message) => {
-                    println!("{}", message);
+                    info!("{}", message);
                     Ok(0)
                 }
                 None => Err(SyscallError::InvalidArgument),

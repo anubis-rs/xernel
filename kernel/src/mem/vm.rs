@@ -70,10 +70,12 @@ impl Vm {
     }
 
     pub fn is_available(&self, start: VirtAddr, length: usize) -> bool {
+        let start = start.as_u64();
+
         !self.entries.iter().any(|(_, entry)| {
-            entry.start < start && entry.end() + Size4KiB::SIZE > start
-                || start + length as u64 + Size4KiB::SIZE > entry.start
-                    && (start + length as u64 + Size4KiB::SIZE).as_u64() < Size4KiB::SIZE
+            entry.start.as_u64() < start && entry.end().as_u64() + Size4KiB::SIZE > start
+                || start + length as u64 + Size4KiB::SIZE > entry.start.as_u64()
+                    && (start + length as u64 + Size4KiB::SIZE) < entry.end().as_u64() + Size4KiB::SIZE
         })
     }
 
@@ -202,6 +204,20 @@ pub fn ptflags_from_protflags(flags: ProtectionFlags, user_accessible: bool) -> 
 
     if !flags.contains(ProtectionFlags::EXECUTE) {
         new_flags |= PageTableFlags::NO_EXECUTE;
+    }
+
+    new_flags
+}
+
+pub fn protflags_from_ptflags(flags: PageTableFlags) -> ProtectionFlags {
+    let mut new_flags = ProtectionFlags::empty();
+
+    if flags.contains(PageTableFlags::WRITABLE) {
+        new_flags |= ProtectionFlags::WRITE;
+    }
+
+    if !flags.contains(PageTableFlags::NO_EXECUTE) {
+        new_flags |= ProtectionFlags::EXECUTE;
     }
 
     new_flags

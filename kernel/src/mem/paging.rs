@@ -295,7 +295,7 @@ impl Pagemap {
     }
 
     unsafe fn get_pt(pt: *mut PageTable, pt_index: PageTableIndex) -> *mut PageTable {
-        (*pt)[pt_index].addr().as_u64() as *mut PageTable
+        ((*pt)[pt_index].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable
     }
 
     /// Only works with 4KiB pages

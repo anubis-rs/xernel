@@ -2,13 +2,13 @@ use alloc::sync::Weak;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use libxernel::syscall::{MapFlags, ProtectionFlags};
 use x86_64::structures::paging::{Page, PageSize, PageTableFlags, Size4KiB};
-use x86_64::VirtAddr;
+use x86_64::{align_down, align_up, VirtAddr};
 
 use crate::fs::file::File;
 use crate::fs::vnode::VNode;
 use crate::mem::frame::FRAME_ALLOCATOR;
-use crate::mem::vm::Vm;
-use crate::mem::{KERNEL_THREAD_STACK_TOP, STACK_SIZE};
+use crate::mem::vm::{protflags_from_ptflags, Vm};
+use crate::mem::{HIGHER_HALF_OFFSET, KERNEL_THREAD_STACK_TOP, PROCESS_START, STACK_SIZE};
 use crate::VFS;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -112,6 +112,67 @@ impl Process {
         }
 
         stack_top
+    }
+
+    /// Load an ELF file into the process memory
+    ///
+    /// Returns the entry point of the ELF file
+    pub fn load_elf(&mut self, elf_data: &[u8]) -> VirtAddr {
+        let elf = elf::ElfBytes::<elf::endian::NativeEndian>::minimal_parse(elf_data).expect("Failed to parse ELF");
+
+        for ph in elf.segments().expect("Failed to get program headers") {
+            if ph.p_type == elf::abi::PT_LOAD {
+                let start = ph.p_vaddr + PROCESS_START;
+                let end = start + ph.p_memsz;
+
+                let page_start = align_down(start, Size4KiB::SIZE);
+                let page_end = align_up(end, Size4KiB::SIZE);
+
+                let mut flags = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE | PageTableFlags::WRITABLE;
+
+                if ph.p_flags & elf::abi::PF_X == 0 {
+                    // flags |= PageTableFlags::NO_EXECUTE; TODO: fix NO_EXECUTE in page mapper
+                }
+                if ph.p_flags & elf::abi::PF_W != 0 {
+                    flags |= PageTableFlags::WRITABLE;
+                }
+
+                for addr in (page_start..page_end).step_by(Size4KiB::SIZE as usize) {
+                    let phys_page = FRAME_ALLOCATOR.lock().allocate_frame::<Size4KiB>().unwrap();
+                    let virt_page = Page::from_start_address(VirtAddr::new(addr)).unwrap();
+
+                    self.page_table
+                        .as_mut()
+                        .unwrap()
+                        .map(phys_page, virt_page, flags, false);
+
+                    // write data to the page
+                    let page_offset = if addr.overflowing_sub(start).1 { start - addr } else { 0 };
+                    let data_len = Size4KiB::SIZE - page_offset;
+                    let segment_offset: u64 = addr + page_offset - start;
+
+                    let data = &elf_data
+                        [(ph.p_offset + segment_offset) as usize..(ph.p_offset + segment_offset + data_len) as usize];
+
+                    unsafe {
+                        core::ptr::copy(
+                            data.as_ptr(),
+                            (phys_page.start_address().as_u64() + page_offset + *HIGHER_HALF_OFFSET) as *mut u8,
+                            data_len as usize,
+                        );
+                    }
+                }
+
+                self.vm.create_entry_at(
+                    VirtAddr::new(page_start),
+                    (page_end - page_start) as usize,
+                    protflags_from_ptflags(flags),
+                    MapFlags::ANONYMOUS,
+                );
+            }
+        }
+
+        VirtAddr::new(elf.ehdr.e_entry + PROCESS_START)
     }
 
     pub fn next_tid(&mut self) -> usize {

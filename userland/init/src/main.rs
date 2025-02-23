@@ -11,19 +11,24 @@ fn panic(__info: &core::panic::PanicInfo) -> ! {
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     main();
-    loop { }
+    loop {
+        for _ in 0..i16::MAX {
+            unsafe {
+                asm!("nop");
+            }
+        }
+
+        main();
+    }
 }
 
 fn main() {
-    let hello_str = "Hello from Init\0";
+    let hello_str = "Hello from userspace :)\0";
     unsafe {
         asm!(
-            "\
-                mov rax, 5
-                mov rdi, {0}
-                syscall
-            ",
-            in(reg) hello_str.as_ptr(), options(noreturn)
+            "syscall",
+            in("rdi") hello_str.as_ptr(),
+            in("rax") 5
         );
     }
 }

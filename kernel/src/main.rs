@@ -29,6 +29,7 @@ mod mem;
 mod sched;
 mod syscall;
 mod timer;
+mod userland;
 
 use alloc::sync::Arc;
 use core::arch::{asm, naked_asm};
@@ -190,13 +191,16 @@ extern "C" fn kernel_main() -> ! {
 
     let main_task = Thread::kernel_thread_from_fn(kmain_thread);
 
-    let kernel_task = Thread::kernel_thread_from_fn(task1);
+    // let kernel_task = Thread::kernel_thread_from_fn(task1);
 
-    let kernel_task2 = Thread::kernel_thread_from_fn(task2);
+    // let kernel_task2 = Thread::kernel_thread_from_fn(task2);
 
     current_cpu().enqueue_thread(Arc::new(main_task));
-    current_cpu().enqueue_thread(Arc::new(kernel_task));
-    current_cpu().enqueue_thread(Arc::new(kernel_task2));
+    // current_cpu().enqueue_thread(Arc::new(kernel_task));
+    // current_cpu().enqueue_thread(Arc::new(kernel_task2));
+
+    userland::init();
+    info!("userland initialized");
 
     let timekeeper = TimerEvent::new(hardclock, (), Duration::from_secs(1), false);
 
