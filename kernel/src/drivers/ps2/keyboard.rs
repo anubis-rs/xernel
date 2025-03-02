@@ -1,7 +1,4 @@
-use crate::{
-    arch::amd64::{apic::APIC, ports::inb},
-    sched::context::TrapFrame,
-};
+use crate::{arch::amd64::ports::inb, sched::context::TrapFrame};
 
 pub fn keyboard(_: &mut TrapFrame) {
     dbg!("keyboard hit");
