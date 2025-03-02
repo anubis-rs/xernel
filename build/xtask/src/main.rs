@@ -125,7 +125,7 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
         "cargo build
                 {release...}
                 -p init
-                --target x86_64-unknown-none
+                --target ./build/targets/{target}.json
                 -Z build-std=core,alloc,compiler_builtins
                 -Z build-std-features=compiler-builtins-mem"
     )
