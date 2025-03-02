@@ -8,5 +8,4 @@ pub fn keyboard(_: &mut TrapFrame) {
     let scancode = unsafe { inb(0x60) };
     dbg!("scancode: {}", scancode);
     debug!("scancode: {}", scancode);
-    APIC.eoi();
 }
