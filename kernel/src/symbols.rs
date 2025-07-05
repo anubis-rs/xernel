@@ -136,8 +136,8 @@ pub fn get_symbol(address: usize) -> Option<String> {
     // If we found a close match, return it with offset
     if let Some(symbol) = best_match {
         let offset = address.saturating_sub(symbol.address);
-        // Only return if the offset is reasonable (within 64KB)
-        if offset < 0x10000 {
+        // Only return if the offset is reasonable (within symbol bounds + small padding)
+        if offset < symbol.size + 1024 {
             return Some(format!("{}+0x{:x}", symbol.name, offset));
         }
     }
@@ -162,18 +162,36 @@ pub fn test_symbol_resolution() {
     add_symbol("test_function".to_string(), 0x12345678, 0x100);
     
     // Test exact match
-    if let Some(symbol) = get_symbol(0x12345678) {
-        crate::info!("Exact match: {}", symbol);
+    match get_symbol(0x12345678) {
+        Some(symbol) => {
+            crate::info!("Exact match: {}", symbol);
+            if symbol == "test_function+0x0" {
+                crate::info!("✓ Exact match test passed");
+            } else {
+                crate::warning!("✗ Exact match test failed: expected 'test_function+0x0', got '{}'", symbol);
+            }
+        }
+        None => crate::warning!("✗ Exact match test failed: no symbol found"),
     }
     
-    // Test offset match
-    if let Some(symbol) = get_symbol(0x12345680) {
-        crate::info!("Offset match: {}", symbol);
+    // Test offset match within bounds
+    match get_symbol(0x12345680) {
+        Some(symbol) => {
+            crate::info!("Offset match: {}", symbol);
+            if symbol == "test_function+0x8" {
+                crate::info!("✓ Offset match test passed");
+            } else {
+                crate::warning!("✗ Offset match test failed: expected 'test_function+0x8', got '{}'", symbol);
+            }
+        }
+        None => crate::warning!("✗ Offset match test failed: no symbol found"),
     }
     
-    // Test no match
+    // Test no match for far address
     if get_symbol(0x99999999).is_none() {
-        crate::info!("No match for unknown address (expected)");
+        crate::info!("✓ No match for unknown address (expected)");
+    } else {
+        crate::warning!("✗ Should not have matched unknown address");
     }
     
     crate::info!("Symbol resolution test completed");
