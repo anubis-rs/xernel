@@ -1,3 +1,5 @@
+use alloc::string::ToString;
+
 pub fn init() {}
 
 // TODO: print symbol names
@@ -17,7 +19,7 @@ pub fn log_backtrace(initial_rbp: usize) {
             break;
         }
 
-        let symbol = ""; // crate::symbols::get_symbol(rip);
+        let symbol = crate::symbols::get_symbol(rip).unwrap_or_else(|| "<unknown>".to_string());
         dbg!("0x{:x} {}", rip, symbol);
 
         rbp = unsafe { *(rbp as *const usize) };

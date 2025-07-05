@@ -27,6 +27,7 @@ mod framebuffer;
 mod fs;
 mod mem;
 mod sched;
+mod symbols;
 mod syscall;
 mod timer;
 mod userland;
@@ -105,6 +106,9 @@ extern "C" fn kernel_main() -> ! {
 
     backtrace::init();
     info!("backtrace initialized");
+
+    symbols::init();
+    info!("symbols initialized");
 
     hpet::init();
 
