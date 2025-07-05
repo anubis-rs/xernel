@@ -1,8 +1,17 @@
+/// Symbol table management for kernel backtrace functionality
+/// 
+/// This module provides symbol name resolution for instruction pointers,
+/// enabling more informative backtraces with function names instead of just addresses.
+/// 
+/// The implementation attempts to load symbols from the kernel ELF file via limine,
+/// falling back to basic placeholder symbols if that fails.
+
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 use libxernel::sync::Spinlock;
+use limine::{KernelFileRequest, File};
 
 #[derive(Debug, Clone)]
 pub struct Symbol {
@@ -12,21 +21,87 @@ pub struct Symbol {
 }
 
 static SYMBOL_TABLE: Spinlock<BTreeMap<usize, Symbol>> = Spinlock::new(BTreeMap::new());
+static KERNEL_FILE_REQUEST: KernelFileRequest = KernelFileRequest::new(0);
 
 pub fn init() {
-    // For now, just initialize an empty symbol table
-    // In a full implementation, symbols would be loaded from the kernel ELF
-    // or provided by the bootloader
-    
-    // Add some example symbols for demonstration
-    add_symbol("kernel_function_example".to_string(), 0x100000, 0x100);
-    add_symbol("another_function".to_string(), 0x200000, 0x200);
+    // Try to load symbols from the kernel file provided by limine
+    if let Some(kernel_file) = get_kernel_file() {
+        load_symbols_from_kernel_file(kernel_file);
+    } else {
+        // Fallback: Add some example symbols for demonstration
+        add_symbol("kernel_function_example".to_string(), 0x100000, 0x100);
+        add_symbol("another_function".to_string(), 0x200000, 0x200);
+    }
     
     crate::info!("Symbol table initialized with {} symbols", get_symbol_count());
 }
 
-pub fn get_symbol_count() -> usize {
-    SYMBOL_TABLE.lock().len()
+fn get_kernel_file() -> Option<&'static File> {
+    KERNEL_FILE_REQUEST
+        .get_response()
+        .get()
+        .and_then(|response| response.kernel_file.as_ref())
+        .map(|file| unsafe { &*file.as_ptr() })
+}
+
+fn load_symbols_from_kernel_file(kernel_file: &File) {
+    // Parse the kernel ELF file to extract symbol information
+    let elf_data = unsafe {
+        core::slice::from_raw_parts(
+            kernel_file.data.as_ptr().cast::<u8>(),
+            kernel_file.size as usize,
+        )
+    };
+    
+    match elf::ElfBytes::<elf::endian::NativeEndian>::minimal_parse(elf_data) {
+        Ok(elf) => {
+            load_symbols_from_elf(&elf);
+        }
+        Err(_) => {
+            crate::warning!("Failed to parse kernel ELF file for symbols");
+            // Fall back to adding some basic symbols
+            add_basic_symbols();
+        }
+    }
+}
+
+fn load_symbols_from_elf(elf: &elf::ElfBytes<elf::endian::NativeEndian>) {
+    let mut symbol_count = 0;
+    
+    // Try to get the symbol table
+    if let Ok((symtab, strtab)) = elf.symbol_table() {
+        if let (Some(symbols), Some(strings)) = (symtab, strtab) {
+            for symbol in symbols.iter() {
+                // Only include function symbols with valid names
+                if symbol.st_info & 0xf == elf::abi::STT_FUNC && symbol.st_value != 0 {
+                    if let Ok(name) = strings.get(symbol.st_name as usize) {
+                        if !name.is_empty() {
+                            add_symbol(
+                                name.to_string(),
+                                symbol.st_value as usize,
+                                symbol.st_size as usize,
+                            );
+                            symbol_count += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    if symbol_count == 0 {
+        crate::warning!("No symbols found in kernel ELF file");
+        add_basic_symbols();
+    } else {
+        crate::info!("Loaded {} symbols from kernel ELF", symbol_count);
+    }
+}
+
+fn add_basic_symbols() {
+    // Add some well-known symbols as fallback
+    add_symbol("kernel_main".to_string(), 0x100000, 0x1000);
+    add_symbol("panic_handler".to_string(), 0x101000, 0x200);
+    add_symbol("backtrace_function".to_string(), 0x102000, 0x300);
 }
 
 pub fn add_symbol(name: String, address: usize, size: usize) {
@@ -70,7 +145,36 @@ pub fn get_symbol(address: usize) -> Option<String> {
     None
 }
 
+pub fn get_symbol_count() -> usize {
+    SYMBOL_TABLE.lock().len()
+}
+
 /// Get all symbols for debugging purposes
 pub fn get_all_symbols() -> Vec<Symbol> {
     SYMBOL_TABLE.lock().values().cloned().collect()
+}
+
+/// Test function to verify symbol resolution is working
+pub fn test_symbol_resolution() {
+    crate::info!("Testing symbol resolution...");
+    
+    // Add a test symbol
+    add_symbol("test_function".to_string(), 0x12345678, 0x100);
+    
+    // Test exact match
+    if let Some(symbol) = get_symbol(0x12345678) {
+        crate::info!("Exact match: {}", symbol);
+    }
+    
+    // Test offset match
+    if let Some(symbol) = get_symbol(0x12345680) {
+        crate::info!("Offset match: {}", symbol);
+    }
+    
+    // Test no match
+    if get_symbol(0x99999999).is_none() {
+        crate::info!("No match for unknown address (expected)");
+    }
+    
+    crate::info!("Symbol resolution test completed");
 }

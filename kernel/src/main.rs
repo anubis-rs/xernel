@@ -109,6 +109,9 @@ extern "C" fn kernel_main() -> ! {
 
     symbols::init();
     info!("symbols initialized");
+    
+    // Test symbol resolution functionality
+    symbols::test_symbol_resolution();
 
     hpet::init();
 
