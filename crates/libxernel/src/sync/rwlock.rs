@@ -16,7 +16,7 @@ impl<T> RwLock<T> {
         }
     }
 
-    pub fn read(&self) -> ReadGuard<T> {
+    pub fn read(&self) -> ReadGuard<'_, T> {
         let mut current_state = self.state.load(Ordering::Relaxed);
 
         loop {
@@ -39,7 +39,7 @@ impl<T> RwLock<T> {
         }
     }
 
-    pub fn write(&self) -> WriteGuard<T> {
+    pub fn write(&self) -> WriteGuard<'_, T> {
         while self
             .state
             .compare_exchange(0, u32::MAX, Ordering::Acquire, Ordering::Relaxed)

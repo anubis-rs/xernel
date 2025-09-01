@@ -65,7 +65,7 @@ impl Pagemap {
 
         for i in 256..512 {
             unsafe {
-                (*self.page_table)[i] = pt[i].clone();
+                (&mut (*self.page_table))[i] = pt[i].clone();
             }
         }
     }
@@ -76,7 +76,7 @@ impl Pagemap {
         let mut frame_allocator = FRAME_ALLOCATOR.lock();
 
         unsafe {
-            let pml4_entry = &mut (*pml4)[virt.start_address().p4_index()];
+            let pml4_entry = &mut (&mut (*pml4))[virt.start_address().p4_index()];
 
             if !pml4_entry.flags().contains(PageTableFlags::PRESENT) {
                 let frame = frame_allocator.allocate_frame::<Size4KiB>().unwrap();
@@ -93,7 +93,7 @@ impl Pagemap {
 
             let pml3 = (pml4_entry.addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
 
-            let pml3_entry = &mut (*pml3)[virt.start_address().p3_index()];
+            let pml3_entry = &mut (&mut (*pml3))[virt.start_address().p3_index()];
 
             if P::SIZE == Size1GiB::SIZE {
                 assert!(
@@ -126,7 +126,7 @@ impl Pagemap {
 
             let pml2 = (pml3_entry.addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
 
-            let pml2_entry = &mut (*pml2)[virt.start_address().p2_index()];
+            let pml2_entry = &mut (&mut (*pml2))[virt.start_address().p2_index()];
 
             if P::SIZE == Size2MiB::SIZE {
                 assert!(
@@ -158,7 +158,7 @@ impl Pagemap {
 
             let pml1 = (pml2_entry.addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
 
-            let pml1_entry = &mut (*pml1)[virt.start_address().p1_index()];
+            let pml1_entry = &mut (&mut (*pml1))[virt.start_address().p1_index()];
 
             pml1_entry.set_addr(phys.start_address(), flags);
 
@@ -268,34 +268,34 @@ impl Pagemap {
         let pml4 = self.page_table;
 
         unsafe {
-            if !(*pml4)[virt.p4_index()].flags().contains(PageTableFlags::PRESENT) {
+            if !(&(*pml4))[virt.p4_index()].flags().contains(PageTableFlags::PRESENT) {
                 return;
             }
 
-            let pml3 = (*pml4)[virt.p4_index()].addr().as_u64() as *mut PageTable;
+            let pml3 = (&(*pml4))[virt.p4_index()].addr().as_u64() as *mut PageTable;
 
-            if !(*pml3)[virt.p3_index()].flags().contains(PageTableFlags::PRESENT) {
+            if !(&(*pml3))[virt.p3_index()].flags().contains(PageTableFlags::PRESENT) {
                 return;
             }
 
-            let pml2 = (*pml3)[virt.p3_index()].addr().as_u64() as *mut PageTable;
+            let pml2 = (&(*pml3))[virt.p3_index()].addr().as_u64() as *mut PageTable;
 
-            if !(*pml2)[virt.p2_index()].flags().contains(PageTableFlags::PRESENT) {
+            if !(&(*pml2))[virt.p2_index()].flags().contains(PageTableFlags::PRESENT) {
                 return;
             }
 
-            let pml1 = (*pml2)[virt.p2_index()].addr().as_u64() as *mut PageTable;
+            let pml1 = (&(*pml2))[virt.p2_index()].addr().as_u64() as *mut PageTable;
 
-            if !(*pml1)[virt.p1_index()].flags().contains(PageTableFlags::PRESENT) {
+            if !(&(*pml1))[virt.p1_index()].flags().contains(PageTableFlags::PRESENT) {
                 return;
             }
 
-            (*pml1)[virt.p1_index()].set_unused();
+            (&mut (*pml1))[virt.p1_index()].set_unused();
         }
     }
 
     unsafe fn get_pt(pt: *mut PageTable, pt_index: PageTableIndex) -> *mut PageTable {
-        ((*pt)[pt_index].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable
+        ((&(*pt))[pt_index].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable
     }
 
     /// Only works with 4KiB pages
@@ -303,29 +303,29 @@ impl Pagemap {
         let pml4 = self.page_table;
 
         unsafe {
-            if !(*pml4)[virt.p4_index()].flags().contains(PageTableFlags::PRESENT) {
+            if !(&(*pml4))[virt.p4_index()].flags().contains(PageTableFlags::PRESENT) {
                 return None;
             }
 
             let pml3 = Self::get_pt(pml4, virt.p4_index());
 
-            if !(*pml3)[virt.p3_index()].flags().contains(PageTableFlags::PRESENT) {
+            if !(&(*pml3))[virt.p3_index()].flags().contains(PageTableFlags::PRESENT) {
                 return None;
             }
 
             let pml2 = Self::get_pt(pml3, virt.p3_index());
 
-            if !(*pml2)[virt.p2_index()].flags().contains(PageTableFlags::PRESENT) {
+            if !(&(*pml2))[virt.p2_index()].flags().contains(PageTableFlags::PRESENT) {
                 return None;
             }
 
             let pml1 = Self::get_pt(pml2, virt.p2_index());
 
-            if !(*pml1)[virt.p1_index()].flags().contains(PageTableFlags::PRESENT) {
+            if !(&(*pml1))[virt.p1_index()].flags().contains(PageTableFlags::PRESENT) {
                 return None;
             }
 
-            Some((*pml1)[virt.p1_index()].addr() + u64::from(virt.page_offset()))
+            Some((&(*pml1))[virt.p1_index()].addr() + u64::from(virt.page_offset()))
         }
     }
 
@@ -333,8 +333,8 @@ impl Pagemap {
         if level == 4 {
             for i in 0..256 {
                 unsafe {
-                    if (*pt)[i].flags().contains(PageTableFlags::PRESENT) {
-                        let pt = ((*pt)[i].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
+                    if (&(*pt))[i].flags().contains(PageTableFlags::PRESENT) {
+                        let pt = ((&(*pt))[i].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
 
                         Self::deallocate_pt(pt, level - 1);
                     }
@@ -349,8 +349,8 @@ impl Pagemap {
         } else if level > 1 {
             for i in 0..512 {
                 unsafe {
-                    if (*pt)[i].flags().contains(PageTableFlags::PRESENT) {
-                        let pt = ((*pt)[i].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
+                    if (&(*pt))[i].flags().contains(PageTableFlags::PRESENT) {
+                        let pt = ((&(*pt))[i].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable;
 
                         Self::deallocate_pt(pt, level - 1);
                     }

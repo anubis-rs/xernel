@@ -21,7 +21,7 @@ impl<T> SpinlockIRQ<T> {
     }
 
     /// Calls the lock of the inner [`Spinlock`] and freezes the interrupts
-    pub fn lock(&self) -> SpinlockIRQGuard<T> {
+    pub fn lock(&self) -> SpinlockIRQGuard<'_, T> {
         let inner_lock = self.lock.lock();
 
         SpinlockIRQGuard {

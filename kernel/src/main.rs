@@ -1,8 +1,6 @@
 #![no_std]
 #![no_main]
 #![feature(abi_x86_interrupt)]
-#![feature(naked_functions)]
-#![feature(let_chains)]
 #![allow(dead_code)]
 #![allow(clippy::fn_to_numeric_cast)]
 #![allow(non_upper_case_globals)]
@@ -229,12 +227,11 @@ pub fn kmain_thread() {
     }
 }
 
-#[naked]
+#[unsafe(naked)]
 pub extern "C" fn test_userspace_fn() {
     //loop {
-    unsafe {
-        naked_asm!(
-            "\
+    naked_asm!(
+        "\
                 mov rax, 0
                 mov rdi, 2
                 mov rsi, 3
@@ -242,8 +239,7 @@ pub extern "C" fn test_userspace_fn() {
                 syscall
                 mov rax, 0
             "
-        );
-    }
+    );
     //}
 }
 

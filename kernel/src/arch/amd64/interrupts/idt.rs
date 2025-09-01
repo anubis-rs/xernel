@@ -20,9 +20,8 @@ macro_rules! has_error_code_macro {
 macro_rules! interrupt_handler {
     ($interrupt_number:expr, $has_error_code:expr) => {
         paste! {
-            #[naked]
+            #[unsafe(naked)]
             extern "C" fn [<interrupt_handler $interrupt_number>]() {
-                unsafe {
                     naked_asm!(
                         has_error_code_macro!($has_error_code),
                         "push r15",
@@ -61,7 +60,6 @@ macro_rules! interrupt_handler {
                         "add rsp, 0x8", // skip error code
                         "iretq"
                     )
-                }
             }
         }
     };
