@@ -133,7 +133,7 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
 
     let build_dir = if rl { "release" } else { "debug" };
 
-    cmd!(sh, "cp ./target/x86_64-unknown-none/{build_dir}/init ./target/").run()?;
+    cmd!(sh, "cp ./target/x86_64/{build_dir}/init ./target/").run()?;
 
     create_initramfs()?;
 
