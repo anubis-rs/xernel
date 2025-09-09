@@ -83,8 +83,8 @@ struct SyscallData {
  * rcx  return address for syscall/sysret
  */
 
-#[naked]
-unsafe extern "C" fn asm_syscall_handler() {
+#[unsafe(naked)]
+extern "C" fn asm_syscall_handler() {
     naked_asm!(
         "
     swapgs # gs contains the stackpointer for this thread now
