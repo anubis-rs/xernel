@@ -5,10 +5,10 @@ use core::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use crate::{
-    ipl::{raise_ipl, splx, IPL},
-    on_drop::OnDrop,
-};
+use crate::on_drop::OnDrop;
+
+#[cfg(feature = "kernel")]
+use crate::ipl::{raise_ipl, splx, IPL};
 
 /// Simple data locking structure using a spin loop.
 ///
@@ -80,12 +80,14 @@ impl<T: ?Sized> Spinlock<T> {
         function(&mut *lock)
     }
 
+    #[cfg(feature = "kernel")]
     pub fn aquire(&self) -> OnDrop<SpinlockGuard<'_, T>, impl FnOnce()> {
         let ipl = raise_ipl(IPL::DPC);
         let callback = move || splx(ipl);
         OnDrop::new(self.lock(), callback)
     }
 
+    #[cfg(feature = "kernel")]
     pub fn aquire_at(&self, ipl: IPL) -> OnDrop<SpinlockGuard<'_, T>, impl FnOnce()> {
         let ipl = raise_ipl(ipl);
         let callback = move || splx(ipl);
@@ -133,6 +135,7 @@ impl<T: ?Sized> DerefMut for SpinlockGuard<'_, T> {
 }
 
 #[inline]
+#[cfg(feature = "kernel")]
 fn write_cr8(ipl: IPL) {
     unsafe {
         asm!("mov cr8, {}", in(reg) ipl as u64, options(nomem, nostack, preserves_flags));
