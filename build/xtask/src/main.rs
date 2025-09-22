@@ -1,11 +1,11 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use dotenv::dotenv;
-use fatfs::{format_volume, FormatVolumeOptions};
+use fatfs::{FormatVolumeOptions, format_volume};
 use pico_args::Arguments;
 use std::io::{Cursor, Read, Seek, Write};
 use std::path::{Path, PathBuf};
 use std::{env, fs, vec};
-use xshell::{cmd, Shell};
+use xshell::{Shell, cmd};
 
 const HELP: &str = "\
 xtask
@@ -177,9 +177,7 @@ fn create_initramfs() -> Result<()> {
     let mut data = Vec::new();
 
     // (name, path)
-    let files = vec![
-        ("init", "./target/init")
-    ];
+    let files = vec![("init", "./target/init")];
 
     for file in files {
         let name = file.0;
