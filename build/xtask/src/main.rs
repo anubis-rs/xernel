@@ -90,6 +90,9 @@ fn main() -> Result<()> {
 }
 
 fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
+    let binding = root();
+    let xernel_dir = binding.to_str().unwrap_or(".");
+
     let target = args
         .opt_value_from_str::<_, String>("--target")?
         .unwrap_or_else(|| "x86_64".to_string());
@@ -99,7 +102,7 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
         cmd!(
             sh,
             "git clone https://github.com/limine-bootloader/limine.git 
-                    --branch=v8.x-binary
+                    --branch=v10.x-binary
                     --depth=1"
         )
         .run()?;
@@ -133,7 +136,11 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
 
     let build_dir = if rl { "release" } else { "debug" };
 
-    cmd!(sh, "cp ./target/x86_64/{build_dir}/init ./target/").run()?;
+    cmd!(
+        sh,
+        "cp {xernel_dir}/target/x86_64/{build_dir}/init {xernel_dir}/target/"
+    )
+    .run()?;
 
     create_initramfs()?;
 
@@ -149,20 +156,24 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
     {
         let root_dir = fs.root_dir();
 
-        copy_to_image(&root_dir, &format!("./target/{target}/{build_dir}/xernel"), "xernel")?;
+        copy_to_image(
+            &root_dir,
+            &format!("{xernel_dir}/target/{target}/{build_dir}/xernel"),
+            "xernel",
+        )?;
 
-        copy_to_image(&root_dir, "./logo.bmp", "logo.bmp")?;
-        copy_to_image(&root_dir, "./target/initramfs", "initramfs")?;
+        copy_to_image(&root_dir, &format!("{xernel_dir}/logo.bmp"), "logo.bmp")?;
+        copy_to_image(&root_dir, &format!("{xernel_dir}/target/initramfs"), "initramfs")?;
 
         let dir = root_dir.create_dir("EFI")?;
         let dir = dir.create_dir("BOOT")?;
 
-        copy_to_image(&dir, "./kernel/limine/BOOTX64.EFI", "BOOTX64.EFI")?;
-        copy_to_image(&dir, "./kernel/limine.conf", "limine.conf")?;
+        copy_to_image(&dir, &format!("{xernel_dir}/kernel/limine/BOOTX64.EFI"), "BOOTX64.EFI")?;
+        copy_to_image(&dir, &format!("{xernel_dir}/kernel/limine.conf"), "limine.conf")?;
     }
     fs.unmount()?;
 
-    fs::write(diskname, disk.into_inner())?;
+    fs::write(&format!("{xernel_dir}/{diskname}"), disk.into_inner())?;
 
     Ok(())
 }
@@ -176,8 +187,11 @@ fn create_initramfs() -> Result<()> {
 
     let mut data = Vec::new();
 
+    let binding = root();
+    let xernel_dir = binding.to_str().unwrap_or(".");
+
     // (name, path)
-    let files = vec![("init", "./target/init")];
+    let files = vec![("init", format!("{xernel_dir}/target/init"))];
 
     for file in files {
         let name = file.0;
@@ -192,13 +206,16 @@ fn create_initramfs() -> Result<()> {
         data.extend(&file_data);
     }
 
-    fs::write("target/initramfs", data)?;
+    fs::write(format!("{xernel_dir}/target/initramfs"), data)?;
 
     Ok(())
 }
 
 fn run(sh: &Shell, gdb: bool, mut args: Arguments) -> Result<()> {
     let gdb_debug = if gdb { &["-S"] } else { &[][..] };
+
+    let binding = root();
+    let xernel_dir = binding.to_str().unwrap_or(".");
 
     let ram = args
         .opt_value_from_str::<_, String>("--ram")?
@@ -232,7 +249,7 @@ fn run(sh: &Shell, gdb: bool, mut args: Arguments) -> Result<()> {
     cmd!(
         sh,
         "qemu-system-x86_64{file_extension}  
-                -bios ./kernel/uefi-edk2/OVMF.fd 
+                -bios {xernel_dir}/kernel/uefi-edk2/OVMF.fd 
                 -m {ram}
                 -smp {cpus}
                 -cdrom xernel.hdd 
