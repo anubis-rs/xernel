@@ -32,7 +32,7 @@ impl VmEntry {
         let mut frame_allocator = FRAME_ALLOCATOR.lock();
 
         let start_page = Page::<Size4KiB>::containing_address(self.start);
-        let end_page = Page::<Size4KiB>::containing_address(self.end());
+        let _end_page = Page::<Size4KiB>::containing_address(self.end());
         let num_pages = (self.end().as_u64() - self.start.as_u64()) / Size4KiB::SIZE;
 
         for i in 0..num_pages {

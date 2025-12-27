@@ -84,7 +84,7 @@ impl Thread {
 
         let mut context = Context::new();
 
-        context.rip = thread_trampoline as u64;
+        context.rip = thread_trampoline as *const () as u64;
 
         let (trap_ptr, ctx_ptr) = unsafe { Thread::setup_stack(thread_stack, trap_frame, context, false) };
 
@@ -116,7 +116,7 @@ impl Thread {
 
         let mut context = Context::new();
 
-        context.rip = thread_trampoline as u64;
+        context.rip = thread_trampoline as *const () as u64;
 
         let (trap_ptr, ctx_ptr) = unsafe { Thread::setup_stack(thread_stack, trap_frame, context, false) };
 
@@ -150,7 +150,7 @@ impl Thread {
 
         let mut context = Context::new();
 
-        context.rip = thread_trampoline as u64;
+        context.rip = thread_trampoline as *const () as u64;
 
         let mut parent = parent_process.lock();
 
