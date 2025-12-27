@@ -6,8 +6,8 @@ use core::pin::Pin;
 
 use libxernel::addr::VirtAddr;
 
-use libxernel::sync::Spinlock;
 use libxernel::paging::{Page, PageSize, PhysFrame, Size4KiB};
+use libxernel::sync::Spinlock;
 
 use crate::mem::frame::FRAME_ALLOCATOR;
 use crate::mem::paging::KERNEL_PAGE_MAPPER;

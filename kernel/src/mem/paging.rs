@@ -3,12 +3,14 @@ use crate::{
     allocator::align_up,
     mem::{frame::MEMORY_MAP, KERNEL_OFFSET},
 };
-use libxernel::boot::InitAtBoot;
-use libxernel::sync::Spinlock;
-use limine::KernelAddressRequest;
 use libxernel::addr::{align_down, PhysAddr, VirtAddr};
+use libxernel::boot::InitAtBoot;
+use libxernel::paging::{
+    Page, PageSize, PageTable, PageTableFlags, PageTableIndex, PhysFrame, Size1GiB, Size2MiB, Size4KiB,
+};
+use libxernel::sync::Spinlock;
 use libxernel::x86_64::{Cr3, Cr3Flags};
-use libxernel::paging::{Page, PageSize, PageTableIndex, Size1GiB, Size2MiB, Size4KiB, PageTable, PageTableFlags, PhysFrame};
+use limine::KernelAddressRequest;
 
 static KERNEL_ADDRESS_REQUEST: KernelAddressRequest = KernelAddressRequest::new(0);
 
@@ -227,10 +229,7 @@ impl Pagemap {
         let pt = self.page_table;
         let phys = pt as *const _ as u64 - *HIGHER_HALF_OFFSET;
 
-        Cr3::write(
-            PhysAddr::new(phys),
-            Cr3Flags::empty(),
-        );
+        Cr3::write(PhysAddr::new(phys), Cr3Flags::empty());
     }
 
     pub fn map_kernel(&mut self) {

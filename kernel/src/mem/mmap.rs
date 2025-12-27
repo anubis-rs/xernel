@@ -1,7 +1,7 @@
+use libxernel::addr::VirtAddr;
+use libxernel::paging::{Page, PageSize, Size4KiB};
 use libxernel::syscall::{MapFlags, ProtectionFlags, SyscallError};
 use libxernel::x86_64::PageFaultErrorCode;
-use libxernel::paging::{Page, PageSize, Size4KiB};
-use libxernel::addr::VirtAddr;
 
 use crate::{allocator::align_up, cpu::current_process};
 

@@ -12,9 +12,9 @@ use crate::cpu::register_cpu;
 use crate::sched::context::Context;
 use crate::KERNEL_PAGE_MAPPER;
 use core::arch::{asm, global_asm};
+use libxernel::addr::VirtAddr;
 use libxernel::ipl::IPL;
 use limine::SmpInfo;
-use libxernel::addr::VirtAddr;
 
 global_asm!(include_str!("switch.S"));
 

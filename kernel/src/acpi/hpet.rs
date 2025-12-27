@@ -1,8 +1,8 @@
 use core::hint::spin_loop;
 
-use libxernel::sync::Once;
-use libxernel::paging::{Page, PageTableFlags, PhysFrame, Size4KiB};
 use libxernel::addr::{PhysAddr, VirtAddr};
+use libxernel::paging::{Page, PageTableFlags, PhysFrame, Size4KiB};
+use libxernel::sync::Once;
 
 use crate::mem::{paging::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};
 

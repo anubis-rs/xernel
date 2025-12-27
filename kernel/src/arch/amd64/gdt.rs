@@ -2,10 +2,10 @@ use alloc::alloc::alloc_zeroed;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::ptr::addr_of;
-use libxernel::sync::{Once, Spinlock};
-use libxernel::x86_64::{Segment, CS, DS, ES, SS, load_tss};
-use libxernel::gdt::{SegmentSelector, Descriptor, TssDescriptor, GlobalDescriptorTable, TaskStateSegment};
 use libxernel::addr::VirtAddr;
+use libxernel::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector, TaskStateSegment, TssDescriptor};
+use libxernel::sync::{Once, Spinlock};
+use libxernel::x86_64::{load_tss, Segment, CS, DS, ES, SS};
 
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 pub const IST_STACK_SIZE: usize = 4096 * 5;

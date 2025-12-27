@@ -1,10 +1,10 @@
 use core::alloc::GlobalAlloc;
 use core::ptr::NonNull;
 
+use libxernel::addr::VirtAddr;
+use libxernel::paging::{Page, PageSize, PageTableFlags, PhysFrame, Size2MiB};
 use libxernel::sync::Spinlock;
 use linked_list_allocator::Heap;
-use libxernel::paging::{Page, PageSize, PageTableFlags, PhysFrame, Size2MiB};
-use libxernel::addr::VirtAddr;
 
 use crate::allocator::align_up;
 

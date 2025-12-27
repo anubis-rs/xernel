@@ -1,7 +1,7 @@
 use acpi_parsing::platform::interrupt::Apic;
 use alloc::vec::Vec;
-use libxernel::paging::PageTableFlags;
 use libxernel::addr::{PhysAddr, VirtAddr};
+use libxernel::paging::PageTableFlags;
 
 use crate::acpi::ACPI;
 use crate::mem::{paging::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};

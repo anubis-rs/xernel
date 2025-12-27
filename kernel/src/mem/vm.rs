@@ -1,7 +1,7 @@
 use alloc::collections::BTreeMap;
-use libxernel::syscall::{MapFlags, ProtectionFlags};
-use libxernel::paging::{Page, PageTableFlags, PhysFrame, PageSize, Size4KiB};
 use libxernel::addr::VirtAddr;
+use libxernel::paging::{Page, PageSize, PageTableFlags, PhysFrame, Size4KiB};
+use libxernel::syscall::{MapFlags, ProtectionFlags};
 
 use crate::cpu::current_process;
 use crate::mem::PROCESS_END;
