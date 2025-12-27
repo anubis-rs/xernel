@@ -38,6 +38,13 @@ bitflags::bitflags! {
 #[repr(transparent)]
 pub struct Descriptor(u64);
 
+/// A TSS descriptor (16 bytes, takes 2 GDT entries)
+#[derive(Debug, Clone, Copy)]
+pub struct TssDescriptor {
+    low: u64,
+    high: u64,
+}
+
 impl Descriptor {
     /// Creates a kernel code segment descriptor
     pub const fn kernel_code_segment() -> Descriptor {
@@ -59,38 +66,32 @@ impl Descriptor {
         Descriptor(DescriptorFlags::USER_DATA.bits())
     }
 
-    /// Creates a TSS system segment descriptor
-    pub fn tss_segment(tss: &'static TaskStateSegment) -> Descriptor {
-        let ptr = tss as *const _ as u64;
-
-        let mut low = DescriptorFlags::PRESENT.bits();
-        // base
-        low |= ((ptr & 0xff_ffff) << 16) | (((ptr >> 24) & 0xff) << 56);
-        // limit (sizeof(TaskStateSegment) - 1)
-        let limit = (mem::size_of::<TaskStateSegment>() - 1) as u64;
-        low |= limit & 0xffff;
-        low |= ((limit >> 16) & 0xf) << 48;
-        // type: 64-bit TSS (Available)
-        low |= 0x9 << 40;
-
-        Descriptor(low)
-    }
-
     /// Returns the raw u64 value
     pub const fn as_u64(self) -> u64 {
         self.0
     }
 }
 
-/// The upper 8 bytes of a TSS descriptor
-#[derive(Debug, Clone, Copy)]
-#[repr(transparent)]
-struct DescriptorUpper(u64);
-
-impl DescriptorUpper {
-    fn from_tss(tss: &'static TaskStateSegment) -> Self {
+impl TssDescriptor {
+    /// Creates a TSS system segment descriptor
+    pub fn new(tss: &'static TaskStateSegment) -> Self {
         let ptr = tss as *const _ as u64;
-        DescriptorUpper(ptr >> 32)
+
+        let mut low = DescriptorFlags::PRESENT.bits();
+        // base address (bits 0-23 and 56-63 of low)
+        low |= ((ptr & 0xff_ffff) << 16);  // bits 0-23 of base
+        low |= ((ptr >> 24) & 0xff) << 56;  // bits 24-31 of base
+        // limit (sizeof(TaskStateSegment) - 1)
+        let limit = (mem::size_of::<TaskStateSegment>() - 1) as u64;
+        low |= limit & 0xffff;  // bits 0-15 of limit
+        low |= ((limit >> 16) & 0xf) << 48;  // bits 16-19 of limit
+        // type: 64-bit TSS (Available)
+        low |= 0x9 << 40;
+
+        // Upper 32 bits of base address go in the high part
+        let high = ptr >> 32;
+
+        TssDescriptor { low, high }
     }
 }
 
@@ -113,24 +114,27 @@ impl GlobalDescriptorTable {
     pub fn append(&mut self, descriptor: Descriptor) -> SegmentSelector {
         let index = self.len;
         
-        // Check for TSS descriptor (they take 2 entries)
-        let is_tss = (descriptor.0 >> 40) & 0xf == 0x9;
-        
-        if is_tss {
-            if index + 1 >= self.table.len() {
-                panic!("GDT is full");
-            }
-            self.table[index] = descriptor.0;
-            // Upper 8 bytes of TSS descriptor
-            self.table[index + 1] = descriptor.0 >> 32;
-            self.len += 2;
-        } else {
-            if index >= self.table.len() {
-                panic!("GDT is full");
-            }
-            self.table[index] = descriptor.0;
-            self.len += 1;
+        if index >= self.table.len() {
+            panic!("GDT is full");
         }
+        
+        self.table[index] = descriptor.0;
+        self.len += 1;
+
+        SegmentSelector::new(index as u16, PrivilegeLevel::Ring0)
+    }
+
+    /// Appends a TSS descriptor to the GDT (takes 2 entries)
+    pub fn append_tss(&mut self, tss_descriptor: TssDescriptor) -> SegmentSelector {
+        let index = self.len;
+        
+        if index + 1 >= self.table.len() {
+            panic!("GDT is full");
+        }
+        
+        self.table[index] = tss_descriptor.low;
+        self.table[index + 1] = tss_descriptor.high;
+        self.len += 2;
 
         SegmentSelector::new(index as u16, PrivilegeLevel::Ring0)
     }

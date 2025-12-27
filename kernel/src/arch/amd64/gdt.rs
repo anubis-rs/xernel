@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 use core::ptr::addr_of;
 use libxernel::sync::{Once, Spinlock};
 use libxernel::x86_64::{Segment, CS, DS, ES, SS, load_tss};
-use libxernel::gdt::{SegmentSelector, Descriptor, GlobalDescriptorTable, TaskStateSegment};
+use libxernel::gdt::{SegmentSelector, Descriptor, TssDescriptor, GlobalDescriptorTable, TaskStateSegment};
 use libxernel::addr::VirtAddr;
 
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
@@ -53,7 +53,7 @@ pub fn init() {
 
     // System segment descriptors (which the TSS descriptor is) are 16-bytes and take up 2 slots in the GDT
     // This results in user code having index 5, user data index 6
-    let tss_selector = gdt.append(Descriptor::tss_segment(&TSS));
+    let tss_selector = gdt.append_tss(TssDescriptor::new(&TSS));
     let user_data_selector = gdt.append(Descriptor::user_data_segment());
     let user_code_selector = gdt.append(Descriptor::user_code_segment());
     GDT_BSP.set_once((
@@ -94,7 +94,7 @@ pub fn init_ap(ap_id: usize) {
         unsafe { VirtAddr::from_ptr(ist0.add(IST_STACK_SIZE)).as_u64() };
 
     let tss: &'static mut TaskStateSegment = Box::leak(boxed_tss);
-    let tss_selector = gdt.append(Descriptor::tss_segment(tss));
+    let tss_selector = gdt.append_tss(TssDescriptor::new(tss));
 
     gdt_ap.push(Gdt {
         gdt,
