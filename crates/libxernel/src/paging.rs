@@ -45,14 +45,7 @@ bitflags::bitflags! {
         const BIT_57 = 1 << 57;
         /// Available to OS
         const BIT_58 = 1 << 58;
-        /// Available to OS
-        const BIT_59 = 1 << 59;
-        /// Available to OS
-        const BIT_60 = 1 << 60;
-        /// Available to OS
-        const BIT_61 = 1 << 61;
-        /// Available to OS
-        const BIT_62 = 1 << 62;
+        // Bits 59-62 are RESERVED and must be 0
         /// No execute; if 1, instruction fetches are not allowed
         const NO_EXECUTE = 1 << 63;
     }
