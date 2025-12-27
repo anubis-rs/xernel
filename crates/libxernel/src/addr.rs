@@ -13,8 +13,8 @@ impl PhysAddr {
     /// Creates a new physical address, truncating bits that are not valid.
     #[inline]
     pub const fn new_truncate(addr: u64) -> Self {
-        // Physical addresses on x86_64 are 52 bits
-        Self(addr & 0x000f_ffff_ffff_ffff)
+        // Physical addresses on x86_64 are typically 48 bits (more conservative than 52)
+        Self(addr & 0x0000_ffff_ffff_ffff)
     }
 
     /// Converts to a u64.

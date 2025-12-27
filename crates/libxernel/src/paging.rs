@@ -86,7 +86,7 @@ impl PageTableEntry {
     /// Returns the physical address mapped by this entry
     #[inline]
     pub fn addr(&self) -> PhysAddr {
-        PhysAddr::new(self.entry & 0x000f_ffff_ffff_f000)
+        PhysAddr::new(self.entry & 0x0000_ffff_ffff_f000)
     }
 
     /// Returns the physical frame mapped by this entry
@@ -101,7 +101,7 @@ impl PageTableEntry {
     /// Sets the entry
     #[inline]
     pub fn set_addr(&mut self, addr: PhysAddr, flags: PageTableFlags) {
-        self.entry = (addr.as_u64() & 0x000f_ffff_ffff_f000) | flags.bits();
+        self.entry = (addr.as_u64() & 0x0000_ffff_ffff_f000) | flags.bits();
     }
 
     /// Sets the flags
