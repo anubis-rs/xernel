@@ -53,7 +53,9 @@ pub fn init() {
 
     // System segment descriptors (which the TSS descriptor is) are 16-bytes and take up 2 slots in the GDT
     // This results in user code having index 5, user data index 6
-    let tss_selector = gdt.append_tss(TssDescriptor::new(&TSS));
+    // Get an explicit reference to the TSS
+    let tss_ref: &'static TaskStateSegment = &*TSS;
+    let tss_selector = gdt.append_tss(TssDescriptor::new(tss_ref));
     let user_data_selector = gdt.append(Descriptor::user_data_segment());
     let user_code_selector = gdt.append(Descriptor::user_code_segment());
     GDT_BSP.set_once((
