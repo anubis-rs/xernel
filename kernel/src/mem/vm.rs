@@ -1,10 +1,7 @@
 use alloc::collections::BTreeMap;
 use libxernel::syscall::{MapFlags, ProtectionFlags};
-use x86_64::structures::paging::{PageTableFlags, PhysFrame};
-use x86_64::{
-    structures::paging::{PageSize, Size4KiB},
-    VirtAddr,
-};
+use libxernel::paging::{Page, PageTableFlags, PhysFrame, PageSize, Size4KiB};
+use libxernel::addr::VirtAddr;
 
 use crate::cpu::current_process;
 use crate::mem::PROCESS_END;
@@ -34,14 +31,19 @@ impl VmEntry {
         let page_mapper = process.get_page_table().as_mut().unwrap();
         let mut frame_allocator = FRAME_ALLOCATOR.lock();
 
-        for page in (self.start..self.end()).step_by(Size4KiB::SIZE as usize) {
-            if let Some(phys_addr) = page_mapper.translate(page) {
+        let start_page = Page::<Size4KiB>::containing_address(self.start);
+        let end_page = Page::<Size4KiB>::containing_address(self.end());
+        let num_pages = (self.end().as_u64() - self.start.as_u64()) / Size4KiB::SIZE;
+
+        for i in 0..num_pages {
+            let page = start_page + i;
+            if let Some(phys_addr) = page_mapper.translate(page.start_address()) {
                 unsafe {
                     frame_allocator.deallocate_frame(PhysFrame::<Size4KiB>::containing_address(phys_addr));
                 }
             }
 
-            page_mapper.unmap(page);
+            page_mapper.unmap(page.start_address());
         }
     }
 }

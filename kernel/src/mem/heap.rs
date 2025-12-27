@@ -3,8 +3,8 @@ use core::ptr::NonNull;
 
 use libxernel::sync::Spinlock;
 use linked_list_allocator::Heap;
-use x86_64::structures::paging::{Page, PageSize, PageTableFlags, PhysFrame, Size2MiB};
-use x86_64::VirtAddr;
+use libxernel::paging::{Page, PageSize, PageTableFlags, PhysFrame, Size2MiB};
+use libxernel::addr::VirtAddr;
 
 use crate::allocator::align_up;
 

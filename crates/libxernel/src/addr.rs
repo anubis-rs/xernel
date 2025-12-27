@@ -154,6 +154,36 @@ impl VirtAddr {
             _ => false,
         }
     }
+
+    /// Returns the 12-bit page offset for 4KiB pages
+    #[inline]
+    pub const fn page_offset(self) -> u16 {
+        (self.0 & 0xfff) as u16
+    }
+
+    /// Returns the 9-bit level 1 page table index
+    #[inline]
+    pub const fn p1_index(self) -> crate::paging::PageTableIndex {
+        crate::paging::PageTableIndex::new_truncate(((self.0 >> 12) & 0x1ff) as u16)
+    }
+
+    /// Returns the 9-bit level 2 page table index
+    #[inline]
+    pub const fn p2_index(self) -> crate::paging::PageTableIndex {
+        crate::paging::PageTableIndex::new_truncate(((self.0 >> 21) & 0x1ff) as u16)
+    }
+
+    /// Returns the 9-bit level 3 page table index
+    #[inline]
+    pub const fn p3_index(self) -> crate::paging::PageTableIndex {
+        crate::paging::PageTableIndex::new_truncate(((self.0 >> 30) & 0x1ff) as u16)
+    }
+
+    /// Returns the 9-bit level 4 page table index
+    #[inline]
+    pub const fn p4_index(self) -> crate::paging::PageTableIndex {
+        crate::paging::PageTableIndex::new_truncate(((self.0 >> 39) & 0x1ff) as u16)
+    }
 }
 
 impl core::ops::Add<u64> for VirtAddr {
@@ -180,6 +210,44 @@ impl core::ops::Sub<VirtAddr> for VirtAddr {
     #[inline]
     fn sub(self, rhs: VirtAddr) -> Self::Output {
         self.0 - rhs.0
+    }
+}
+
+impl core::ops::AddAssign<u64> for VirtAddr {
+    #[inline]
+    fn add_assign(&mut self, rhs: u64) {
+        *self = *self + rhs;
+    }
+}
+
+impl core::ops::SubAssign<u64> for VirtAddr {
+    #[inline]
+    fn sub_assign(&mut self, rhs: u64) {
+        *self = *self - rhs;
+    }
+}
+
+impl core::fmt::LowerHex for VirtAddr {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::LowerHex::fmt(&self.0, f)
+    }
+}
+
+impl core::fmt::UpperHex for VirtAddr {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::UpperHex::fmt(&self.0, f)
+    }
+}
+
+impl core::fmt::LowerHex for PhysAddr {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::LowerHex::fmt(&self.0, f)
+    }
+}
+
+impl core::fmt::UpperHex for PhysAddr {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::UpperHex::fmt(&self.0, f)
     }
 }
 

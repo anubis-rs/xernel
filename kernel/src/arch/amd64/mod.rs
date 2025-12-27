@@ -14,7 +14,7 @@ use crate::KERNEL_PAGE_MAPPER;
 use core::arch::{asm, global_asm};
 use libxernel::ipl::IPL;
 use limine::SmpInfo;
-use x86_64::VirtAddr;
+use libxernel::addr::VirtAddr;
 
 global_asm!(include_str!("switch.S"));
 

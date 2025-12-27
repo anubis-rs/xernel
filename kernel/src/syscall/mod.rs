@@ -4,13 +4,8 @@ use core::{
     ffi::{c_char, CStr},
 };
 use libxernel::syscall::{SyscallError, SYS_CLOSE, SYS_LOG, SYS_MMAP, SYS_OPEN, SYS_READ, SYS_WRITE};
-use x86_64::{
-    registers::{
-        model_specific::{Efer, EferFlags, LStar, Star},
-        rflags::RFlags,
-    },
-    VirtAddr,
-};
+use libxernel::x86_64::{Efer, EferFlags, LStar, Star, RFlags, SFMask};
+use libxernel::addr::VirtAddr;
 
 use crate::{
     arch::amd64::gdt::GDT_BSP,
@@ -48,12 +43,10 @@ pub fn init() {
     // enable IA32_EFER
     unsafe {
         Efer::write(Efer::read() | EferFlags::SYSTEM_CALL_EXTENSIONS);
+        LStar::write(VirtAddr::new(asm_syscall_handler as u64));
+        // disable interrupts when syscall handler is called
+        SFMask::write(RFlags::INTERRUPT_FLAG);
     }
-
-    LStar::write(VirtAddr::new(asm_syscall_handler as u64));
-
-    // disable interrupts when syscall handler is called
-    x86_64::registers::model_specific::SFMask::write(RFlags::INTERRUPT_FLAG);
 }
 
 #[derive(Debug)]

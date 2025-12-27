@@ -4,8 +4,7 @@ use crate::cpu::current_cpu;
 use crate::timer::timer_event::TimerEvent;
 use alloc::sync::Arc;
 use core::time::Duration;
-use x86_64::registers::control::Cr3;
-use x86_64::registers::segmentation::{Segment, DS};
+use libxernel::x86_64::{Cr3, Segment, DS};
 
 use super::thread::{Thread, ThreadStatus};
 
@@ -74,8 +73,6 @@ pub fn switch_threads(old: Arc<Thread>, new: Arc<Thread>) {
             let pt = process.get_page_table().as_mut().unwrap();
 
             let cr3 = Cr3::read_raw();
-
-            let cr3 = cr3.0.start_address().as_u64() | cr3.1 as u64;
 
             if cr3 != pt.pml4().as_u64() {
                 pt.load_pt();

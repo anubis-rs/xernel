@@ -3,10 +3,8 @@ use core::ptr::NonNull;
 use crate::{allocator::buddy::BuddyAllocator, mem::HIGHER_HALF_OFFSET};
 use libxernel::sync::{Once, Spinlock};
 use limine::{MemmapEntry, MemmapRequest, MemoryMapEntryType, NonNullPtr};
-use x86_64::{
-    structures::paging::{PageSize, PhysFrame},
-    PhysAddr,
-};
+use libxernel::paging::{PageSize, PhysFrame};
+use libxernel::addr::PhysAddr;
 
 static MMAP_REQUEST: MemmapRequest = MemmapRequest::new(0);
 

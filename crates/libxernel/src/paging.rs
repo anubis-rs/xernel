@@ -297,6 +297,18 @@ impl<S: PageSize> Page<S> {
         }
     }
 
+    /// Creates a page from a start address. Returns None if the address is not page-aligned.
+    #[inline]
+    pub const fn from_start_address(address: VirtAddr) -> Result<Self, ()> {
+        if address.as_u64() % S::SIZE != 0 {
+            return Err(());
+        }
+        Ok(Self {
+            start_address: address,
+            size: PhantomData,
+        })
+    }
+
     /// Returns the start address of the page
     #[inline]
     pub const fn start_address(self) -> VirtAddr {

@@ -12,6 +12,40 @@ bitflags::bitflags! {
     }
 }
 
+/// Page fault error code
+bitflags::bitflags! {
+    #[derive(Debug, Clone, Copy)]
+    pub struct PageFaultErrorCode: u64 {
+        /// If set, the page fault was caused by a page-protection violation.
+        /// If not set, the page fault was caused by a non-present page.
+        const PROTECTION_VIOLATION = 1 << 0;
+        /// If set, the access causing the fault was a write.
+        const CAUSED_BY_WRITE = 1 << 1;
+        /// If set, the access causing the fault originated in user mode.
+        const USER_MODE = 1 << 2;
+        /// If set, the fault was caused by a reserved bit violation.
+        const MALFORMED_TABLE = 1 << 3;
+        /// If set, the fault was caused by an instruction fetch.
+        const INSTRUCTION_FETCH = 1 << 4;
+    }
+}
+
+/// RFLAGS register
+bitflags::bitflags! {
+    #[derive(Debug, Clone, Copy)]
+    pub struct RFlags: u64 {
+        const INTERRUPT_FLAG = 1 << 9;
+    }
+}
+
+/// Extended Feature Enable Register flags
+bitflags::bitflags! {
+    #[derive(Debug, Clone, Copy)]
+    pub struct EferFlags: u64 {
+        const SYSTEM_CALL_EXTENSIONS = 1 << 0;
+    }
+}
+
 /// CR3 control register
 pub struct Cr3;
 
@@ -27,6 +61,16 @@ impl Cr3 {
         let addr = PhysAddr::new(value & 0x_000f_ffff_ffff_f000);
         let flags = Cr3Flags::from_bits_truncate(value);
         (addr, flags)
+    }
+
+    /// Read the current P4 table address from the CR3 register (raw u64 value)
+    #[inline]
+    pub fn read_raw() -> u64 {
+        let value: u64;
+        unsafe {
+            core::arch::asm!("mov {}, cr3", out(reg) value, options(nomem, nostack, preserves_flags));
+        }
+        value
     }
 
     /// Write a new P4 table address to the CR3 register
@@ -269,6 +313,126 @@ impl Port<u32> {
     pub unsafe fn write(&mut self, value: u32) {
         unsafe {
             core::arch::asm!("out dx, eax", in("dx") self.port, in("eax") value, options(nomem, nostack, preserves_flags));
+        }
+    }
+}
+
+/// Model Specific Registers
+
+/// EFER - Extended Feature Enable Register
+pub struct Efer;
+
+impl Efer {
+    const MSR: u32 = 0xC000_0080;
+
+    /// Read the current EFER flags
+    #[inline]
+    pub fn read() -> EferFlags {
+        let low: u32;
+        let high: u32;
+        unsafe {
+            core::arch::asm!(
+                "rdmsr",
+                in("ecx") Self::MSR,
+                out("eax") low,
+                out("edx") high,
+                options(nomem, nostack, preserves_flags),
+            );
+        }
+        let value = (high as u64) << 32 | (low as u64);
+        EferFlags::from_bits_truncate(value)
+    }
+
+    /// Write EFER flags
+    #[inline]
+    pub unsafe fn write(flags: EferFlags) {
+        let value = flags.bits();
+        unsafe {
+            core::arch::asm!(
+                "wrmsr",
+                in("ecx") Self::MSR,
+                in("eax") value as u32,
+                in("edx") (value >> 32) as u32,
+                options(nomem, nostack, preserves_flags),
+            );
+        }
+    }
+}
+
+/// STAR - System Call Target Address Register
+pub struct Star;
+
+impl Star {
+    const MSR: u32 = 0xC000_0081;
+
+    /// Write STAR MSR for syscall/sysret
+    #[inline]
+    pub fn write(
+        user_code_selector: SegmentSelector,
+        user_data_selector: SegmentSelector,
+        kernel_code_selector: SegmentSelector,
+        kernel_data_selector: SegmentSelector,
+    ) -> Result<(), ()> {
+        // STAR layout:
+        // Bits 63:48 - User CS (sysret) and SS (sysret+8)
+        // Bits 47:32 - Kernel CS (syscall) and SS (syscall+8)
+        let user_base = user_code_selector.as_u16() as u64;
+        let kernel_base = kernel_code_selector.as_u16() as u64;
+        let value = (user_base << 48) | (kernel_base << 32);
+        
+        unsafe {
+            core::arch::asm!(
+                "wrmsr",
+                in("ecx") Self::MSR,
+                in("eax") value as u32,
+                in("edx") (value >> 32) as u32,
+                options(nomem, nostack, preserves_flags),
+            );
+        }
+        Ok(())
+    }
+}
+
+/// LSTAR - Long Mode System Call Target Address Register
+pub struct LStar;
+
+impl LStar {
+    const MSR: u32 = 0xC000_0082;
+
+    /// Write LSTAR MSR
+    #[inline]
+    pub unsafe fn write(addr: crate::addr::VirtAddr) {
+        let value = addr.as_u64();
+        unsafe {
+            core::arch::asm!(
+                "wrmsr",
+                in("ecx") Self::MSR,
+                in("eax") value as u32,
+                in("edx") (value >> 32) as u32,
+                options(nomem, nostack, preserves_flags),
+            );
+        }
+    }
+}
+
+/// SFMASK - System Call Flag Mask Register
+pub struct SFMask;
+
+impl SFMask {
+    const MSR: u32 = 0xC000_0084;
+
+    /// Write SFMASK MSR
+    #[inline]
+    pub unsafe fn write(flags: RFlags) {
+        let value = flags.bits();
+        unsafe {
+            core::arch::asm!(
+                "wrmsr",
+                in("ecx") Self::MSR,
+                in("eax") value as u32,
+                in("edx") (value >> 32) as u32,
+                options(nomem, nostack, preserves_flags),
+            );
         }
     }
 }

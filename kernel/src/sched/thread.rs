@@ -4,10 +4,10 @@ use alloc::sync::Weak;
 use core::cell::{Cell, UnsafeCell};
 use core::pin::Pin;
 
-use x86_64::VirtAddr;
+use libxernel::addr::VirtAddr;
 
 use libxernel::sync::Spinlock;
-use x86_64::structures::paging::{Page, PageSize, PhysFrame, Size4KiB};
+use libxernel::paging::{Page, PageSize, PhysFrame, Size4KiB};
 
 use crate::mem::frame::FRAME_ALLOCATOR;
 use crate::mem::paging::KERNEL_PAGE_MAPPER;

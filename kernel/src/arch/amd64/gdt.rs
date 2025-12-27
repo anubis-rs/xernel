@@ -3,12 +3,9 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::ptr::addr_of;
 use libxernel::sync::{Once, Spinlock};
-use x86_64::instructions::segmentation::{Segment, CS, DS, ES, SS};
-use x86_64::instructions::tables::load_tss;
-use x86_64::structures::gdt::SegmentSelector;
-use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable};
-use x86_64::structures::tss::TaskStateSegment;
-use x86_64::VirtAddr;
+use libxernel::x86_64::{Segment, CS, DS, ES, SS, load_tss};
+use libxernel::gdt::{SegmentSelector, Descriptor, GlobalDescriptorTable, TaskStateSegment};
+use libxernel::addr::VirtAddr;
 
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 pub const IST_STACK_SIZE: usize = 4096 * 5;
@@ -41,7 +38,7 @@ pub fn init() {
     let mut tss = TaskStateSegment::new();
     tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = {
         let stack_start = VirtAddr::from_ptr(addr_of!(BSP_IST_STACK));
-        stack_start + IST_STACK_SIZE as u64
+        (stack_start + IST_STACK_SIZE as u64).as_u64()
     };
 
     TSS.set_once(tss);
@@ -94,7 +91,7 @@ pub fn init_ap(ap_id: usize) {
 
     let ist0 = unsafe { alloc_zeroed(core::alloc::Layout::from_size_align(IST_STACK_SIZE, 4096).unwrap()) };
     boxed_tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] =
-        unsafe { VirtAddr::from_ptr(ist0.add(IST_STACK_SIZE)) };
+        unsafe { VirtAddr::from_ptr(ist0.add(IST_STACK_SIZE)).as_u64() };
 
     let tss: &'static mut TaskStateSegment = Box::leak(boxed_tss);
     let tss_selector = gdt.append(Descriptor::tss_segment(tss));

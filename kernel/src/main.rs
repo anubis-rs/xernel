@@ -36,14 +36,12 @@ use core::time::Duration;
 use fs::initramfs;
 use libxernel::sync::Spinlock;
 use limine::*;
-use x86_64::instructions::interrupts;
+use libxernel::x86_64::interrupts;
 
 use arch::amd64::gdt;
 
-use x86_64::structures::paging::Page;
-use x86_64::structures::paging::PageTableFlags;
-use x86_64::structures::paging::Size2MiB;
-use x86_64::VirtAddr;
+use libxernel::paging::{Page, PageTableFlags, Size2MiB};
+use libxernel::addr::VirtAddr;
 
 use crate::acpi::hpet;
 use crate::arch::amd64;

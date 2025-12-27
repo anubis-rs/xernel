@@ -5,8 +5,8 @@ use crate::acpi::hpet;
 use crate::arch::amd64::rdmsr;
 use crate::mem::paging::KERNEL_PAGE_MAPPER;
 use crate::mem::HIGHER_HALF_OFFSET;
-use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size4KiB};
-use x86_64::{PhysAddr, VirtAddr};
+use libxernel::paging::{Page, PageTableFlags, PhysFrame, Size4KiB};
+use libxernel::addr::{PhysAddr, VirtAddr};
 
 use super::tsc::TSC_TICKS_PER_MS;
 use super::wrmsr;

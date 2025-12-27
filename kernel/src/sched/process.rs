@@ -1,8 +1,8 @@
 use alloc::sync::Weak;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use libxernel::syscall::{MapFlags, ProtectionFlags};
-use x86_64::structures::paging::{Page, PageSize, PageTableFlags, Size4KiB};
-use x86_64::{align_down, align_up, VirtAddr};
+use libxernel::paging::{Page, PageSize, PageTableFlags, Size4KiB};
+use libxernel::addr::{align_down, align_up, VirtAddr};
 
 use crate::fs::file::File;
 use crate::fs::vnode::VNode;
