@@ -128,7 +128,7 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
         "cargo build
                 {release...}
                 -p init
-                --target ./build/targets/{target}.json
+                --target ./build/targets/{target}-userland.json
                 -Z build-std=core,alloc,compiler_builtins
                 -Z build-std-features=compiler-builtins-mem"
     )
@@ -138,7 +138,7 @@ fn build(sh: &Shell, rl: bool, mut args: Arguments) -> Result<()> {
 
     cmd!(
         sh,
-        "cp {xernel_dir}/target/x86_64/{build_dir}/init {xernel_dir}/target/"
+        "cp {xernel_dir}/target/x86_64-userland/{build_dir}/init {xernel_dir}/target/"
     )
     .run()?;
 
