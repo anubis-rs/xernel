@@ -19,6 +19,7 @@ static TSS: Once<TaskStateSegment> = Once::new();
 pub static GDT_BSP: Once<(GlobalDescriptorTable, Selectors)> = Once::new();
 
 static GDT_AP: Spinlock<Vec<Gdt>> = Spinlock::new(Vec::new());
+static TSS_MAP: Spinlock<Vec<Option<*mut TaskStateSegment>>> = Spinlock::new(Vec::new());
 
 #[derive(Debug)]
 struct Gdt {
@@ -97,6 +98,7 @@ pub fn init_ap(ap_id: usize) {
         unsafe { VirtAddr::from_ptr(ist0.add(IST_STACK_SIZE)) };
 
     let tss: &'static mut TaskStateSegment = Box::leak(boxed_tss);
+    let tss_ptr = tss as *const TaskStateSegment as *mut TaskStateSegment;
     let tss_selector = gdt.append(Descriptor::tss_segment(tss));
 
     gdt_ap.push(Gdt {
@@ -112,6 +114,12 @@ pub fn init_ap(ap_id: usize) {
         ap_id,
     });
 
+    let mut tss_map = TSS_MAP.lock();
+    if ap_id >= tss_map.len() {
+        tss_map.resize_with(ap_id + 1, Default::default);
+    }
+    tss_map[ap_id] = Some(tss_ptr);
+
     gdt.load();
     unsafe {
         CS::set_reg(code_selector);
@@ -125,20 +133,22 @@ pub fn init_ap(ap_id: usize) {
 
 pub fn set_tss_kernel_stack(stack_top: u64) {
     unsafe {
-        // For BSP
-        if TSS.is_completed() {
+        let cpu_id = crate::cpu::current_cpu().cpu_id;
+
+        // For BSP (CPU 0)
+        if cpu_id == 0 {
+            assert!(TSS.is_completed());
             let tss = &*TSS as *const TaskStateSegment as *mut TaskStateSegment;
             (*tss).privilege_stack_table[0] = VirtAddr::new(stack_top);
             return;
         }
 
-        // For APs
-        let gdt_ap = GDT_AP.lock();
-        let ap_id = crate::cpu::current_cpu().cpu_id;
-
-        if let Some(gdt) = gdt_ap.iter().find(|g| g.ap_id == ap_id) {
-            let tss = gdt.tss as *const TaskStateSegment as *mut TaskStateSegment;
-            (*tss).privilege_stack_table[0] = VirtAddr::new(stack_top);
+        // For APs - direct lookup in TSS_MAP
+        let tss_map = TSS_MAP.lock();
+        if let Some(Some(tss_ptr)) = tss_map.get(cpu_id) {
+            (**tss_ptr).privilege_stack_table[0] = VirtAddr::new(stack_top);
+        } else {
+            panic!("No TSS found for CPU {}", cpu_id);
         }
     }
 }
