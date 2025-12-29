@@ -1,7 +1,7 @@
 use core::ops::RangeBounds;
 
 use alloc::{boxed::Box, collections::VecDeque};
-use libxernel::ipl::{get_ipl, raise_ipl, splx, IPL};
+use libxernel::ipl::{IPL, get_ipl, raise_ipl, splx};
 
 use crate::{
     arch::amd64::{apic::APIC, write_cr8},
@@ -106,11 +106,13 @@ pub fn dispatch_dpcs(_: &mut TrapFrame) {
     let old = cpu.current_thread.aquire().clone();
     let new = cpu.next.aquire().clone();
 
-    if old.is_some() && new.is_some() {
+    if let Some(old_ptr) = old
+        && let Some(new_ptr) = new
+    {
         **cpu.next.aquire() = None;
         let ipl = get_ipl();
 
-        switch_threads(old.unwrap(), new.unwrap());
+        switch_threads(old_ptr, new_ptr);
         splx(ipl);
     }
 }

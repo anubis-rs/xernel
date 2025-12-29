@@ -21,13 +21,15 @@ pub fn init() {
 
 impl AcpiHandler for AcpiMapper {
     unsafe fn map_physical_region<T>(&self, physical_address: usize, size: usize) -> PhysicalMapping<Self, T> {
-        PhysicalMapping::new(
-            physical_address,
-            NonNull::new_unchecked((physical_address + *HIGHER_HALF_OFFSET as usize) as *mut _),
-            size,
-            size,
-            self.clone(),
-        )
+        unsafe {
+            PhysicalMapping::new(
+                physical_address,
+                NonNull::new_unchecked((physical_address + *HIGHER_HALF_OFFSET as usize) as *mut _),
+                size,
+                size,
+                self.clone(),
+            )
+        }
     }
 
     fn unmap_physical_region<T>(_region: &PhysicalMapping<Self, T>) {

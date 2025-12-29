@@ -91,15 +91,16 @@ impl Framebuffer {
 
         if self.cursor >= self.length() - FRAMEBUFFER_DATA.pitch * 17 {
             self.cursor -= FRAMEBUFFER_DATA.pitch * 17;
+            unsafe {
+                copy(
+                    self.address.add((FRAMEBUFFER_DATA.pitch * 17) as usize),
+                    self.address,
+                    (self.length() - FRAMEBUFFER_DATA.pitch * 17) as usize,
+                );
 
-            copy(
-                self.address.add((FRAMEBUFFER_DATA.pitch * 17) as usize),
-                self.address,
-                (self.length() - FRAMEBUFFER_DATA.pitch * 17) as usize,
-            );
-
-            for i in 0..FRAMEBUFFER_DATA.pitch * 17 {
-                self.address.add((self.cursor + i) as usize).write_volatile(0x00);
+                for i in 0..FRAMEBUFFER_DATA.pitch * 17 {
+                    self.address.add((self.cursor + i) as usize).write_volatile(0x00);
+                }
             }
         }
 
@@ -129,13 +130,15 @@ impl Framebuffer {
 
             for j in 0..8 {
                 if (bitmap & (1 << (7 - j))) >= 1 {
-                    self.address.add(self.cursor as usize).write_volatile(self.color.b);
-                    self.address
-                        .add((self.cursor + 1) as usize)
-                        .write_volatile(self.color.g);
-                    self.address
-                        .add((self.cursor + 2) as usize)
-                        .write_volatile(self.color.r);
+                    unsafe {
+                        self.address.add(self.cursor as usize).write_volatile(self.color.b);
+                        self.address
+                            .add((self.cursor + 1) as usize)
+                            .write_volatile(self.color.g);
+                        self.address
+                            .add((self.cursor + 2) as usize)
+                            .write_volatile(self.color.r);
+                    }
                 }
                 self.cursor += (FRAMEBUFFER_DATA.bpp / 8) as u64;
             }
@@ -182,39 +185,41 @@ impl Framebuffer {
 
     /// Displays a given bitmap image on the framebuffer
     pub unsafe fn show_bitmap_image(&mut self, image_data: &File) {
-        let address = FRAMEBUFFER_DATA.address.as_ptr().unwrap().cast::<u8>();
+        unsafe {
+            let address = FRAMEBUFFER_DATA.address.as_ptr().unwrap().cast::<u8>();
 
-        let file_base = image_data.base.as_ptr().unwrap();
+            let file_base = image_data.base.as_ptr().unwrap();
 
-        let bpp = file_base.offset(0x1c).read();
+            let bpp = file_base.offset(0x1c).read();
 
-        let img_data_offset = file_base.offset(0xa).read() as u32;
+            let img_data_offset = file_base.offset(0xa).read() as u32;
 
-        let img_base = file_base.add(img_data_offset as usize);
+            let img_base = file_base.add(img_data_offset as usize);
 
-        let mut image_addr = img_base;
+            let mut image_addr = img_base;
 
-        let width = file_base.offset(0x12).read() as u16;
-        let height = file_base.offset(0x16).read() as u16;
+            let width = file_base.offset(0x12).read() as u16;
+            let height = file_base.offset(0x16).read() as u16;
 
-        self.new_line();
+            self.new_line();
 
-        for i in 0..(width * height) {
-            address
-                .add(self.cursor as usize)
-                .write_volatile(image_addr.offset(0).read());
-            address
-                .add((self.cursor + 1) as usize)
-                .write_volatile(image_addr.offset(1).read());
-            address
-                .add((self.cursor + 2) as usize)
-                .write_volatile(image_addr.offset(2).read());
+            for i in 0..(width * height) {
+                address
+                    .add(self.cursor as usize)
+                    .write_volatile(image_addr.offset(0).read());
+                address
+                    .add((self.cursor + 1) as usize)
+                    .write_volatile(image_addr.offset(1).read());
+                address
+                    .add((self.cursor + 2) as usize)
+                    .write_volatile(image_addr.offset(2).read());
 
-            image_addr = image_addr.add((bpp / 8).into());
-            self.cursor += FRAMEBUFFER_DATA.bpp as u64 / 8;
+                image_addr = image_addr.add((bpp / 8).into());
+                self.cursor += FRAMEBUFFER_DATA.bpp as u64 / 8;
 
-            if i % width == 0 && i != 0 {
-                self.new_line();
+                if i % width == 0 && i != 0 {
+                    self.new_line();
+                }
             }
         }
 

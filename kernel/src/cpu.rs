@@ -1,5 +1,5 @@
 use crate::arch::amd64::apic::APIC;
-use crate::arch::amd64::{rdmsr, wrmsr, KERNEL_GS_BASE};
+use crate::arch::amd64::{KERNEL_GS_BASE, rdmsr, wrmsr};
 use crate::dpc::{DpcCall, DpcQueue};
 use crate::sched::process::Process;
 use crate::sched::thread::Thread;
@@ -97,14 +97,14 @@ impl<T> PerCpu<T> {
     pub unsafe fn get_all(&self) -> &Vec<T> {
         self.check_initialized();
 
-        &*self.data.get()
+        unsafe { &*self.data.get() }
     }
 
     #[allow(clippy::mut_from_ref)]
     pub unsafe fn get_all_mut(&self) -> &mut Vec<T> {
         self.check_initialized();
 
-        &mut *self.data.get()
+        unsafe { &mut *self.data.get() }
     }
 }
 

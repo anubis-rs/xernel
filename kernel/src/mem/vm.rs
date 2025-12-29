@@ -2,8 +2,8 @@ use alloc::collections::BTreeMap;
 use libxernel::syscall::{MapFlags, ProtectionFlags};
 use x86_64::structures::paging::{PageTableFlags, PhysFrame};
 use x86_64::{
-    structures::paging::{PageSize, Size4KiB},
     VirtAddr,
+    structures::paging::{PageSize, Size4KiB},
 };
 
 use crate::cpu::current_process;

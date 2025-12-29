@@ -2,21 +2,21 @@ use alloc::sync::Weak;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use libxernel::syscall::{MapFlags, ProtectionFlags};
 use x86_64::structures::paging::{Page, PageSize, PageTableFlags, Size4KiB};
-use x86_64::{align_down, align_up, VirtAddr};
+use x86_64::{VirtAddr, align_down, align_up};
 
+use crate::VFS;
 use crate::fs::file::File;
 use crate::fs::vnode::VNode;
 use crate::mem::frame::FRAME_ALLOCATOR;
-use crate::mem::vm::{protflags_from_ptflags, Vm};
+use crate::mem::vm::{Vm, protflags_from_ptflags};
 use crate::mem::{HIGHER_HALF_OFFSET, KERNEL_THREAD_STACK_TOP, STACK_SIZE};
-use crate::VFS;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
 use libxernel::sync::{Once, Spinlock};
 
-use crate::mem::paging::{Pagemap, KERNEL_PAGE_MAPPER};
+use crate::mem::paging::{KERNEL_PAGE_MAPPER, Pagemap};
 use crate::sched::thread::Thread;
 
 /// Ongoing counter for the ProcessID
@@ -198,9 +198,7 @@ impl Process {
     }
 
     pub fn get_filehandle_from_fd(&self, fd: usize) -> &File {
-        let handle = self.fds.get(&fd).expect("Failed to get FileHandle for fd");
-
-        handle
+        self.fds.get(&fd).expect("Failed to get FileHandle for fd")
     }
 
     pub fn get_page_table(&mut self) -> &mut Option<Pagemap> {

@@ -1,4 +1,4 @@
-use crate::dpc::{enqueue_dpc, Dpc, DpcCall};
+use crate::dpc::{Dpc, DpcCall, enqueue_dpc};
 use core::time::Duration;
 
 use crate::current_cpu;

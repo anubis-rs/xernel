@@ -5,7 +5,7 @@ use crate::{
     cpu::current_cpu,
     fs::initramfs::initramfs_read,
     sched::{
-        process::{Process, KERNEL_PROCESS},
+        process::{KERNEL_PROCESS, Process},
         thread::Thread,
     },
 };

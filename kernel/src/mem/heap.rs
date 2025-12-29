@@ -3,8 +3,8 @@ use core::ptr::NonNull;
 
 use libxernel::sync::Spinlock;
 use linked_list_allocator::Heap;
-use x86_64::structures::paging::{Page, PageSize, PageTableFlags, PhysFrame, Size2MiB};
 use x86_64::VirtAddr;
+use x86_64::structures::paging::{Page, PageSize, PageTableFlags, PhysFrame, Size2MiB};
 
 use crate::allocator::align_up;
 
@@ -48,7 +48,9 @@ unsafe impl GlobalAlloc for Allocator {
                     true,
                 );
 
-                heap.extend(Size2MiB::SIZE as usize);
+                unsafe {
+                    heap.extend(Size2MiB::SIZE as usize);
+                };
             }
 
             // try to allocate again
@@ -65,7 +67,9 @@ unsafe impl GlobalAlloc for Allocator {
 
         let mut heap = HEAP.lock();
 
-        heap.deallocate(NonNull::new(ptr).unwrap(), layout);
+        unsafe {
+            heap.deallocate(NonNull::new(ptr).unwrap(), layout);
+        };
     }
 }
 

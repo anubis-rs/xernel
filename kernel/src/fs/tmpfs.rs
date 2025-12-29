@@ -207,7 +207,7 @@ impl VNodeOperations for TmpfsNode {
     }
 
     fn write(&mut self, buf: &mut [u8]) -> Result<usize> {
-        if let TmpfsNodeData::Data(ref mut data) = &mut self.data {
+        if let TmpfsNodeData::Data(data) = &mut self.data {
             data.resize(data.len() + buf.len(), 0);
 
             let max_write = if buf.len() > data.len() { data.len() } else { buf.len() };

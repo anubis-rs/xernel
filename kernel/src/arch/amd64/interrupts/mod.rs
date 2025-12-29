@@ -6,9 +6,9 @@ use crate::dpc::dispatch_dpcs;
 use crate::drivers::ps2::keyboard::keyboard_handler;
 use crate::sched::context::TrapFrame;
 use core::arch::asm;
-use core::sync::atomic::{compiler_fence, Ordering};
-use idt::{IRQHandler, IDT_ENTRIES};
-use libxernel::ipl::{get_ipl, raise_ipl, splx, IPL};
+use core::sync::atomic::{Ordering, compiler_fence};
+use idt::{IDT_ENTRIES, IRQHandler};
+use libxernel::ipl::{IPL, get_ipl, raise_ipl, splx};
 
 use super::apic::apic_spurious_interrupt;
 use libxernel::sync::SpinlockIRQ;
@@ -29,7 +29,7 @@ pub fn init() {
     handlers[0xd0] = IRQHandler::Handler(keyboard_handler);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "sysv64" fn generic_interrupt_handler(isr: usize, ctx: *mut TrapFrame) {
     let new_ipl = IPL::from(isr >> 4);
     let current_ipl = get_ipl();

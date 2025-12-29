@@ -1,15 +1,15 @@
 use alloc::string::{String, ToString};
 use core::{
     arch::naked_asm,
-    ffi::{c_char, CStr},
+    ffi::{CStr, c_char},
 };
-use libxernel::syscall::{SyscallError, SYS_CLOSE, SYS_LOG, SYS_MMAP, SYS_OPEN, SYS_READ, SYS_WRITE};
+use libxernel::syscall::{SYS_CLOSE, SYS_LOG, SYS_MMAP, SYS_OPEN, SYS_READ, SYS_WRITE, SyscallError};
 use x86_64::{
+    VirtAddr,
     registers::{
         model_specific::{Efer, EferFlags, LStar, Star},
         rflags::RFlags,
     },
-    VirtAddr,
 };
 
 use crate::{
@@ -168,7 +168,7 @@ fn syscall_arg_to_string(ptr: usize) -> Option<String> {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "sysv64" fn general_syscall_handler(data: *const SyscallData) -> i64 {
     let data = unsafe { &*data };
     // println!("general_syscall_handler: {:#x?}", data);

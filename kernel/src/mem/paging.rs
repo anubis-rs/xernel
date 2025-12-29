@@ -1,19 +1,19 @@
-use super::{frame::FRAME_ALLOCATOR, HIGHER_HALF_OFFSET};
+use super::{HIGHER_HALF_OFFSET, frame::FRAME_ALLOCATOR};
 use crate::{
     allocator::align_up,
-    mem::{frame::MEMORY_MAP, KERNEL_OFFSET},
+    mem::{KERNEL_OFFSET, frame::MEMORY_MAP},
 };
 use libxernel::boot::InitAtBoot;
 use libxernel::sync::Spinlock;
 use limine::KernelAddressRequest;
 use x86_64::{
+    PhysAddr, VirtAddr,
+    structures::paging::{PageTable, PageTableFlags, PhysFrame},
+};
+use x86_64::{
     align_down,
     registers::control::{Cr3, Cr3Flags},
     structures::paging::{Page, PageSize, PageTableIndex, Size1GiB, Size2MiB, Size4KiB},
-};
-use x86_64::{
-    structures::paging::{PageTable, PageTableFlags, PhysFrame},
-    PhysAddr, VirtAddr,
 };
 
 static KERNEL_ADDRESS_REQUEST: KernelAddressRequest = KernelAddressRequest::new(0);
@@ -25,7 +25,7 @@ pub struct Pagemap {
     page_table: *mut PageTable,
 }
 
-extern "C" {
+unsafe extern "C" {
     static _kernel_end: u64;
 }
 
@@ -233,10 +233,12 @@ impl Pagemap {
         let pt = self.page_table;
         let phys = pt as *const _ as u64 - *HIGHER_HALF_OFFSET;
 
-        Cr3::write(
-            PhysFrame::from_start_address(PhysAddr::new(phys)).unwrap(),
-            Cr3Flags::empty(),
-        );
+        unsafe {
+            Cr3::write(
+                PhysFrame::from_start_address(PhysAddr::new(phys)).unwrap(),
+                Cr3Flags::empty(),
+            );
+        }
     }
 
     pub fn map_kernel(&mut self) {
@@ -295,7 +297,7 @@ impl Pagemap {
     }
 
     unsafe fn get_pt(pt: *mut PageTable, pt_index: PageTableIndex) -> *mut PageTable {
-        ((&(*pt))[pt_index].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable
+        unsafe { ((&(*pt))[pt_index].addr().as_u64() + *HIGHER_HALF_OFFSET) as *mut PageTable }
     }
 
     /// Only works with 4KiB pages

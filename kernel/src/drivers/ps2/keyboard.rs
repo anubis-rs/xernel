@@ -2,7 +2,7 @@ use alloc::boxed::Box;
 
 use crate::{
     arch::amd64::ports::inb,
-    dpc::{enqueue_dpc, Dpc},
+    dpc::{Dpc, enqueue_dpc},
     sched::context::TrapFrame,
 };
 

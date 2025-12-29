@@ -3,8 +3,8 @@ use core::time::Duration;
 
 use crate::acpi::hpet;
 use crate::arch::amd64::rdmsr;
-use crate::mem::paging::KERNEL_PAGE_MAPPER;
 use crate::mem::HIGHER_HALF_OFFSET;
+use crate::mem::paging::KERNEL_PAGE_MAPPER;
 use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size4KiB};
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -64,11 +64,13 @@ impl LocalApic {
     }
 
     pub unsafe fn read(&self, reg: u64) -> u32 {
-        ((self.address + reg) as *const u32).read_volatile()
+        unsafe { ((self.address + reg) as *const u32).read_volatile() }
     }
 
     pub unsafe fn write(&self, reg: u64, val: u32) {
-        ((self.address + reg) as *mut u32).write_volatile(val);
+        unsafe {
+            ((self.address + reg) as *mut u32).write_volatile(val);
+        }
     }
 
     pub fn lapic_id(&self) -> u32 {

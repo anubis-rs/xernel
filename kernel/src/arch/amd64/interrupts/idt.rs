@@ -104,8 +104,10 @@ impl Idtr {
     }
 
     #[inline(always)]
-    unsafe fn load(&self) {
-        asm!("lidt [{}]", in(reg) self, options(nostack));
+    fn load(&self) {
+        unsafe {
+            asm!("lidt [{}]", in(reg) self, options(nostack));
+        }
     }
 }
 

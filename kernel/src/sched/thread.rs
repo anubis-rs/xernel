@@ -9,13 +9,13 @@ use x86_64::VirtAddr;
 use libxernel::sync::Spinlock;
 use x86_64::structures::paging::{Page, PageSize, PhysFrame, Size4KiB};
 
+use crate::mem::STACK_SIZE;
 use crate::mem::frame::FRAME_ALLOCATOR;
 use crate::mem::paging::KERNEL_PAGE_MAPPER;
-use crate::mem::STACK_SIZE;
 
 use super::context::thread_trampoline;
 use super::context::{Context, TrapFrame};
-use super::process::{Process, KERNEL_PROCESS};
+use super::process::{KERNEL_PROCESS, Process};
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 /// Current status of the thread
@@ -177,28 +177,30 @@ impl Thread {
         ctx: Context,
         is_user: bool,
     ) -> (*mut TrapFrame, *mut Context) {
-        let ptr = (stack as *mut u64).offset(-1);
+        unsafe {
+            let ptr = (stack as *mut u64).offset(-1);
 
-        let ctx_begin = -27;
-        let frame_begin = -20;
-        let end_of_combined_frame = -27;
+            let ctx_begin = -27;
+            let frame_begin = -20;
+            let end_of_combined_frame = -27;
 
-        (ptr.offset(frame_begin) as *mut TrapFrame).write(trap_frame);
+            (ptr.offset(frame_begin) as *mut TrapFrame).write(trap_frame);
 
-        if is_user {
-            ptr.offset(frame_begin + 19).write(trap_frame.rsp);
-        } else {
-            ptr.offset(frame_begin + 19)
-                .write(ptr.offset(end_of_combined_frame) as u64);
+            if is_user {
+                ptr.offset(frame_begin + 19).write(trap_frame.rsp);
+            } else {
+                ptr.offset(frame_begin + 19)
+                    .write(ptr.offset(end_of_combined_frame) as u64);
+            }
+
+            (ptr.offset(ctx_begin) as *mut Context).write(ctx);
+            ptr.offset(ctx_begin).write(ptr.offset(frame_begin) as u64);
+
+            (
+                ptr.offset(frame_begin) as *mut TrapFrame,
+                ptr.offset(ctx_begin) as *mut Context,
+            )
         }
-
-        (ptr.offset(ctx_begin) as *mut Context).write(ctx);
-        ptr.offset(ctx_begin).write(ptr.offset(frame_begin) as u64);
-
-        (
-            ptr.offset(frame_begin) as *mut TrapFrame,
-            ptr.offset(ctx_begin) as *mut Context,
-        )
     }
 
     pub fn idle_thread() -> Self {

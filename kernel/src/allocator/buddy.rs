@@ -1,7 +1,7 @@
 // Credits to Stupremee (https://github.com/Stupremee)
 // https://github.com/Stupremee/novos/blob/main/crates/kernel/src/allocator/buddy.rs
 
-use super::{align_up, AllocStats, Error, Result};
+use super::{AllocStats, Error, Result, align_up};
 use core::{cmp, ptr::NonNull};
 use x86_64::VirtAddr;
 
@@ -53,11 +53,13 @@ impl<const MIN_ORDER_SIZE: usize, const MAX_ORDER: usize> BuddyAllocator<MIN_ORD
 
         let mut total = 0;
         while (end as usize).saturating_sub(start as usize) >= MIN_ORDER_SIZE {
-            let order = self.add_single_region(start, end)?;
-            let size = self.size_for_order(order);
+            unsafe {
+                let order = self.add_single_region(start, end)?;
+                let size = self.size_for_order(order);
 
-            start = start.add(size);
-            total += size;
+                start = start.add(size);
+                total += size;
+            }
         }
 
         Ok(total)
@@ -137,7 +139,9 @@ impl<const MIN_ORDER_SIZE: usize, const MAX_ORDER: usize> BuddyAllocator<MIN_ORD
 
                 self.dealloc_stats(size * 2);
             } else {
-                self.deallocate(new_block, new_order)?;
+                unsafe {
+                    self.deallocate(new_block, new_order)?;
+                }
             }
         } else {
             self.order_push(order, block.cast());

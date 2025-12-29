@@ -4,8 +4,8 @@ use crate::{allocator::buddy::BuddyAllocator, mem::HIGHER_HALF_OFFSET};
 use libxernel::sync::{Once, Spinlock};
 use limine::{MemmapEntry, MemmapRequest, MemoryMapEntryType, NonNullPtr};
 use x86_64::{
-    structures::paging::{PageSize, PhysFrame},
     PhysAddr,
+    structures::paging::{PageSize, PhysFrame},
 };
 
 static MMAP_REQUEST: MemmapRequest = MemmapRequest::new(0);
@@ -29,12 +29,14 @@ impl PhysFrameAllocator {
     pub unsafe fn deallocate_frame<P: PageSize>(&mut self, frame: PhysFrame<P>) {
         let order = self.0.order_for_size(P::SIZE as usize);
 
-        self.0
-            .deallocate(
-                NonNull::new((frame.start_address().as_u64() + *HIGHER_HALF_OFFSET) as *mut u8).unwrap(),
-                order,
-            )
-            .unwrap();
+        unsafe {
+            self.0
+                .deallocate(
+                    NonNull::new((frame.start_address().as_u64() + *HIGHER_HALF_OFFSET) as *mut u8).unwrap(),
+                    order,
+                )
+                .unwrap();
+        };
     }
 }
 

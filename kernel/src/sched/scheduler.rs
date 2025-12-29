@@ -1,11 +1,11 @@
-use crate::arch::amd64::gdt::{set_tss_kernel_stack, GDT_BSP};
+use crate::arch::amd64::gdt::{GDT_BSP, set_tss_kernel_stack};
 use crate::arch::amd64::switch_context;
 use crate::cpu::current_cpu;
 use crate::timer::timer_event::TimerEvent;
 use alloc::sync::Arc;
 use core::time::Duration;
 use x86_64::registers::control::Cr3;
-use x86_64::registers::segmentation::{Segment, DS};
+use x86_64::registers::segmentation::{DS, Segment};
 
 use super::thread::{Thread, ThreadStatus};
 
@@ -56,8 +56,7 @@ pub fn dequeue_thread(thread: Arc<Thread>) -> Option<Arc<Thread>> {
         }
     }
 
-    let thread = cpu.run_queue.aquire().remove(index_to_remove);
-    thread
+    cpu.run_queue.aquire().remove(index_to_remove)
 }
 
 pub fn switch_threads(old: Arc<Thread>, new: Arc<Thread>) {

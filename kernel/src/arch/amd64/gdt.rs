@@ -3,12 +3,12 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::ptr::addr_of;
 use libxernel::sync::{Once, Spinlock};
-use x86_64::instructions::segmentation::{Segment, CS, DS, ES, SS};
+use x86_64::VirtAddr;
+use x86_64::instructions::segmentation::{CS, DS, ES, SS, Segment};
 use x86_64::instructions::tables::load_tss;
 use x86_64::structures::gdt::SegmentSelector;
 use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable};
 use x86_64::structures::tss::TaskStateSegment;
-use x86_64::VirtAddr;
 
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 pub const IST_STACK_SIZE: usize = 4096 * 5;

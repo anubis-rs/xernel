@@ -1,10 +1,10 @@
 use libxernel::syscall::{MapFlags, ProtectionFlags, SyscallError};
 use x86_64::{
+    VirtAddr,
     structures::{
         idt::PageFaultErrorCode,
         paging::{Page, PageSize, Size4KiB},
     },
-    VirtAddr,
 };
 
 use crate::{allocator::align_up, cpu::current_process};

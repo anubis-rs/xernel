@@ -4,7 +4,7 @@ use x86_64::structures::paging::PageTableFlags;
 use x86_64::{PhysAddr, VirtAddr};
 
 use crate::acpi::ACPI;
-use crate::mem::{paging::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};
+use crate::mem::{HIGHER_HALF_OFFSET, paging::KERNEL_PAGE_MAPPER};
 
 pub struct IOApic {
     id: u8,
@@ -14,13 +14,17 @@ pub struct IOApic {
 
 impl IOApic {
     pub unsafe fn read(&self, reg: u32) -> u32 {
-        ((self.address) as *mut u32).write_volatile(reg);
-        ((self.address + 0x10) as *const u32).read_volatile()
+        unsafe {
+            ((self.address) as *mut u32).write_volatile(reg);
+            ((self.address + 0x10) as *const u32).read_volatile()
+        }
     }
 
     pub unsafe fn write(&mut self, reg: u32, val: u32) {
-        ((self.address) as *mut u32).write_volatile(reg);
-        ((self.address + 0x10) as *mut u32).write_volatile(val);
+        unsafe {
+            ((self.address) as *mut u32).write_volatile(reg);
+            ((self.address + 0x10) as *mut u32).write_volatile(val);
+        }
     }
 
     pub unsafe fn mask_irq(&mut self) {
@@ -65,9 +69,10 @@ impl IOApic {
         // creating own write value for higher reigster, since only receiver apic id is set in the
         // reg
         let destination_field: u32 = (apic_id as u32) << 24;
-
-        self.write(redirection_entry, val);
-        self.write(redirection_entry + 1, destination_field);
+        unsafe {
+            self.write(redirection_entry, val);
+            self.write(redirection_entry + 1, destination_field);
+        }
     }
 
     pub fn init(&mut self, apic_info: &Apic) {
