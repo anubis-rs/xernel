@@ -17,6 +17,7 @@ use super::{
 
 pub static VFS: Spinlock<Vfs> = Spinlock::new(Vfs::new());
 
+// FIXME: Move global vfs spinlock to smaller spinlocks in the vfs struct itself
 pub struct Vfs {
     mount_point_list: Vec<(PathBuf, Arc<Spinlock<Mount>>)>,
     drivers: Vec<(String, Arc<Spinlock<dyn VfsOps>>)>,

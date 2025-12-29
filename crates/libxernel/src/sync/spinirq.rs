@@ -1,7 +1,7 @@
 use crate::sync::Spinlock;
 use core::arch::asm;
 use core::ops::{Deref, DerefMut};
-use core::sync::atomic::{compiler_fence, Ordering};
+use core::sync::atomic::{Ordering, compiler_fence};
 
 use super::SpinlockGuard;
 

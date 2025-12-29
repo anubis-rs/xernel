@@ -53,12 +53,12 @@ impl VNode {
 }
 
 impl VNode {
-    pub fn close(&self) {
-        self.v_data_op.lock().close();
-    }
-
     pub fn access(&self) {
         self.v_data_op.lock().access()
+    }
+
+    pub fn close(&self) {
+        self.v_data_op.lock().close();
     }
 
     pub fn create(&mut self, path: String, v_type: VType) -> Result<Arc<Spinlock<VNode>>> {
@@ -146,12 +146,12 @@ impl VNode {
 pub trait VNodeOperations {
     /// Aborts an in-progress operation.
     fn abortop(&self) {
-        todo!()
+        unimplemented!()
     }
 
     /// Checks access permissions on a file.
     fn access(&self) {
-        todo!()
+        unimplemented!()
     }
 
     /// Closes a file.
@@ -162,17 +162,17 @@ pub trait VNodeOperations {
 
     /// Synchronizes the file with on-disk contents.
     fn fsync(&self) {
-        todo!()
+        unimplemented!()
     }
 
     /// Gets a file's attributes.
     fn getattr(&self) {
-        todo!()
+        unimplemented!()
     }
 
     /// Marks the vnode as inactive.
     fn inactive(&self) {
-        todo!()
+        unimplemented!()
     }
 
     /// Performs an ioctl on a file.
@@ -180,14 +180,21 @@ pub trait VNodeOperations {
 
     /// Creates a new hard link for a file.
     fn link(&self) {
-        todo!()
+        unimplemented!()
     }
 
     /// Performs a path name lookup.
     fn lookup(&self, path: &PathBuf) -> Result<Arc<Spinlock<VNode>>>;
 
     /// Creates a new special file (a device or a named pipe).
-    fn mknod(&self);
+    fn mknod(&self) {
+        unimplemented!();
+    }
+
+    /// Map file into user address space
+    fn mmap(&self) {
+        unimplemented!();
+    }
 
     /// Opens a file.
     fn open(&self);
@@ -196,33 +203,49 @@ pub trait VNodeOperations {
     fn read(&self, buf: &mut [u8]) -> Result<usize>;
 
     /// Reads directory entries from a directory.
-    fn readdir(&self);
+    fn readdir(&self) {
+        unimplemented!();
+    }
 
     /// Reads the contents of a symbolic link.
-    fn readlink(&self);
+    fn readlink(&self) {
+        unimplemented!();
+    }
 
     /// Reclaims the vnode.
-    fn reclaim(&self);
+    fn reclaim(&self) {
+        unimplemented!();
+    }
 
     /// Removes a file.
-    fn remove(&self);
+    fn remove(&self) {
+        unimplemented!();
+    }
 
     /// Renames a file.
-    fn rename(&self);
+    fn rename(&self) {
+        unimplemented!();
+    }
 
     /// Creates a new directory.
-    fn mkdir(&self);
+    fn mkdir(&self) {
+        unimplemented!();
+    }
 
     /// Removes a directory.
-    fn rmdir(&self);
+    fn rmdir(&self) {
+        unimplemented!();
+    }
 
     /// Sets a file's attributes.
     fn setattr(&self) {
-        todo!()
+        unimplemented!()
     }
 
     /// Creates a new symbolic link for a file.
-    fn symlink(&self);
+    fn symlink(&self) {
+        unimplemented!();
+    }
 
     /// Writes a chunk of data to a file.
     fn write(&mut self, buf: &mut [u8]) -> Result<usize>;
