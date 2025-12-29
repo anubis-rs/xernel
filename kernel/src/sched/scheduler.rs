@@ -1,4 +1,4 @@
-use crate::arch::amd64::gdt::GDT_BSP;
+use crate::arch::amd64::gdt::{set_tss_kernel_stack, GDT_BSP};
 use crate::arch::amd64::switch_context;
 use crate::cpu::current_cpu;
 use crate::timer::timer_event::TimerEvent;
@@ -83,9 +83,13 @@ pub fn switch_threads(old: Arc<Thread>, new: Arc<Thread>) {
 
             DS::set_reg(GDT_BSP.1.user_data_selector);
 
+            let kernel_stack_top = new.kernel_stack.as_ref().unwrap().kernel_stack_top;
+            
             current_cpu()
                 .kernel_stack
-                .set(new.kernel_stack.as_ref().unwrap().kernel_stack_top);
+                .set(kernel_stack_top);
+            
+            set_tss_kernel_stack(kernel_stack_top as u64);
         }
     }
 

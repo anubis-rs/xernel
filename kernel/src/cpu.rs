@@ -122,7 +122,7 @@ pub struct Cpu {
     user_space_stack: usize,
     pub kernel_stack: Cell<usize>,
 
-    cpu_id: usize,
+    pub cpu_id: usize,
     pub lapic_id: u32,
     pub run_queue: Spinlock<VecDeque<Arc<Thread>>>,
     pub wait_queue: Spinlock<VecDeque<Arc<Thread>>>,

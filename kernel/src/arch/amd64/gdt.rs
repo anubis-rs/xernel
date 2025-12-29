@@ -122,3 +122,23 @@ pub fn init_ap(ap_id: usize) {
         load_tss(tss_selector);
     }
 }
+
+pub fn set_tss_kernel_stack(stack_top: u64) {
+    unsafe {
+        // For BSP
+        if TSS.is_completed() {
+            let tss = &*TSS as *const TaskStateSegment as *mut TaskStateSegment;
+            (*tss).privilege_stack_table[0] = VirtAddr::new(stack_top);
+            return;
+        }
+
+        // For APs
+        let gdt_ap = GDT_AP.lock();
+        let ap_id = crate::cpu::current_cpu().cpu_id;
+        
+        if let Some(gdt) = gdt_ap.iter().find(|g| g.ap_id == ap_id) {
+            let tss = gdt.tss as *const TaskStateSegment as *mut TaskStateSegment;
+            (*tss).privilege_stack_table[0] = VirtAddr::new(stack_top);
+        }
+    }
+}

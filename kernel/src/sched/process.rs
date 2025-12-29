@@ -8,7 +8,7 @@ use crate::fs::file::File;
 use crate::fs::vnode::VNode;
 use crate::mem::frame::FRAME_ALLOCATOR;
 use crate::mem::vm::{protflags_from_ptflags, Vm};
-use crate::mem::{HIGHER_HALF_OFFSET, KERNEL_THREAD_STACK_TOP, PROCESS_START, STACK_SIZE};
+use crate::mem::{HIGHER_HALF_OFFSET, KERNEL_THREAD_STACK_TOP, STACK_SIZE};
 use crate::VFS;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -122,7 +122,7 @@ impl Process {
 
         for ph in elf.segments().expect("Failed to get program headers") {
             if ph.p_type == elf::abi::PT_LOAD {
-                let start = ph.p_vaddr + PROCESS_START;
+                let start = ph.p_vaddr;
                 let end = start + ph.p_memsz;
 
                 let page_start = align_down(start, Size4KiB::SIZE);
@@ -172,7 +172,7 @@ impl Process {
             }
         }
 
-        VirtAddr::new(elf.ehdr.e_entry + PROCESS_START)
+        VirtAddr::new(elf.ehdr.e_entry)
     }
 
     pub fn next_tid(&mut self) -> usize {
