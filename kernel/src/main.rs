@@ -78,6 +78,16 @@ fn panic(info: &PanicInfo) -> ! {
     loop {}
 }
 
+// TODO: Use the discussed solution for TSS
+// TODO: Proper Error handling across the whole kernel (error enums etc.)
+// TODO: Replace linked_list_allocator with a self written allocator
+// TODO: Implement VFS correctly and devFS
+// TODO: Implement tmpfs
+// TODO: Convenience functions for creating timer and directly adding it to the queue
+// TODO: Same for dpcs
+// FIXME: Fix deadlock which occures after some time in timer interrupt handler
+// TODO: Implement some sort of overview which threads holds which locks
+
 // define the kernel's entry point function
 #[unsafe(no_mangle)]
 extern "C" fn kernel_main() -> ! {
@@ -164,6 +174,7 @@ extern "C" fn kernel_main() -> ! {
     hcf();
 }
 
+// TODO: Do something useful in the kernel main thread
 pub fn kmain_thread() {
     let mut var = 1;
 

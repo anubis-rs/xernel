@@ -67,11 +67,13 @@ impl PathBuf {
         )
     }
 
-    // TODO:
-    pub fn push(&mut self) {}
+    pub fn push(&mut self) {
+        todo!()
+    }
 
-    // TODO:
-    pub fn pop(&mut self) {}
+    pub fn pop(&mut self) {
+        todo!()
+    }
 }
 
 impl From<String> for PathBuf {
