@@ -78,7 +78,6 @@ fn panic(info: &PanicInfo) -> ! {
     loop {}
 }
 
-// TODO: Use the discussed solution for TSS
 // TODO: Proper Error handling across the whole kernel (error enums etc.)
 // TODO: Replace linked_list_allocator with a self written allocator
 // TODO: Implement VFS correctly and devFS
