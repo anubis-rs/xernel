@@ -94,6 +94,8 @@ extern "C" fn asm_syscall_handler() {
 
     swapgs # TODO: fix the kernel to not rely on the KERNEL_GS_BASE MSR containing the cpu_data
 
+    and rsp, -16 # align stack to 16 bytes
+
     # backup registers for sysretq
     push rbp
     push rbx # save callee-saved registers
@@ -167,7 +169,8 @@ fn syscall_arg_to_string(ptr: usize) -> Option<String> {
 }
 
 #[no_mangle]
-extern "sysv64" fn general_syscall_handler(data: SyscallData) -> i64 {
+extern "sysv64" fn general_syscall_handler(data: *const SyscallData) -> i64 {
+    let data = unsafe { &*data };
     // println!("general_syscall_handler: {:#x?}", data);
 
     let result = match data.syscall_number {
@@ -188,7 +191,7 @@ extern "sysv64" fn general_syscall_handler(data: SyscallData) -> i64 {
 
             match message {
                 Some(message) => {
-                    info!("{}", message);
+                    dbg!("{}", message);
                     Ok(0)
                 }
                 None => Err(SyscallError::InvalidArgument),
