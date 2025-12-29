@@ -1,11 +1,10 @@
 use acpi_parsing::platform::interrupt::Apic;
 use alloc::vec::Vec;
-use x86_64::structures::paging::PageTableFlags;
-use x86_64::{PhysAddr, VirtAddr};
+use libxernel::addr::{PhysAddr, VirtAddr};
+use libxernel::paging::PageTableFlags;
 
 use crate::acpi::ACPI;
 use crate::mem::{paging::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};
-use crate::{dbg, debug};
 
 pub struct IOApic {
     id: u8,

@@ -1,13 +1,13 @@
 use core::fmt;
 use core::fmt::Write;
 
-use x86_64::instructions::port::Port;
+use libxernel::x86_64::Port;
 
 struct Writer;
 
 impl core::fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        let mut port = Port::new(0xe9);
+        let mut port: Port<u8> = Port::new(0xe9);
 
         for c in s.chars() {
             unsafe {

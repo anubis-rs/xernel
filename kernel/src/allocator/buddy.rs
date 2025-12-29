@@ -3,7 +3,7 @@
 
 use super::{align_up, AllocStats, Error, Result};
 use core::{cmp, ptr::NonNull};
-use x86_64::VirtAddr;
+use libxernel::addr::VirtAddr;
 
 struct ListNode {
     next: Option<NonNull<ListNode>>,

@@ -35,15 +35,13 @@ use core::panic::PanicInfo;
 use core::time::Duration;
 use fs::initramfs;
 use libxernel::sync::Spinlock;
+use libxernel::x86_64::interrupts;
 use limine::*;
-use x86_64::instructions::interrupts;
 
 use arch::amd64::gdt;
 
-use x86_64::structures::paging::Page;
-use x86_64::structures::paging::PageTableFlags;
-use x86_64::structures::paging::Size2MiB;
-use x86_64::VirtAddr;
+use libxernel::addr::VirtAddr;
+use libxernel::paging::{Page, PageTableFlags, Size2MiB};
 
 use crate::acpi::hpet;
 use crate::arch::amd64;
