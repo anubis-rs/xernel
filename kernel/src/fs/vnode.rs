@@ -53,16 +53,12 @@ impl VNode {
 }
 
 impl VNode {
-    pub fn close(&self) {
-        self.v_data_op.lock().close();
-    }
-
     pub fn access(&self) {
         self.v_data_op.lock().access()
     }
 
-    pub fn bmap(&self) {
-        self.v_data_op.lock().bmap()
+    pub fn close(&self) {
+        self.v_data_op.lock().close();
     }
 
     pub fn create(&mut self, path: String, v_type: VType) -> Result<Arc<Spinlock<VNode>>> {
@@ -99,10 +95,6 @@ impl VNode {
 
     pub fn open(&self) {
         self.v_data_op.lock().open()
-    }
-
-    pub fn pathconf(&self) {
-        self.v_data_op.lock().pathconf()
     }
 
     pub fn read(&self, buf: &mut [u8]) -> Result<usize> {
@@ -148,10 +140,6 @@ impl VNode {
     pub fn write(&self, buf: &mut [u8]) -> Result<usize> {
         self.v_data_op.lock().write(buf)
     }
-
-    pub fn kqfilter(&self) {
-        self.v_data_op.lock().kqfilter()
-    }
 }
 
 /// This trait maps logical operations to real functions. It is file system specific as the actions taken by each operation depend heavily on the file system where the file resides.
@@ -163,20 +151,6 @@ pub trait VNodeOperations {
 
     /// Checks access permissions on a file.
     fn access(&self) {
-        unimplemented!()
-    }
-
-    fn advlock(&self) {
-        unimplemented!()
-    }
-
-    /// Maps a logical block number to a physical block number.
-    fn bmap(&self) {
-        unimplemented!()
-    }
-
-    /// Writes a system buffer.
-    fn bwrite(&self) {
         unimplemented!()
     }
 
@@ -213,98 +187,66 @@ pub trait VNodeOperations {
     fn lookup(&self, path: &PathBuf) -> Result<Arc<Spinlock<VNode>>>;
 
     /// Creates a new special file (a device or a named pipe).
-    fn mknod(&self);
+    fn mknod(&self) {
+        unimplemented!();
+    }
+
+    /// Map file into user address space
+    fn mmap(&self) {
+        unimplemented!();
+    }
 
     /// Opens a file.
     fn open(&self);
-
-    /// Returns pathconf information.
-    fn pathconf(&self) {
-        unimplemented!()
-    }
 
     /// Reads a chunk of data from a file.
     fn read(&self, buf: &mut [u8]) -> Result<usize>;
 
     /// Reads directory entries from a directory.
-    fn readdir(&self);
+    fn readdir(&self) {
+        unimplemented!();
+    }
 
     /// Reads the contents of a symbolic link.
-    fn readlink(&self);
+    fn readlink(&self) {
+        unimplemented!();
+    }
 
     /// Reclaims the vnode.
-    fn reclaim(&self);
+    fn reclaim(&self) {
+        unimplemented!();
+    }
 
     /// Removes a file.
-    fn remove(&self);
+    fn remove(&self) {
+        unimplemented!();
+    }
 
     /// Renames a file.
-    fn rename(&self);
+    fn rename(&self) {
+        unimplemented!();
+    }
 
     /// Creates a new directory.
-    fn mkdir(&self);
+    fn mkdir(&self) {
+        unimplemented!();
+    }
 
     /// Removes a directory.
-    fn rmdir(&self);
+    fn rmdir(&self) {
+        unimplemented!();
+    }
 
     /// Sets a file's attributes.
     fn setattr(&self) {
         unimplemented!()
     }
 
-    /// Performs a file transfer between the file system's backing store and memory.
-    fn strategy(&self) {
-        unimplemented!()
-    }
-
     /// Creates a new symbolic link for a file.
-    fn symlink(&self);
+    fn symlink(&self) {
+        unimplemented!();
+    }
 
     /// Writes a chunk of data to a file.
     fn write(&mut self, buf: &mut [u8]) -> Result<usize>;
-
-    fn kqfilter(&self) {
-        unimplemented!()
-    }
-
-    fn print(&self) {
-        unimplemented!()
-    } // OpenBSD has it, NetBSD not?!
-
-    /// Performs a fcntl on a file.
-    fn fcntl(&self) {
-        unimplemented!()
-    } // NetBSD has it, OpenBSD not?!
-    /// Performs a poll on a file.
-    fn poll(&self) {
-        unimplemented!()
-    } // NetBSD has it, OpenBSD not?!
-    /// Revoke access to a vnode and all aliases.
-    fn revoke(&self) {
-        unimplemented!()
-    } // NetBSD has it, OpenBSD not?!
-    /// Maps a file on a memory region.
-    fn mmap(&self) {
-        unimplemented!()
-    } // NetBSD has it, OpenBSD not?!
-    /// Test and inform file system of seek
-    fn seek(&self) {
-        unimplemented!()
-    } // NetBSD has it, OpenBSD not?!
-    /// Truncates a file.
-    fn truncate(&self) {
-        unimplemented!()
-    } // NetBSD has it, OpenBSD not?!
-    /// Updates a file's times.
-    fn update(&self) {
-        unimplemented!()
-    } // NetBSD has it, OpenBSD not?!
-    /// Reads memory pages from the file.
-    fn getpages(&self) {
-        unimplemented!()
-    } // NetBSD has it, OpenBSD not?!
-    /// Writes memory pages to the file.
-    fn putpages(&self) {
-        unimplemented!()
-    } // NetBSD has it, OpenBSD not?!
 }

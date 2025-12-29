@@ -42,3 +42,4 @@ pub fn load_initramfs() {
 pub fn initramfs_read(path: &str) -> Option<Vec<u8>> {
     initramfs.lock().get(&path.to_string()).cloned()
 }
+// TODO: Add initramfs folder to archive and pass it to limine. Parse the archive here and add the folder and files to the tmpfs

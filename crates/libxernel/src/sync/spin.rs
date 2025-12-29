@@ -8,7 +8,7 @@ use core::{
 use crate::on_drop::OnDrop;
 
 #[cfg(feature = "kernel")]
-use crate::ipl::{raise_ipl, splx, IPL};
+use crate::ipl::{IPL, raise_ipl, splx};
 
 /// Simple data locking structure using a spin loop.
 ///

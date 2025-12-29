@@ -7,6 +7,9 @@ use super::{file::File, vfs::VFS};
 pub fn sys_open(path: String, mode: u64) -> Result<isize> {
     let vfs = VFS.lock();
 
+    // FIXME: If vfs gets locked here whenever a file system syscall is issued, two files could
+    // never get processed by two differenct processes, which should be possible
+
     let node = vfs.vn_open(path, mode)?;
 
     let file_handle = File::new(node);
