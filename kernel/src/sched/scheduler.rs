@@ -84,11 +84,9 @@ pub fn switch_threads(old: Arc<Thread>, new: Arc<Thread>) {
             DS::set_reg(GDT_BSP.1.user_data_selector);
 
             let kernel_stack_top = new.kernel_stack.as_ref().unwrap().kernel_stack_top;
-            
-            current_cpu()
-                .kernel_stack
-                .set(kernel_stack_top);
-            
+
+            current_cpu().kernel_stack.set(kernel_stack_top);
+
             set_tss_kernel_stack(kernel_stack_top as u64);
         }
     }

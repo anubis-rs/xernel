@@ -33,7 +33,7 @@ pub fn init() {
         true,
     );
 
-    let period = (read(0) >> 32) & u64::MAX;
+    let period = read(0) >> 32;
 
     assert!(period != 0);
 

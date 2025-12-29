@@ -5,7 +5,6 @@ use x86_64::{PhysAddr, VirtAddr};
 
 use crate::acpi::ACPI;
 use crate::mem::{paging::KERNEL_PAGE_MAPPER, HIGHER_HALF_OFFSET};
-use crate::{dbg, debug};
 
 pub struct IOApic {
     id: u8,
