@@ -1,6 +1,6 @@
 pub use self::once::Once;
 pub use self::rwlock::{ReadGuard, RwLock, WriteGuard};
-pub use self::spin::{SpinlockGuard, Spinlock};
+pub use self::spin::{Spinlock, SpinlockGuard};
 
 mod once;
 mod rwlock;
